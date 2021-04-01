@@ -1,0 +1,11 @@
+{
+    "private": true,
+    "workspaces": ["local", "local-webui", "remote", "remote-webui"],
+
+    "scripts": {
+      "local": "yarn workspace local",
+      "local-webui": "yarn workspace local-webui",
+      "remote": "yarn workspace remote",
+      "remote-webui": "yarn workspace remote-webui"
+    }
+  }
