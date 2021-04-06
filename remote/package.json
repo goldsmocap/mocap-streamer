@@ -7,7 +7,7 @@
   "scripts": {
     "dev:build": "tsc --watch",
     "dev": "concurrently \"yarn dev:build\" \"nodemon dist/index.js\"",
-    "build": "tsc",
+    "build": "tsc --sourceMap false",
     "start": "node dist/index.js"
   },
   "dependencies": {

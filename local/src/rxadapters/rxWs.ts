@@ -4,19 +4,14 @@ import { logger } from "../log";
 
 export function observableFromWs<T>(ws: Socket): Rx.Observable<T> {
   return new Rx.Observable<T>((observer) => {
-    ws.on("message", (t: T) => {
-      logger.info(`ws received msg from server`);
-      observer.next((t as any).data);
-    });
+    ws.on("message", (t: T) => observer.next((t as any).data));
     ws.on("disconnect", () => observer.complete());
   });
 }
 
 export function observerToWs(ws: Socket): Rx.Observer<any> {
   return {
-    next: (t) => {
-      ws.emit("message", t);
-    },
+    next: (t) => ws.emit("message", t),
     error: (_err) => ws.close(),
     complete: () => ws.close(),
   };

@@ -4,7 +4,14 @@ import { Socket } from "socket.io-client";
 import { observableFromWs } from "../../rxadapters/rxWs";
 import { logger } from "../../log";
 
-export function wsSource(ws: Socket): Promise<ConnectableObservable<any>> {
+export interface WsSourceOptions {
+  debug?: boolean;
+}
+
+export function wsSource(
+  ws: Socket,
+  options: WsSourceOptions
+): Promise<ConnectableObservable<any>> {
   // create a new subject
   const subject = new Subject<any>();
 
@@ -13,6 +20,13 @@ export function wsSource(ws: Socket): Promise<ConnectableObservable<any>> {
   const multicasted = observable.pipe(
     multicast(subject)
   ) as ConnectableObservable<any>;
+
+  if (options.debug ?? false) {
+    multicasted.subscribe({
+      next: (buf) => logger.info(`WsSource received ${buf.length}`),
+    });
+    multicasted.connect();
+  }
 
   return Promise.resolve(multicasted);
 }

@@ -37,6 +37,8 @@ Axis-Streamer sends packets to a client in this manner so we need to manually te
 ports we're expecting packets to be delivered to and ask it to route traffic to those ports to our
 device. This is known as Port Forwarding or Port Mapping.
 
+**Unity complaining about port reuse (not receiving data from axis-neuron but you are receiving data from the remote axis-streamer)**
+1. This is most likely due to binding a UDP source to 0.0.0.0. Using this address (which is specified by default if no address is provided to bind the UDP socket to) will bind the UDP socket to ALL addresses blocking anything (Unity included) from binding to any port to receive data from axis-neuron.
 
 **Axis-Streamer not receiving data from Axis-Neuron**
 

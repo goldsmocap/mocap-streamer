@@ -16,7 +16,7 @@ interface UdpSource {
 
 interface WsSource {
   kind: "WsSource";
-  someOtherVar: number;
+  debug?: boolean;
 }
 
 type Source = UdpSource | WsSource;
@@ -50,7 +50,7 @@ export function sourceRoutes(ws: Socket): Router {
         break;
 
       case "WsSource":
-        wsSource(ws)
+        wsSource(ws, { debug: source.debug })
           .then((observable) => {
             sources.push([label, observable]);
             res.send();

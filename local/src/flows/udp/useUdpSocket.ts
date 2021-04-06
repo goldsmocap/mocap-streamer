@@ -8,8 +8,14 @@ export function useUdpSocket(
   return new Promise((resolve, reject) => {
     const socket = dgram.createSocket("udp4");
 
-    socket.on("error", (err) => reject(err));
-    socket.on("listening", () => resolve(socket));
+    socket.on("error", (err) => {
+      logger.info(`Oops we got an error ${err}\n${JSON.stringify(err)}`);
+      reject(err);
+    });
+    socket.on("listening", () => {
+      logger.info(`UDP socket receive size: ${socket.getRecvBufferSize()}`);
+      resolve(socket);
+    });
 
     if (address) {
       logger.info(`⚡ binding UDP socket to ${address}:${port}`);

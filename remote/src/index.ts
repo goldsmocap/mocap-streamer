@@ -16,7 +16,7 @@ app.use(express.json()); // json body parser
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:4000", "http://localhost:4001"],
+    origin: ["http://localhost:4000", "http://localhost:4001", "*"],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -41,7 +41,6 @@ io.on("connection", (socket) => {
     clientMap
       .filter(([from]) => from.socketId === socket.id)
       .forEach(([from, to]) => {
-        logger.info(`${msg.length} from: ${from.name}`);
         io.to(to.socketId).emit<any>("message", { from: from.name, data: msg });
       });
   });

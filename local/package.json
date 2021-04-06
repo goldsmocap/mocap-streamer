@@ -8,7 +8,7 @@
     "dev:build": "tsc --watch",
     "dev": "concurrently \"yarn dev:build\" \"nodemon dist/index.js\"",
     "build": "tsc && yarn workspace local-webui build",
-    "pkg": "yarn build && pkg dist/index.js --out-path bin/",
+    "pkg": "yarn build && pkg dist/bundle.js --out-path bin/",
     "start": "node dist/index.js"
   },
   "dependencies": {

@@ -26,7 +26,9 @@ export function udpSource(
     ) as ConnectableObservable<any>;
 
     if (options.debug ?? false) {
-      multicasted.subscribe({ next: (buf) => console.log(buf.length) });
+      multicasted.subscribe({
+        next: (buf) => logger.info(`UdpSource received ${buf.length}`),
+      });
       multicasted.connect();
     }
 
