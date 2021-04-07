@@ -26,14 +26,15 @@ let clients: Client[] = [];
 let clientMap: [Client, Client][] = [];
 
 io.on("connection", (socket) => {
-  logger.info(`⚡ Unknown client connected... awaiting join message.`, {
-    socketId: socket.id,
-  });
-
   // on disconnect remove this client and any mapping to or from the
   // disconnected socket.
   socket.on("disconnect", () => {
     clients = clients.filter((client) => client.socketId !== socket.id);
+  });
+
+  // handle webui messages
+  socket.on("webui/join", () => {
+    socket.join("webui");
   });
 
   // on receipt of a message pass it on to all mapped clients

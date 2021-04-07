@@ -5,8 +5,8 @@ import { useUdpSocket } from "./useUdpSocket";
 import { logger } from "../../log";
 
 export interface UdpSourceOptions {
-  address: string;
   port: number;
+  address?: string;
   debug?: boolean;
 }
 

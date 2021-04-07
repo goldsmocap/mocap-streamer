@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { ConnectableObservable } from "rxjs";
-import { Socket } from "socket.io-client";
+import { useWs } from "../useWs";
 import { udpSource } from "../flows/udp";
 import { wsSource } from "../flows/ws";
 import { logger } from "../log";
@@ -27,7 +27,7 @@ export const sources: [string, ConnectableObservable<any>][] = [];
 
 // Routes
 ///////////////////////////////////////////////////////////////////////////////
-export function sourceRoutes(ws: Socket): Router {
+export function sourceRoutes(): Router {
   const router = express.Router();
 
   router.post("/source", (req, res) => {
@@ -50,12 +50,17 @@ export function sourceRoutes(ws: Socket): Router {
         break;
 
       case "WsSource":
-        wsSource(ws, { debug: source.debug })
-          .then((observable) => {
-            sources.push([label, observable]);
-            res.send();
-          })
-          .catch((err) => res.status(500).send(err));
+        const ws = useWs();
+        if (ws) {
+          wsSource(ws, { debug: source.debug })
+            .then((observable) => {
+              sources.push([label, observable]);
+              res.send();
+            })
+            .catch((err) => res.status(500).send(err));
+        } else {
+          res.status(401).send("You must join first.");
+        }
         break;
     }
   });

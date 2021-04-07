@@ -1,10 +1,7 @@
 module.exports = {
   projects: [
     {
-      root: "client-webui",
-    },
-    {
-      root: "server-webui",
+      root: "local-webui",
     },
   ],
 };

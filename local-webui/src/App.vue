@@ -1,30 +1,22 @@
 <template>
   <div id="app">
-    <div>
-      <input type="text" v-model="clientName" />
-      <button @click="join">Join</button>
-    </div>
-    <div>
-      <input type="text" v-model="connectTo" />
-      <button @click="connect">Connect</button>
-    </div>
+    <join />
+
+    <b-sidebar bg-variant="primary" no-header-close visible> </b-sidebar>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "@vue/composition-api";
+import { computed, defineComponent, ref } from "@vue/composition-api";
 import axios from "axios";
+import Join from "./components/Join.vue";
 
 export default defineComponent({
-  setup() {
-    const clientName = ref("");
-    function join() {
-      axios
-        .get(`api/remote/join/${clientName.value}`)
-        .then((res) => {})
-        .catch((err) => {});
-    }
+  components: {
+    Join,
+  },
 
+  setup(props, { root }) {
     const connectTo = ref("");
     function connect() {
       axios
@@ -34,9 +26,6 @@ export default defineComponent({
     }
 
     return {
-      clientName,
-      join,
-
       connectTo,
       connect,
     };

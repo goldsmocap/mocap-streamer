@@ -1,20 +1,22 @@
 import path from "path";
 import express from "express";
 import cors from "cors";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { remoteRoutes, sinkRoutes, sourceRoutes } from "./routes";
 import { logger } from "./log";
+
+let ws: Socket | undefined = undefined;
 
 export default function run() {
   // setup express with websocket
   ///////////////////////////////////////////////////////////////////////////////
   const app = express();
 
-  const AXIS_STREAMER_SERVER_URL =
-    process.env.NODE_ENV === "production"
-      ? "http://46.101.24.208"
-      : "http://localhost:3000";
-  const ws = io(AXIS_STREAMER_SERVER_URL);
+  // const AXIS_STREAMER_SERVER_URL =
+  //   process.env.NODE_ENV === "production"
+  //     ? "http://46.101.24.208"
+  //     : "http://localhost:3000";
+  // const ws = io(AXIS_STREAMER_SERVER_URL);
 
   // apply middleware
   ///////////////////////////////////////////////////////////////////////////////
@@ -23,9 +25,9 @@ export default function run() {
 
   // initialise routes
   ///////////////////////////////////////////////////////////////////////////////
-  app.use("/api/flow", sourceRoutes(ws));
-  app.use("/api/flow", sinkRoutes(ws));
-  app.use("/api/remote", remoteRoutes(ws));
+  app.use("/api/flow", sourceRoutes());
+  app.use("/api/flow", sinkRoutes());
+  app.use("/api/remote", remoteRoutes());
   app.use(express.static(path.join(__dirname, "public")));
 
   // start the Express server
