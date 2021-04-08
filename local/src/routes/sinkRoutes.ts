@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { Observer } from "rxjs";
-import { Socket } from "socket.io-client";
+import { getRemoteWs } from "../remote";
 import { sources } from "./sourceRoutes";
 import { udpSink } from "../flows/udp";
 import { wsSink } from "../flows/ws";
@@ -51,7 +51,7 @@ function connectFlows(
   return `unable to find flow with name ${upstream}`;
 }
 
-export function sinkRoutes(ws: Socket): Router {
+export function sinkRoutes(): Router {
   const router = express.Router();
 
   router.post("/sink", (req, res) => {
@@ -71,17 +71,18 @@ export function sinkRoutes(ws: Socket): Router {
             if (fail) res.status(400).send(fail);
             res.send();
           })
-          .catch((err) => res.status(500).send(err));
+          .catch((err) => res.status(400).send(err));
         break;
 
       case "WsSink":
-        wsSink(ws)
+        getRemoteWs()
+          .then((ws) => wsSink(ws))
           .then((observer) => {
             const fail = connectFlows(sink.upstream, observer);
             if (fail) res.status(400).send(fail);
             res.send();
           })
-          .catch((err) => res.status(500).send(err));
+          .catch((err) => res.status(400).send(err));
         break;
     }
   });

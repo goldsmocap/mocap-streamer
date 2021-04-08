@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { ConnectableObservable } from "rxjs";
-import { Socket } from "socket.io-client";
+import { getRemoteWs } from "../remote";
 import { udpSource } from "../flows/udp";
 import { wsSource } from "../flows/ws";
 import { logger } from "../log";
@@ -27,7 +27,7 @@ export const sources: [string, ConnectableObservable<any>][] = [];
 
 // Routes
 ///////////////////////////////////////////////////////////////////////////////
-export function sourceRoutes(ws: Socket): Router {
+export function sourceRoutes(): Router {
   const router = express.Router();
 
   router.post("/source", (req, res) => {
@@ -46,16 +46,17 @@ export function sourceRoutes(ws: Socket): Router {
             sources.push([label, observable]);
             res.send();
           })
-          .catch((err) => res.status(500).send(err));
+          .catch((err) => res.status(400).send(err));
         break;
 
       case "WsSource":
-        wsSource(ws, { debug: source.debug })
+        getRemoteWs()
+          .then((ws) => wsSource(ws, { debug: source.debug }))
           .then((observable) => {
             sources.push([label, observable]);
             res.send();
           })
-          .catch((err) => res.status(500).send(err));
+          .catch((err) => res.status(400).send(err));
         break;
     }
   });
