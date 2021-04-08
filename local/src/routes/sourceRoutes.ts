@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { ConnectableObservable } from "rxjs";
-import { useWs } from "../useWs";
+import { getRemoteWs } from "../websockets";
 import { udpSource } from "../flows/udp";
 import { wsSource } from "../flows/ws";
 import { logger } from "../log";
@@ -50,7 +50,7 @@ export function sourceRoutes(): Router {
         break;
 
       case "WsSource":
-        const ws = useWs();
+        const ws = getRemoteWs();
         if (ws) {
           wsSource(ws, { debug: source.debug })
             .then((observable) => {

@@ -16,9 +16,7 @@ app.use(express.json()); // json body parser
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:4000", "http://localhost:4001", "*"],
-    methods: ["GET", "POST"],
-    credentials: true,
+    origin: "*",
   },
 });
 
@@ -32,9 +30,9 @@ io.on("connection", (socket) => {
     clients = clients.filter((client) => client.socketId !== socket.id);
   });
 
-  // handle webui messages
-  socket.on("webui/join", () => {
-    socket.join("webui");
+  socket.on("ui", () => {
+    socket.join("ui_room");
+    logger.info(`🖌️ UI registered.`);
   });
 
   // on receipt of a message pass it on to all mapped clients
@@ -64,8 +62,11 @@ io.on("connection", (socket) => {
     }
 
     // add the client
-    logger.info(`⚡ Client ${name} joined.`, { socketId: socket.id });
+    logger.info(`⚡ Client ${name} joined.`);
     clients.push({ name, socketId: socket.id });
+
+    // send the client list and mappings to all UIs
+    io.in("ui_room").emit("remote/state", { clients, clientMap });
     callback(ok());
   });
 
@@ -94,7 +95,7 @@ io.on("connection", (socket) => {
 
 // start the Express server
 ///////////////////////////////////////////////////////////////////////////////
-const port = 3000; // default port to listen
+const port = 3000; // default port to listen on
 httpServer.listen(port, () => {
-  logger.info(`server started at http://localhost:${port}`);
+  logger.info(`🎉 Server started at http://localhost:${port}`);
 });

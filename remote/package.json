@@ -1,5 +1,5 @@
 {
-  "name": "axis-streamer-server",
+  "name": "remote",
   "version": "0.0.1",
   "description": "Stream aggregator for axis-neuron",
   "author": "Oliver Winks",

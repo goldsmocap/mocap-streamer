@@ -1,8 +1,8 @@
+import "./plugins/composition-api"; // MUST BE FIRST IMPORT
+
 import Vue from "vue";
-import VueCompositionAPI from "@vue/composition-api";
 import axios from "axios";
 import { BootstrapVue, IconsPlugin } from "bootstrap-vue";
-import validator from "validator";
 import { ValidationProvider, ValidationObserver, extend } from "vee-validate";
 import * as rules from "vee-validate/dist/rules";
 import App from "./App.vue";
@@ -12,12 +12,16 @@ import "bootstrap-vue/dist/bootstrap-vue.css";
 import "./assets/custom.scss";
 
 // setup axios
+///////////////////////////////////////////////////////////////////////////////
 axios.defaults.baseURL = "http://localhost:4000";
 
+// setup bootstrap
+///////////////////////////////////////////////////////////////////////////////
 Vue.use(BootstrapVue);
 Vue.use(IconsPlugin);
-Vue.use(VueCompositionAPI);
 
+// setup vee validate
+///////////////////////////////////////////////////////////////////////////////
 Vue.component("ValidationProvider", ValidationProvider);
 Vue.component("ValidationObserver", ValidationObserver);
 
@@ -27,8 +31,14 @@ for (const [rule, validation] of Object.entries(rules)) {
     ...validation,
   });
 }
-extend("isFqdnOrIp", (str) => validator.isFQDN(str) || validator.isIP(str));
+extend("isIpWithPort", (str) => {
+  const urlRegex = /^(https?:\/\/)((0|[1-9][0-9]{0,2})\.){3}(0|[1-9][0-9]{0,2})(:(0|[1-9][0-9]{0,4}))?$/;
+  const matches = str.match(urlRegex);
+  return matches !== null;
+});
 
+// setup Vue
+///////////////////////////////////////////////////////////////////////////////
 Vue.config.productionTip = false;
 
 new Vue({

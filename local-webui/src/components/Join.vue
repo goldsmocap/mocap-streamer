@@ -19,7 +19,7 @@
     <ValidationObserver v-slot="{ handleSubmit, invalid }">
       <b-form @submit.prevent="handleSubmit(join)">
         <ValidationProvider
-          rules="required|isFqdnOrIp"
+          rules="required|isIpWithPort"
           name="Remote URL"
           v-slot="{ errors }"
         >
@@ -51,7 +51,7 @@
                 <b-icon class="text-white" icon="person" />
               </b-button>
             </b-input-group-prepend>
-            <b-input type="text" v-model="clientName" />
+            <b-input type="text" v-model="name" />
           </b-input-group>
           <small
             v-for="(err, i) in errors"
@@ -75,18 +75,32 @@
 <script lang="ts">
 import { defineComponent, ref, Ref } from "@vue/composition-api";
 import axios from "axios";
+import { registerUiWithRemote } from "../hooks/useRemote";
+
+const REMOTE_SERVER_URL =
+  process.env.NODE_ENV === "production"
+    ? "http://46.101.24.208"
+    : "http://127.0.0.1:3000";
 
 export default defineComponent({
   setup(props, { root }) {
     const joinModal: Ref<any> = ref(undefined);
 
-    const url = ref("46.101.24.208");
+    const url = ref(REMOTE_SERVER_URL);
     const name = ref("");
 
     function join() {
-      axios
-        .post(`api/remote/join/${name.value}`, { url })
-        .then((_res) => joinModal.value.hide())
+      registerUiWithRemote(REMOTE_SERVER_URL)
+        .then((_) => {
+          console.log(`⚡ Asking local streamer to join the remote.`);
+          return axios.post(`api/remote/join/${name.value}`, {
+            url: url.value,
+          });
+        })
+        .then((_res) => {
+          console.log(`⚡ Local streamer joined.`);
+          joinModal.value.hide();
+        })
         .catch((err) => {
           root.$bvToast.toast(`${err.response.data}`, {
             noCloseButton: true,

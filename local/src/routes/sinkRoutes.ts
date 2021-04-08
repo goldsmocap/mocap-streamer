@@ -1,7 +1,6 @@
 import express, { Router } from "express";
 import { Observer } from "rxjs";
-import { Socket } from "socket.io-client";
-import { useWs } from "../useWs";
+import { getRemoteWs } from "../websockets";
 import { sources } from "./sourceRoutes";
 import { udpSink } from "../flows/udp";
 import { wsSink } from "../flows/ws";
@@ -71,7 +70,7 @@ export function sinkRoutes(): Router {
         break;
 
       case "WsSink":
-        const ws = useWs();
+        const ws = getRemoteWs();
         if (ws) {
           wsSink(ws)
             .then((observer) => {
