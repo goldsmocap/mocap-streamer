@@ -73,7 +73,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, Ref } from "@vue/composition-api";
+import { computed, defineComponent, ref, Ref } from "@vue/composition-api";
 import axios from "axios";
 import { registerUiWithRemote } from "../hooks/useRemote";
 
@@ -88,6 +88,13 @@ export default defineComponent({
 
     const url = ref(REMOTE_SERVER_URL);
     const name = ref("");
+
+    axios
+      .get("/api/remote/name")
+      .then((res) => (name.value = res.data))
+      .catch((err) => {
+        // do nothing
+      });
 
     function join() {
       registerUiWithRemote(REMOTE_SERVER_URL)

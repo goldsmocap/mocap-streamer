@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { Observer } from "rxjs";
-import { getRemoteWs } from "../websockets";
+import { getRemoteWs } from "../remote";
 import { sources } from "./sourceRoutes";
 import { udpSink } from "../flows/udp";
 import { wsSink } from "../flows/ws";
@@ -66,22 +66,18 @@ export function sinkRoutes(): Router {
             if (fail) res.status(400).send(fail);
             res.send();
           })
-          .catch((err) => res.status(500).send(err));
+          .catch((err) => res.status(400).send(err));
         break;
 
       case "WsSink":
-        const ws = getRemoteWs();
-        if (ws) {
-          wsSink(ws)
-            .then((observer) => {
-              const fail = connectFlows(sink.upstream, observer);
-              if (fail) res.status(400).send(fail);
-              res.send();
-            })
-            .catch((err) => res.status(500).send(err));
-        } else {
-          res.status(401).send("You must join first.");
-        }
+        getRemoteWs()
+          .then((ws) => wsSink(ws))
+          .then((observer) => {
+            const fail = connectFlows(sink.upstream, observer);
+            if (fail) res.status(400).send(fail);
+            res.send();
+          })
+          .catch((err) => res.status(400).send(err));
         break;
     }
   });

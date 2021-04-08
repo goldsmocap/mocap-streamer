@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { ConnectableObservable } from "rxjs";
-import { getRemoteWs } from "../websockets";
+import { getRemoteWs } from "../remote";
 import { udpSource } from "../flows/udp";
 import { wsSource } from "../flows/ws";
 import { logger } from "../log";
@@ -46,21 +46,17 @@ export function sourceRoutes(): Router {
             sources.push([label, observable]);
             res.send();
           })
-          .catch((err) => res.status(500).send(err));
+          .catch((err) => res.status(400).send(err));
         break;
 
       case "WsSource":
-        const ws = getRemoteWs();
-        if (ws) {
-          wsSource(ws, { debug: source.debug })
-            .then((observable) => {
-              sources.push([label, observable]);
-              res.send();
-            })
-            .catch((err) => res.status(500).send(err));
-        } else {
-          res.status(401).send("You must join first.");
-        }
+        getRemoteWs()
+          .then((ws) => wsSource(ws, { debug: source.debug }))
+          .then((observable) => {
+            sources.push([label, observable]);
+            res.send();
+          })
+          .catch((err) => res.status(400).send(err));
         break;
     }
   });

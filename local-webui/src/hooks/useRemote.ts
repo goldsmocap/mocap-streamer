@@ -8,13 +8,13 @@ export function registerUiWithRemote(remoteUrl: string): Promise<Socket> {
     const ws = io(remoteUrl);
 
     ws.on("connect", () => {
-      console.log(`⚡ WS connection to local Axis-Streamer established.`);
+      console.log(`⚡ WS connection to remote streamer established.`);
       ws.emit("ui", () => {
         resolve(ws);
       });
     });
     ws.on("disconnect", () => {
-      console.log(`⚡ WS disconnected from remote Axis-Streamer.`);
+      console.log(`⚡ WS disconnected from remote streamer.`);
     });
     ws.on("remote/state", (payload) => {
       console.log(payload);

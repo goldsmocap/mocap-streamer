@@ -27,6 +27,6 @@ export default function run() {
   ///////////////////////////////////////////////////////////////////////////////
   const PORT = 4000;
   httpServer.listen(PORT, () => {
-    logger.info(`🎉 Client started at http://localhost:${PORT}`);
+    logger.info(`🎉 Local streamer started at http://localhost:${PORT}`);
   });
 }
