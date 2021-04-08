@@ -7,6 +7,7 @@ import { logger } from "../../log";
 const sendingSockets: dgram.Socket[] = [];
 
 export interface UdpSinkOptions {
+  sender?: string;
   fromAddress?: string;
   fromPort?: number;
   toAddress: string;
@@ -36,6 +37,11 @@ export function udpSink(options: UdpSinkOptions): Promise<Observer<any>> {
 
   // create a new observer from the socket to observe the source
   return socket.then((socket) => {
-    return observerToUdp(options.toAddress, options.toPort, socket);
+    return observerToUdp(
+      options.toAddress,
+      options.toPort,
+      socket,
+      options.sender
+    );
   });
 }

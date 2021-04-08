@@ -31,10 +31,14 @@ export function observableFromUdp(socket: dgram.Socket): Rx.Observable<Buffer> {
 export function observerToUdp(
   address: string,
   port: number,
-  socket: dgram.Socket
-): Rx.Observer<Buffer> {
+  socket: dgram.Socket,
+  sender?: string
+): Rx.Observer<{ from: string; data: Buffer }> {
   return {
-    next: (buffer) => socket.send(buffer, 0, buffer.byteLength, port, address),
+    next: ({ from, data }) => {
+      if (!sender || from === sender)
+        socket.send(data, 0, data.byteLength, port, address);
+    },
     error: (_err) => socket.close(),
     complete: () => socket.close(),
   };

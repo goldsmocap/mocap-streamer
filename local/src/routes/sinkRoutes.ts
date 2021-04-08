@@ -18,6 +18,7 @@ interface UdpSink extends Sinklike {
   fromPort: number;
   toAddress: string;
   toPort: number;
+  sender?: string;
 }
 
 interface WsSink extends Sinklike {
@@ -60,7 +61,11 @@ export function sinkRoutes(ws: Socket): Router {
 
     switch (sink.kind) {
       case "UdpSink":
-        udpSink({ toAddress: sink.toAddress, toPort: sink.toPort })
+        udpSink({
+          toAddress: sink.toAddress,
+          toPort: sink.toPort,
+          sender: sink.sender,
+        })
           .then((observer) => {
             const fail = connectFlows(sink.upstream, observer);
             if (fail) res.status(400).send(fail);

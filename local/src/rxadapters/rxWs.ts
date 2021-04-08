@@ -4,7 +4,7 @@ import { logger } from "../log";
 
 export function observableFromWs<T>(ws: Socket): Rx.Observable<T> {
   return new Rx.Observable<T>((observer) => {
-    ws.on("message", (t: T) => observer.next((t as any).data));
+    ws.on("message", (t: T) => observer.next(t));
     ws.on("disconnect", () => observer.complete());
   });
 }
