@@ -75,7 +75,7 @@
 <script lang="ts">
 import { computed, defineComponent, ref, Ref } from "@vue/composition-api";
 import axios from "axios";
-import { registerUiWithRemote } from "../hooks/useRemote";
+import { registerUiWithRemote, self } from "../hooks/useRemote";
 
 const REMOTE_SERVER_URL =
   process.env.NODE_ENV === "production"
@@ -100,9 +100,10 @@ export default defineComponent({
       registerUiWithRemote(REMOTE_SERVER_URL)
         .then((_) => {
           console.log(`⚡ Asking local streamer to join the remote.`);
-          return axios.post(`api/remote/join/${name.value}`, {
-            url: url.value,
-          });
+          return axios
+            .post(`api/remote/join/${name.value}`, { url: url.value })
+            .then((_) => (self.value = { name: name.value }))
+            .catch((err) => {});
         })
         .then((_res) => {
           console.log(`⚡ Local streamer joined.`);

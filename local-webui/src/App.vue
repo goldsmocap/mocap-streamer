@@ -1,8 +1,7 @@
 <template>
-  <div id="app">
-    <join />
-
-    <b-sidebar bg-variant="primary" no-header-close visible> </b-sidebar>
+  <div class="app h-100">
+    <!-- <join /> -->
+    <Kanvas />
   </div>
 </template>
 
@@ -10,10 +9,12 @@
 import { computed, defineComponent, ref } from "@vue/composition-api";
 import axios from "axios";
 import Join from "./components/Join.vue";
+import Kanvas from "./components/remote/Kanvas.vue";
 
 export default defineComponent({
   components: {
     Join,
+    Kanvas,
   },
 
   setup(props, { root }) {
@@ -40,6 +41,5 @@ export default defineComponent({
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
 </style>

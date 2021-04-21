@@ -3,6 +3,7 @@ import "./plugins/composition-api"; // MUST BE FIRST IMPORT
 import Vue from "vue";
 import axios from "axios";
 import { BootstrapVue, IconsPlugin } from "bootstrap-vue";
+import VueKonva from "vue-konva";
 import { ValidationProvider, ValidationObserver, extend } from "vee-validate";
 import * as rules from "vee-validate/dist/rules";
 import App from "./App.vue";
@@ -19,6 +20,9 @@ axios.defaults.baseURL = "http://localhost:4000";
 ///////////////////////////////////////////////////////////////////////////////
 Vue.use(BootstrapVue);
 Vue.use(IconsPlugin);
+
+// setup konva
+Vue.use(VueKonva);
 
 // setup vee validate
 ///////////////////////////////////////////////////////////////////////////////

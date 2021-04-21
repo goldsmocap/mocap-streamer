@@ -1,7 +1,12 @@
 import { ref, Ref } from "@vue/composition-api";
 import { io, Socket } from "socket.io-client";
 
-export const clients: Ref<string[]> = ref([]);
+interface Client {
+  name: string;
+}
+
+export const self: Ref<Client | undefined> = ref(undefined);
+export const clients: Ref<Client[]> = ref([]);
 
 export function registerUiWithRemote(remoteUrl: string): Promise<Socket> {
   return new Promise((resolve, _reject) => {
