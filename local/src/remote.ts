@@ -1,6 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { WsResult } from "./wsResult";
 import { logger } from "./log";
+import { wsSink } from "./flows/ws";
 
 let remoteWs: Socket | undefined = undefined;
 let nameOnRemote: string | undefined = undefined;
@@ -40,8 +41,12 @@ export function getRemoteName(): Promise<string> {
 
 export function joinRemote(url: string, name: string): Promise<Socket> {
   if (nameOnRemote === name) {
-    // you are already connected so there's nothing to do!
-    return getRemoteWs();
+    // you are already connected so there's nothing to do except asking
+    // the remote to send it's state again.
+    return getRemoteWs().then((ws) => {
+      ws.emit("state");
+      return ws;
+    });
   }
 
   if (nameOnRemote && nameOnRemote !== name) {

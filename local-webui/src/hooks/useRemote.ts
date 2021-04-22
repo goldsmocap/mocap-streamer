@@ -1,28 +1,33 @@
-import { ref, Ref } from "@vue/composition-api";
+import { Ref, ref } from "@vue/composition-api";
 import { io, Socket } from "socket.io-client";
+import { Client, Connection } from "shared";
 
-interface Client {
-  name: string;
-}
+let websocket: Socket | undefined = undefined;
 
-export const self: Ref<Client | undefined> = ref(undefined);
 export const clients: Ref<Client[]> = ref([]);
+export const clientMap: Ref<Connection[]> = ref([]);
+
+export function ws(): Readonly<Socket | undefined> {
+  return websocket;
+}
 
 export function registerUiWithRemote(remoteUrl: string): Promise<Socket> {
   return new Promise((resolve, _reject) => {
-    const ws = io(remoteUrl);
+    websocket = io(remoteUrl);
 
-    ws.on("connect", () => {
+    websocket.on("connect", () => {
       console.log(`⚡ WS connection to remote streamer established.`);
-      ws.emit("ui", () => {
-        resolve(ws);
+      websocket?.emit("register_ui", () => {
+        resolve(websocket as Socket);
       });
     });
-    ws.on("disconnect", () => {
-      console.log(`⚡ WS disconnected from remote streamer.`);
-    });
-    ws.on("remote/state", (payload) => {
-      console.log(payload);
-    });
+
+    websocket.on(
+      "remote/state",
+      (payload: { clients: Client[]; clientMap: Connection[] }) => {
+        clients.value = payload.clients;
+        clientMap.value = payload.clientMap;
+      }
+    );
   });
 }

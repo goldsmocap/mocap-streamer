@@ -1,7 +1,7 @@
 <template>
   <div class="app h-100">
-    <!-- <join /> -->
-    <Kanvas />
+    <join />
+    <kanvas />
   </div>
 </template>
 

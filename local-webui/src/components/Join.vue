@@ -73,9 +73,9 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, Ref } from "@vue/composition-api";
 import axios from "axios";
-import { registerUiWithRemote, self } from "../hooks/useRemote";
+import { defineComponent, ref, Ref } from "@vue/composition-api";
+import { registerUiWithRemote } from "../hooks/useRemote";
 
 const REMOTE_SERVER_URL =
   process.env.NODE_ENV === "production"
@@ -93,16 +93,30 @@ export default defineComponent({
       .get("/api/remote/name")
       .then((res) => (name.value = res.data))
       .catch((err) => {
-        // do nothing
+        console.log(
+          "NOTE: Error probably means you are not connected to the remote streamer. Please ignore"
+        );
       });
 
     function join() {
-      registerUiWithRemote(REMOTE_SERVER_URL)
-        .then((_) => {
+      registerUiWithRemote(url.value)
+        .then((ws) => {
           console.log(`⚡ Asking local streamer to join the remote.`);
+
+          // handle WS disconnect
+          ws.on("disconnect", () => {
+            root.$bvToast.toast(
+              "You got disconnected! Please refresh the page.",
+              {
+                noCloseButton: true,
+                variant: "danger",
+                toaster: "b-toaster-bottom-center",
+              }
+            );
+          });
+
           return axios
             .post(`api/remote/join/${name.value}`, { url: url.value })
-            .then((_) => (self.value = { name: name.value }))
             .catch((err) => {});
         })
         .then((_res) => {

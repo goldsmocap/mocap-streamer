@@ -1,7 +1,7 @@
 import http from "http";
 import express from "express";
 import { Server } from "socket.io";
-import { Client } from "./Client";
+import { Client } from "shared";
 import { err, ok } from "./wsResult";
 import { logger } from "./log";
 
@@ -45,11 +45,16 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("ui", (callback) => {
+  socket.on("register_ui", (callback) => {
     logger.info(`🎨 UI registered.`);
     uis.push(socket.id);
     socket.join("ui_room");
     callback();
+  });
+
+  // sends the state to all registered uis
+  socket.on("state", () => {
+    io.in("ui_room").emit("remote/state", { clients, clientMap });
   });
 
   socket.on("join", (name: string, callback) => {
@@ -84,6 +89,10 @@ io.on("connection", (socket) => {
     if (old) {
       logger.info(`🌫️ Renamed client from ${oldName} to ${newName}.`);
       old.name = newName;
+
+      // send the client list and mappings to all UIs
+      io.in("ui_room").emit("remote/state", { clients, clientMap });
+
       callback(ok());
       return;
     }
@@ -91,34 +100,54 @@ io.on("connection", (socket) => {
     callback(err({ msg: `unable to find client with name ${oldName}` }));
   });
 
-  socket.on("map/to", (name: string, callback) => {
-    // have you connected?
-    const connected = clients.find((client) => client.socketId === socket.id);
-    if (!connected) {
-      callback(err({ msg: "you have not joined the server." }));
+  socket.on("map", (fromName: string, toName: string, callback) => {
+    // does the first client (from) exist?
+    const fromClient = clients.find((client) => client.name === fromName);
+    if (!fromClient) {
+      callback(err({ msg: `no client with name ${fromName} found.` }));
       return;
     }
 
-    // does the client you are trying to connect to exist?
-    const clientExists = clients.find((client) => client.name === name);
-    if (!clientExists) {
-      callback(err({ msg: `no client with name ${name} found.` }));
+    // does the second client (to) exist?
+    const toClient = clients.find((client) => client.name === toName);
+    if (!toClient) {
+      callback(err({ msg: `no client with name ${toName} found.` }));
       return;
     }
 
     // does the mapping already exist
-    const mapping = clientMap.find(
-      ([from, to]) => from.name === connected.name && to.name === name
-    );
+    const mapping = clientMap.find(([from, to]) => {
+      return from.name === fromName && to.name === toName;
+    });
     if (mapping) {
       callback(err({ msg: `mapping already exists.` }));
       return;
     }
 
-    const clientFrom = connected;
-    const clientTo = clientExists;
-    logger.info(`🌫️ Mapped ${clientFrom.name} -> ${clientTo.name}.`);
-    clientMap.push([clientFrom, clientTo]);
+    logger.info(`🌫️ Mapped ${fromClient.name} -> ${toClient.name}.`);
+    clientMap.push([fromClient, toClient]);
+
+    // send the client list and mappings to all UIs
+    io.in("ui_room").emit("remote/state", { clients, clientMap });
+
+    callback(ok());
+  });
+
+  socket.on("unmap", (fromName: string, toName: string, callback) => {
+    // does the mapping already exist
+    const mappingIdx = clientMap.findIndex(([from, to]) => {
+      return from.name === fromName && to.name === toName;
+    });
+    if (mappingIdx < 0) {
+      callback(err({ msg: `mapping doesn't exists.` }));
+      return;
+    }
+
+    clientMap.splice(mappingIdx, 1);
+
+    // send the client list and mappings to all UIs
+    io.in("ui_room").emit("remote/state", { clients, clientMap });
+
     callback(ok());
   });
 

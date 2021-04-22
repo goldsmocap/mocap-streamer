@@ -1,0 +1,16 @@
+{
+    "name": "shared",
+    "version": "0.1.0",
+    "author": {
+        "name": "Oliver Winks",
+        "email": "oliver@paperplane.software",
+        "url": "http://paperplane.software"
+    },
+    "license": "ISC",
+    "main": "dist/index.js",
+    "typings": "dist/index.d.ts",
+
+    "scripts": {
+        "build": "tsc"
+    }
+}

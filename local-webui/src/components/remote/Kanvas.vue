@@ -7,8 +7,13 @@
         <div v-if="selectedClient.connectedTo.length > 0">
           <p class="h5">Connected To:</p>
           <div class="d-flex" v-for="connection in selectedClient.connectedTo">
-            <span class="flex-grow-1">{{ getClient(connection).name }}</span>
-            <b-button class="text-danger" variant="link" size="sm">
+            <span class="flex-grow-1">{{ connection }}</span>
+            <b-button
+              class="text-danger"
+              variant="link"
+              size="sm"
+              @click="disconnect(selectedClient.name, connection)"
+            >
               <b-icon icon="trash" />
             </b-button>
           </div>
@@ -39,13 +44,13 @@
           <v-group
             v-for="client in clients"
             :config="{ draggable: true, x: client.x, y: client.y }"
-            @dragstart="handleDragStart(client.id)"
+            @dragstart="handleDragStart(client.name)"
             @dragmove="handleDragMove"
             @dragend="handleDragEnd"
             @mouseover="handleMouseOver(client)"
             @mouseout="handleMouseOut"
-            @dblclick="(evt) => handleDoubleClick(evt, client.id)"
-            @click="(evt) => handleClick(evt, client.id)"
+            @dblclick="(evt) => handleDoubleClick(evt, client.name)"
+            @click="(evt) => handleClick(evt, client.name)"
           >
             <v-circle :config="configClientCircle" />
             <v-text :config="{ ...configClientText, text: client.name }" />
@@ -62,15 +67,25 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, Ref, ref } from "@vue/composition-api";
+import {
+  computed,
+  defineComponent,
+  Ref,
+  ref,
+  watch,
+} from "@vue/composition-api";
+import axios from "axios";
+import {
+  clients as remoteClients,
+  clientMap as remoteClientMap,
+} from "../../hooks/useRemote";
 
 type Vec2 = [number, number];
 type Vec4 = [number, number, number, number];
 
 interface KonvaClient {
-  id: number;
   name: string;
-  connectedTo: number[];
+  connectedTo: string[];
   x: number;
   y: number;
 }
@@ -114,14 +129,27 @@ export default defineComponent({
 
     // Entities
     ///////////////////////////////////////////////////////////////////////////
-    const clients = ref([
-      { id: 0, name: "Oli", connectedTo: [1], x: rad, y: rad },
-      { id: 1, name: "Wayne", connectedTo: [], x: rad, y: rad },
-      { id: 2, name: "Adam", connectedTo: [], x: rad, y: rad },
-    ]);
+    const clients: Ref<KonvaClient[]> = ref([]);
 
-    function getClient(id: number): KonvaClient | undefined {
-      return clients.value.find((client) => client.id === id);
+    watch(remoteClients, (remoteClients) => {
+      const updatedClients = remoteClients.map(({ name }, i) => {
+        const connectedTo = remoteClientMap.value
+          .filter(([from, _]) => from.name === name)
+          .map(([_, to]) => to.name);
+
+        // check if this is a new client or not, if it's not then copy over
+        // it's previous location.
+        const client = clients.value.find((client) => client.name === name);
+        const [x, y] = client ? [client.x, client.y] : [2 * rad + (i + 1), rad];
+
+        return { name, connectedTo, x, y };
+      });
+
+      clients.value = updatedClients;
+    });
+
+    function getClient(name: string): KonvaClient | undefined {
+      return clients.value.find((client) => client.name === name);
     }
 
     function point(from: Vec2, to: Vec2, r: number): Vec2 {
@@ -138,8 +166,8 @@ export default defineComponent({
     const connections = computed(() => {
       return clients.value.flatMap((from) => {
         return from.connectedTo
-          .flatMap((toId) => {
-            const to = getClient(toId);
+          .flatMap((toName) => {
+            const to = getClient(toName);
             return to ? [to] : [];
           })
           .map((to) => {
@@ -161,8 +189,8 @@ export default defineComponent({
     ///////////////////////////////////////////////////////////////////////////
     let dragClient: KonvaClient | undefined = undefined;
 
-    function handleDragStart(clientId: number) {
-      dragClient = getClient(clientId);
+    function handleDragStart(clientName: string) {
+      dragClient = getClient(clientName);
     }
 
     function handleDragMove(evt: any) {
@@ -196,7 +224,7 @@ export default defineComponent({
         const fromRad = rad + 2;
         const toRad = connectTo.value ? rad + 2 : 2;
 
-        if (connectFrom.value?.id === connectTo.value?.id) {
+        if (connectFrom.value?.name === connectTo.value?.name) {
         }
         const fromP = point(from, to, fromRad);
         const toP = point(to, from, toRad);
@@ -218,22 +246,31 @@ export default defineComponent({
       if (stage.value) stage.value.style.cursor = "default";
     }
 
-    function handleDoubleClick(evt: any, clientId: number) {
-      connectFrom.value = getClient(clientId);
+    function handleDoubleClick(evt: any, clientName: string) {
+      connectFrom.value = getClient(clientName);
       evt.cancelBubble = true;
     }
 
-    function handleClick(evt: any, clientId: number) {
+    function handleClick(evt: any, clientName: string) {
       if (connectFrom.value) {
-        const connectTo = getClient(clientId);
+        const connectTo = getClient(clientName);
         if (connectTo) {
-          // add connection
-          connectFrom.value?.connectedTo.push(connectTo.id);
-          console.log(connectFrom.value?.connectedTo);
-          connectFrom.value = undefined;
+          // add connection using the local streamer
+          const fromName = connectFrom.value.name;
+          const toName = connectTo.name;
+          axios
+            .get(`/api/remote/connect/${fromName}/${toName}`)
+            .then(() => {
+              // connectFrom.value?.connectedTo.push(connectTo.name);
+              console.log(connectFrom.value?.connectedTo);
+              connectFrom.value = undefined;
+            })
+            .catch((err) => {
+              // TODO: Handle error
+            });
         }
       } else {
-        selectedClient.value = getClient(clientId);
+        selectedClient.value = getClient(clientName);
       }
 
       evt.cancelBubble = true;
@@ -251,6 +288,19 @@ export default defineComponent({
     function handleMouseMove(evt: any) {
       mousepos.value = [evt.evt.layerX, evt.evt.layerY];
     }
+
+    // Disconnection
+    ///////////////////////////////////////////////////////////////////////////
+    function disconnect(fromName: string, toName: string) {
+      axios
+        .get(`/api/remote/disconnect/${fromName}/${toName}`)
+        .then((res) => {})
+        .catch((err) => {
+          // TODO: Handle error
+        });
+    }
+
+    // Websockets
 
     return {
       stage,
@@ -277,6 +327,8 @@ export default defineComponent({
 
       selectedClient,
       getClient,
+
+      disconnect,
     };
   },
 });
