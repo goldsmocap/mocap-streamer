@@ -1,6 +1,6 @@
 <template>
   <div class="app h-100">
-    <!-- <join /> -->
+    <join />
 
     <div class="fixed-top d-flex justify-content-center mt-3 w-100">
       <div class="w-25"></div>
