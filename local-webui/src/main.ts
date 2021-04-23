@@ -1,11 +1,13 @@
 import "./plugins/composition-api"; // MUST BE FIRST IMPORT
 
 import Vue from "vue";
+import VueRouter from "vue-router";
 import axios from "axios";
 import { BootstrapVue, IconsPlugin } from "bootstrap-vue";
 import VueKonva from "vue-konva";
 import { ValidationProvider, ValidationObserver, extend } from "vee-validate";
 import * as rules from "vee-validate/dist/rules";
+import { routes } from "./routes";
 import App from "./App.vue";
 
 import "bootstrap/dist/css/bootstrap.css";
@@ -15,6 +17,15 @@ import "./assets/custom.scss";
 // setup axios
 ///////////////////////////////////////////////////////////////////////////////
 axios.defaults.baseURL = "http://localhost:4000";
+
+// setup router
+///////////////////////////////////////////////////////////////////////////////
+Vue.use(VueRouter);
+
+const router = new VueRouter({
+  mode: "history",
+  routes,
+});
 
 // setup bootstrap
 ///////////////////////////////////////////////////////////////////////////////
@@ -47,4 +58,5 @@ Vue.config.productionTip = false;
 
 new Vue({
   render: (h) => h(App),
+  router,
 }).$mount("#app");

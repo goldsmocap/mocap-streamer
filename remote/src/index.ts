@@ -16,7 +16,13 @@ app.use(express.json()); // json body parser
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "*",
+    origin: [
+      "http://localhost:8080",
+      "http://localhost:4000",
+      "http://192.168.1.85:8080",
+      "http://192.168.1.85:4000",
+      "*",
+    ],
   },
 });
 

@@ -1,6 +1,8 @@
 <template>
   <div class="d-flex w-100 h-100">
     <div class="bg-dark text-white p-3 w-25">
+      <!-- <p class="h2">Remote</p>
+      <hr /> -->
       <div v-if="selectedClient">
         <p class="h3 mb-4">{{ selectedClient.name }}</p>
 
