@@ -21,7 +21,7 @@ export default function run() {
   app.use("/api/flow", sourceRoutes());
   app.use("/api/flow", sinkRoutes());
   app.use("/api/remote", remoteRoutes());
-  app.use(express.static(path.join(__dirname, "public")));
+  app.use("/public", express.static("public"));
 
   // start the Express server
   ///////////////////////////////////////////////////////////////////////////////
