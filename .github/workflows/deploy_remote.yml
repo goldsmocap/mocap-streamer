@@ -1,0 +1,32 @@
+name: Deploy Remote
+
+on:
+  workflow_run:
+    workflows: ["Publish Remote"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+
+    - name: Copy docker-compose.yml to Digital Ocean
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: ${{ secrets.DO_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "docker-compose.yml"
+        target: "~"
+
+    - name: Deploy with docker-compose
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: ${{ secrets.DO_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd ~
+          docker-compose pull && docker-compose up -d
