@@ -4,11 +4,16 @@
   "description": "Stream aggregator for axis-neuron",
   "author": "Oliver Winks",
   "license": "MIT",
+  "bin": "dist/bundle.js",
+  "pkg": {
+    "scripts": "dist/**/*.js",
+    "assets": "dist/public/**/*"
+  },
   "scripts": {
     "dev:build": "tsc --watch",
     "dev": "concurrently \"yarn dev:build\" \"nodemon dist/index.js\"",
     "build": "tsc && yarn workspace local-webui build",
-    "pkg": "yarn build && pkg dist/bundle.js --out-path bin/",
+    "pkg": "yarn build && pkg package.json --out-path bin/",
     "start": "node dist/index.js"
   },
   "dependencies": {
