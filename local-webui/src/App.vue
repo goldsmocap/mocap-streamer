@@ -1,24 +1,29 @@
 <template>
   <div class="app h-100">
-    <join />
+    <!-- <join /> -->
 
-    <div class="fixed-top d-flex justify-content-center mt-3 w-100">
-      <div class="w-25"></div>
-      <b-button-group size="sm">
-        <b-button
-          :variant="route === 'local' ? 'warning' : 'primary'"
-          to="local"
-        >
-          Local
-        </b-button>
-        <b-button
-          :variant="route === 'remote' ? 'warning' : 'primary'"
-          to="remote"
-        >
-          Remote
-        </b-button>
-      </b-button-group>
-    </div>
+    <b-navbar variant="dark">
+      <div class="d-flex justify-content-center w-100">
+        <b-button-group size="sm">
+          <b-button
+            :variant="route === 'local' ? 'warning' : 'primary'"
+            to="local"
+            squared
+          >
+            Local
+          </b-button>
+          <b-button
+            :variant="
+              route === 'remote' || route === 'home' ? 'warning' : 'primary'
+            "
+            to="remote"
+            squared
+          >
+            Remote
+          </b-button>
+        </b-button-group>
+      </div>
+    </b-navbar>
 
     <router-view />
   </div>

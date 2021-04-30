@@ -35,6 +35,9 @@ export function remoteRoutes(): Router {
   });
 
   router.get("/connect/:from/:to", (req, res) => {
+    console.log("adsf;lkjasdf");
+    console.log(req.params["from"]);
+    console.log(req.params["to"]);
     getRemoteWs()
       .then((ws) => {
         const fromName = req.params["from"];
@@ -50,7 +53,7 @@ export function remoteRoutes(): Router {
               logger.info(`☁️ Failed to map ${fromName} to ${toName}.`, {
                 msg: wsRes.msg,
               });
-              res.status(402).send(wsRes.msg);
+              res.status(400).send(wsRes.msg);
               break;
           }
         });
