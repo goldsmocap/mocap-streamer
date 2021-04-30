@@ -1,8 +1,8 @@
 <template>
   <div class="app h-100">
-    <!-- <join /> -->
+    <join />
 
-    <b-navbar variant="dark">
+    <!-- <b-navbar variant="dark">
       <div class="d-flex justify-content-center w-100">
         <b-button-group size="sm">
           <b-button
@@ -23,7 +23,7 @@
           </b-button>
         </b-button-group>
       </div>
-    </b-navbar>
+    </b-navbar> -->
 
     <router-view />
   </div>

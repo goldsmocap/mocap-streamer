@@ -5,15 +5,24 @@ import { useUdpSocket } from "./useUdpSocket";
 import { logger } from "../../log";
 
 export interface UdpSourceOptions {
+  name: string;
   port: number;
   address?: string;
   debug?: boolean;
 }
 
-export function udpSource(
-  options: UdpSourceOptions
-): Promise<ConnectableObservable<any>> {
-  return useUdpSocket(options.port, options.address).then((socket) => {
+export interface UdpSource {
+  kind: "UdpSource";
+  name: string;
+  port: number;
+  address: string;
+  observable: ConnectableObservable<any>;
+}
+
+export function udpSource(options: UdpSourceOptions): Promise<UdpSource> {
+  const address = options.address ?? "0.0.0.0";
+
+  return useUdpSocket(options.port, address).then((socket) => {
     logger.info(`🚀 Listening to axis-neuron UDP socket for data.`);
 
     // create a new subject
@@ -32,6 +41,12 @@ export function udpSource(
       multicasted.connect();
     }
 
-    return multicasted;
+    return {
+      kind: "UdpSource",
+      name: options.name,
+      port: options.port,
+      address,
+      observable: multicasted,
+    };
   });
 }

@@ -1,29 +1,12 @@
 import express, { Router } from "express";
-import { ConnectableObservable } from "rxjs";
-import { getRemoteWs } from "../remote";
-import { udpSource } from "../flows/udp";
-import { wsSource } from "../flows/ws";
+import { UdpSourceOptions, udpSource } from "../flows/udp";
+import { WsSourceOptions, wsSource } from "../flows/ws";
+import { sources } from "../flows";
 import { logger } from "../log";
 
-// Types
-///////////////////////////////////////////////////////////////////////////////
-interface UdpSource {
-  kind: "UdpSource";
-  port: number;
-  address?: string;
-  debug?: boolean;
-}
-
-interface WsSource {
-  kind: "WsSource";
-  debug?: boolean;
-}
-
-type Source = UdpSource | WsSource;
-
-// State
-///////////////////////////////////////////////////////////////////////////////
-export const sources: [string, ConnectableObservable<any>][] = [];
+type SourceOptions =
+  | { kind: "UdpSource"; options: UdpSourceOptions }
+  | { kind: "WsSource"; options: WsSourceOptions };
 
 // Routes
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,38 +14,27 @@ export function sourceRoutes(): Router {
   const router = express.Router();
 
   router.post("/source", (req, res) => {
-    type Payload = { label: string; source: Source };
+    const body = req.body as SourceOptions;
 
-    const { label, source } = req.body as Payload;
-
-    switch (source.kind) {
+    switch (body.kind) {
       case "UdpSource":
-        udpSource({
-          port: source.port,
-          address: source.address,
-          debug: source.debug,
-        })
-          .then((observable) => {
-            sources.push([label, observable]);
+        udpSource(body.options)
+          .then((source) => {
+            sources.push(source);
             res.send();
           })
           .catch((err) => res.status(400).send(err));
         break;
 
       case "WsSource":
-        getRemoteWs()
-          .then((ws) => wsSource(ws, { debug: source.debug }))
-          .then((observable) => {
-            sources.push([label, observable]);
+        wsSource(body.options)
+          .then((source) => {
+            sources.push(source);
             res.send();
           })
           .catch((err) => res.status(400).send(err));
         break;
     }
-  });
-
-  router.get("/source/all", (_req, res) => {
-    res.send(sources.map(([label, _]) => label));
   });
 
   return router;

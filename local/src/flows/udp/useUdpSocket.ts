@@ -3,7 +3,7 @@ import { logger } from "../../log";
 
 export function useUdpSocket(
   port: number,
-  address?: string
+  address: string
 ): Promise<dgram.Socket> {
   return new Promise((resolve, reject) => {
     const socket = dgram.createSocket("udp4");
@@ -17,12 +17,7 @@ export function useUdpSocket(
       resolve(socket);
     });
 
-    if (address) {
-      logger.info(`⚡ binding UDP socket to ${address}:${port}`);
-      socket.bind(port, address);
-    } else {
-      logger.info(`⚡ binding UDP socket to all addresses on port ${port}`);
-      socket.bind(port);
-    }
+    logger.info(`⚡ binding UDP socket to ${address}:${port}`);
+    socket.bind(port, address);
   });
 }

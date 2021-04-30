@@ -1,3 +1,3 @@
-export { udpSink, UdpSinkOptions } from "./udpSink";
-export { udpSource, UdpSourceOptions } from "./udpSource";
+export { UdpSinkOptions, UdpSink, udpSink } from "./udpSink";
+export { UdpSourceOptions, UdpSource, udpSource } from "./udpSource";
 export { useUdpSocket } from "./useUdpSocket";

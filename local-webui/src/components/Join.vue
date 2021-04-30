@@ -75,7 +75,7 @@
 <script lang="ts">
 import axios from "axios";
 import { defineComponent, ref, Ref } from "@vue/composition-api";
-import { registerUiWithRemote } from "../hooks/useRemote";
+import { clientName, registerUiWithRemote } from "../hooks/useRemote";
 
 const REMOTE_SERVER_URL =
   process.env.NODE_ENV === "production"
@@ -117,6 +117,7 @@ export default defineComponent({
 
           return axios
             .post(`api/remote/join/${name.value}`, { url: url.value })
+            .then((_) => (clientName.value = name.value))
             .catch((err) => {});
         })
         .then((_res) => {

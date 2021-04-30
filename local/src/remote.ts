@@ -1,7 +1,12 @@
 import { io, Socket } from "socket.io-client";
 import { WsResult } from "./wsResult";
 import { logger } from "./log";
-import { wsSink } from "./flows/ws";
+import { connectSink, sinks, sources } from "./flows";
+import { wsSink, wsSource } from "./flows/ws";
+import { udpSink, udpSource } from "./flows/udp";
+
+let udpSinkCount = 0;
+let isSending = false;
 
 let remoteWs: Socket | undefined = undefined;
 let nameOnRemote: string | undefined = undefined;
@@ -27,6 +32,78 @@ export function getRemoteWs(url?: string): Promise<Socket> {
       });
       remoteWs.on("connect_error", (err) => {
         reject(err);
+      });
+
+      remoteWs.on("remote/become/receiver", (from: string) => {
+        if (isSending) {
+          // TODO: send message to UI with details
+          return;
+        }
+
+        // create a WS source (if it doesn't already exist)
+        Promise.resolve(sources.find(({ kind }) => kind === "WsSource"))
+          .then((src) =>
+            src
+              ? Promise.resolve(src)
+              : wsSource({ name: "WS_SRC" }).then((src) => {
+                  sources.push(src);
+                  return src;
+                })
+          )
+
+          // create a new UDP sink
+          .then((_) =>
+            udpSink({ name: `UDP_SINK_${udpSinkCount++}`, sender: from }).then(
+              (sink) => {
+                sinks.push(sink);
+                return sink;
+              }
+            )
+          )
+
+          // connect them together
+          .then((sink) => connectSink("WS_SRC", sink))
+
+          // send message to UI with details
+          .then((_) => {
+            // TODO: Implement this!
+          })
+
+          // handle error
+          .catch((err) => {
+            // TODO: Implement this!
+          });
+      });
+
+      remoteWs.on("setup_as/sender", (to: string) => {
+        // create a UDP source
+        udpSource({ name: "UDP_SRC", port: 7002 })
+          .then((src) => {
+            sources.push(src);
+            return src;
+          })
+
+          // create a WS sink (if it doesn't already exist)
+          .then((_) =>
+            wsSink({ name: "WS_SINK" }).then((sink) => {
+              sinks.push(sink);
+              return sink;
+            })
+          )
+
+          // connect them together
+          .then((sink) => connectSink("UDP_SRC", sink))
+
+          // send message to UI with details
+          .then((_) => {
+            isSending = true;
+            // TODO: Implement this!
+          })
+
+          // handle error
+          .catch((err) => {
+            // TODO: Implement this!
+          });
       });
     }
   });

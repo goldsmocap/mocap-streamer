@@ -35,9 +35,6 @@ export function remoteRoutes(): Router {
   });
 
   router.get("/connect/:from/:to", (req, res) => {
-    console.log("adsf;lkjasdf");
-    console.log(req.params["from"]);
-    console.log(req.params["to"]);
     getRemoteWs()
       .then((ws) => {
         const fromName = req.params["from"];

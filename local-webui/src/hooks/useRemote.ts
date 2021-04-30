@@ -4,6 +4,7 @@ import { Client, Connection } from "shared";
 
 let websocket: Socket | undefined = undefined;
 
+export const clientName: Ref<string> = ref("");
 export const clients: Ref<Client[]> = ref([]);
 export const clientMap: Ref<Connection[]> = ref([]);
 
