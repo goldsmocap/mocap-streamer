@@ -9,9 +9,12 @@ export function observableFromWs<T>(ws: Socket): Rx.Observable<T> {
   });
 }
 
-export function observerToWs(ws: Socket): Rx.Observer<any> {
+export function observerToWs(ws: Socket, debug?: boolean): Rx.Observer<any> {
   return {
-    next: (t) => ws.emit("message", t),
+    next: (t) => {
+      if (debug) logger.info(`WsSink received ${t.length}.`);
+      ws.emit("message", t);
+    },
     error: (_err) => ws.close(),
     complete: () => ws.close(),
   };

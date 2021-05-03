@@ -4,6 +4,7 @@ import { observerToWs } from "../../rxadapters/rxWs";
 
 export interface WsSinkOptions {
   name: string;
+  debug?: boolean;
 }
 
 export interface WsSink {
@@ -14,7 +15,7 @@ export interface WsSink {
 
 export function wsSink(options: WsSinkOptions): Promise<WsSink> {
   return getRemoteWs().then((ws) => {
-    const observer = observerToWs(ws);
+    const observer = observerToWs(ws, options.debug);
     return {
       kind: "WsSink",
       name: options.name,

@@ -14,6 +14,7 @@ export interface UdpSinkOptions {
   fromAddress?: string;
   toPort?: number;
   toAddress?: string;
+  debug?: boolean;
 }
 
 export interface UdpSink {
@@ -52,7 +53,9 @@ export function udpSink(options: UdpSinkOptions): Promise<UdpSink> {
   const toAddress = options.toAddress ?? "127.0.0.1";
   const toPort = options.toPort ?? nextPort++;
   return socket
-    .then((socket) => observerToUdp(toAddress, toPort, socket, options.sender))
+    .then((socket) =>
+      observerToUdp(toAddress, toPort, socket, options.sender, options.debug)
+    )
     .then((observer) => {
       return {
         kind: "UdpSink",

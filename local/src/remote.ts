@@ -35,31 +35,31 @@ export function getRemoteWs(url?: string): Promise<Socket> {
       });
 
       remoteWs.on("remote/become/receiver", (from: string) => {
-        if (isSending) {
-          // TODO: send message to UI with details
-          return;
-        }
+        logger.info("becoming receiver");
 
         // create a WS source (if it doesn't already exist)
         Promise.resolve(sources.find(({ kind }) => kind === "WsSource"))
-          .then((src) =>
-            src
+          .then((src) => {
+            return src
               ? Promise.resolve(src)
               : wsSource({ name: "WS_SRC" }).then((src) => {
                   sources.push(src);
                   return src;
-                })
-          )
+                });
+          })
 
           // create a new UDP sink
-          .then((_) =>
-            udpSink({ name: `UDP_SINK_${udpSinkCount++}`, sender: from }).then(
-              (sink) => {
-                sinks.push(sink);
-                return sink;
-              }
-            )
-          )
+          .then((src) => {
+            return udpSink({
+              name: `UDP_SINK_${udpSinkCount++}`,
+              sender: from,
+              fromAddress: "127.0.0.1",
+              toAddress: "127.0.0.1",
+            }).then((sink) => {
+              sinks.push(sink);
+              return sink;
+            });
+          })
 
           // connect them together
           .then((sink) => connectSink("WS_SRC", sink))
@@ -75,9 +75,20 @@ export function getRemoteWs(url?: string): Promise<Socket> {
           });
       });
 
-      remoteWs.on("setup_as/sender", (to: string) => {
+      remoteWs.on("remote/become/sender", (to: string) => {
+        logger.info("becoming sender");
+        if (isSending) {
+          // TODO: send message to UI with details
+          logger.info("you're already a sender!");
+          return;
+        }
+
         // create a UDP source
-        udpSource({ name: "UDP_SRC", port: 7002 })
+        udpSource({
+          name: "UDP_SRC",
+          address: "127.0.0.1",
+          port: 7002,
+        })
           .then((src) => {
             sources.push(src);
             return src;

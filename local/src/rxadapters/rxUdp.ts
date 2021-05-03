@@ -32,12 +32,18 @@ export function observerToUdp(
   address: string,
   port: number,
   socket: dgram.Socket,
-  sender?: string
+  sender?: string,
+  debug?: boolean
 ): Rx.Observer<{ from: string; data: Buffer }> {
   return {
     next: ({ from, data }) => {
-      if (!sender || from === sender)
+      if (sender !== undefined || from === sender) {
+        if (debug)
+          logger.info(
+            `from ${from} sending to ${address}:${port}, data ${data.byteLength}`
+          );
         socket.send(data, 0, data.byteLength, port, address);
+      }
     },
     error: (_err) => socket.close(),
     complete: () => socket.close(),
