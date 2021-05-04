@@ -79,7 +79,7 @@ import { clientName, registerUiWithRemote } from "../hooks/useRemote";
 
 const REMOTE_SERVER_URL =
   process.env.NODE_ENV === "production"
-    ? "http://46.101.24.208"
+    ? "http://46.101.24.208:3000"
     : "http://127.0.0.1:3000";
 
 export default defineComponent({

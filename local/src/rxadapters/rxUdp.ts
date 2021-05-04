@@ -37,7 +37,8 @@ export function observerToUdp(
 ): Rx.Observer<{ from: string; data: Buffer }> {
   return {
     next: ({ from, data }) => {
-      if (sender !== undefined || from === sender) {
+      logger.info(`from = ${from}, sender ${sender}`);
+      if (from === sender) {
         if (debug)
           logger.info(
             `from ${from} sending to ${address}:${port}, data ${data.byteLength}`

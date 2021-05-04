@@ -134,10 +134,10 @@ io.on("connection", (socket) => {
     clientMap.push([fromClient, toClient]);
 
     // send message to 'from' to set up as a sender
-    io.to(fromClient.socketId).emit("remote/become/sender", toClient);
+    io.to(fromClient.socketId).emit("remote/become/sender", toClient.name);
 
     // send message to 'to' to setup as a receiver
-    io.to(toClient.socketId).emit("remote/become/receiver", fromClient);
+    io.to(toClient.socketId).emit("remote/become/receiver", fromClient.name);
 
     // send the client list and mappings to all UIs
     io.in("ui_room").emit("remote/state", { clients, clientMap });

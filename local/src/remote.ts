@@ -75,7 +75,7 @@ export function getRemoteWs(url?: string): Promise<Socket> {
           });
       });
 
-      remoteWs.on("remote/become/sender", (to: string) => {
+      remoteWs.on("remote/become/sender", (_to: string) => {
         logger.info("becoming sender");
         if (isSending) {
           // TODO: send message to UI with details
