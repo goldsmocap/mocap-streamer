@@ -37,11 +37,10 @@ export function observerToUdp(
 ): Rx.Observer<{ from: string; data: Buffer }> {
   return {
     next: ({ from, data }) => {
-      logger.info(`from = ${from}, sender ${sender}`);
       if (from === sender) {
         if (debug)
           logger.info(
-            `from ${from} sending to ${address}:${port}, data ${data.byteLength}`
+            `${from} sending to ${address}:${port}, data ${data.byteLength}`
           );
         socket.send(data, 0, data.byteLength, port, address);
       }

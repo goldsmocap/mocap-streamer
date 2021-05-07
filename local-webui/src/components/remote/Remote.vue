@@ -2,7 +2,11 @@
   <div class="d-flex w-100 h-100">
     <div class="bg-dark text-white p-3 w-25">
       <div v-if="selectedClient">
-        <component :is="selectedClient.context" :client="selectedClient" />
+        <component
+          :is="selectedClient.context"
+          :client="selectedClient"
+          :i="updateCount"
+        />
       </div>
       <div
         v-else
@@ -34,7 +38,7 @@ export default defineComponent({
     ClientContext,
   },
 
-  setup() {
+  setup(props, { root }) {
     const nodes: Ref<INode[]> = computed(() => {
       return clients.value.map((c) => {
         return {
@@ -52,10 +56,12 @@ export default defineComponent({
     });
     const selectedClient: Ref<INode | undefined> = ref(undefined);
 
+    const updateCount = ref(0);
     function handleNewEdge(from: string, to: string) {
       axios
         .get(`/api/remote/connect/${from}/${to}`)
         .then(() => {
+          setTimeout(() => (updateCount.value = updateCount.value + 1), 3000);
           // TODO: Display message
         })
         .catch((err) => {
@@ -68,6 +74,7 @@ export default defineComponent({
       edges,
       selectedClient,
       handleNewEdge,
+      updateCount,
     };
   },
 });

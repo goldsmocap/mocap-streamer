@@ -40,7 +40,13 @@ io.on("connection", (socket) => {
 
     const i = clients.findIndex((client) => client.socketId === socket.id);
     if (i >= 0) {
-      logger.info(`🌫️ Client removed.`, { socketId: socket.id });
+      logger.info(`🌫️ All mappings to and from ${clients[i].name} removed.`);
+      clientMap = clientMap.filter(
+        ([from, to]) =>
+          !(from.socketId === socket.id || to.socketId === socket.id)
+      );
+
+      logger.info(`🌫️ Client ${clients[i].name} removed.`);
       clients.splice(i, 1);
     }
 
@@ -155,10 +161,15 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const [from, to] = clientMap[mappingIdx];
+
     clientMap.splice(mappingIdx, 1);
 
     // send the client list and mappings to all UIs
     io.in("ui_room").emit("remote/state", { clients, clientMap });
+
+    // send message to 'to' to remove receiver
+    io.to(to.socketId).emit("remote/unbecome/receiver", from.name);
 
     callback(ok());
   });

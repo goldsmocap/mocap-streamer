@@ -1,5 +1,6 @@
 <template>
   <div>
+    <p>{{ i }}</p>
     <p class="h3 mb-5">{{ client.name }}</p>
 
     <div v-if="connections.length > 0">
@@ -61,13 +62,18 @@ export default defineComponent({
       type: Object as PropType<INode>,
       required: true,
     },
+    i: {
+      type: Number,
+      required: true,
+    },
   },
 
   setup(props) {
     const connections = computed(() => {
-      return clientMap.value
-        .filter(([from, _]) => from.name === props.client.name)
-        .map(([from, to]) => [from.name, to.name]);
+      if (props.i >= 0)
+        return clientMap.value
+          .filter(([from, _]) => from.name === props.client.name)
+          .map(([from, to]) => [from.name, to.name]);
     });
 
     const sinks: Ref<any[]> = ref([]);

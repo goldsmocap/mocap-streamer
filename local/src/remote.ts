@@ -1,11 +1,10 @@
 import { io, Socket } from "socket.io-client";
 import { WsResult } from "./wsResult";
 import { logger } from "./log";
-import { connectSink, sinks, sources } from "./flows";
+import { connections, connectSink, sinks, sources } from "./flows";
 import { wsSink, wsSource } from "./flows/ws";
 import { udpSink, udpSource } from "./flows/udp";
 
-let udpSinkCount = 0;
 let isSending = false;
 
 let remoteWs: Socket | undefined = undefined;
@@ -51,7 +50,7 @@ export function getRemoteWs(url?: string): Promise<Socket> {
           // create a new UDP sink
           .then((src) => {
             return udpSink({
-              name: `UDP_SINK_${udpSinkCount++}`,
+              name: `UDP_SINK_${from}`,
               sender: from,
               fromAddress: "127.0.0.1",
               toAddress: "127.0.0.1",
@@ -73,6 +72,26 @@ export function getRemoteWs(url?: string): Promise<Socket> {
           .catch((err) => {
             // TODO: Implement this!
           });
+      });
+
+      remoteWs.on("remote/unbecome/receiver", (from: string) => {
+        // find the sink named "UDP_SINK_<from>"
+        const i = sinks.findIndex(({ name }) => name === `UDP_SINK_${from}`);
+
+        if (i >= 0) {
+          logger.info(`🌫️ removing UDP sink from ${from}`);
+          sinks.splice(i, 1);
+
+          logger.info(`🌫️ unsubscribing all flows from ${from}`);
+          const j = connections.findIndex((conn) => conn.from === from);
+
+          if (j >= 0) {
+            connections[j].subscription.unsubscribe();
+            connections.splice(j, 1);
+          }
+        } else {
+          logger.info(`Uh Oh! Can't find UDP_SINK_${from}`);
+        }
       });
 
       remoteWs.on("remote/become/sender", (_to: string) => {
