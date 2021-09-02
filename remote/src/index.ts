@@ -61,7 +61,7 @@ io.on("connection", (socket) => {
     logger.info(`🎨 UI registered.`);
     uis.push(socket.id);
     socket.join("ui_room");
-    callback();
+    if (callback) callback();
   });
 
   // sends the state to all registered uis
@@ -73,7 +73,7 @@ io.on("connection", (socket) => {
     // has this name already been taken?
     const nameTaken = clients.find((client) => client.name === name);
     if (nameTaken) {
-      callback(err({ msg: "🌫️ Name already taken" }));
+      if (callback) callback(err({ msg: "🌫️ Name already taken" }));
       return;
     }
 
@@ -82,7 +82,7 @@ io.on("connection", (socket) => {
       (client) => client.socketId === socket.id
     );
     if (clientExists) {
-      callback({ msg: "🌫️ Client already joined" });
+      if (callback) callback({ msg: "🌫️ Client already joined" });
       return;
     }
 
@@ -92,7 +92,7 @@ io.on("connection", (socket) => {
 
     // send the client list and mappings to all UIs
     io.in("ui_room").emit("remote/state", { clients, clientMap });
-    callback(ok());
+    if (callback) callback(ok());
   });
 
   socket.on("rename", (oldName: string, newName: string, callback) => {
@@ -105,25 +105,28 @@ io.on("connection", (socket) => {
       // send the client list and mappings to all UIs
       io.in("ui_room").emit("remote/state", { clients, clientMap });
 
-      callback(ok());
+      if (callback) callback(ok());
       return;
     }
 
-    callback(err({ msg: `unable to find client with name ${oldName}` }));
+    if (callback)
+      callback(err({ msg: `unable to find client with name ${oldName}` }));
   });
 
   socket.on("map", (fromName: string, toName: string, callback) => {
     // does the first client (from) exist?
     const fromClient = clients.find((client) => client.name === fromName);
     if (!fromClient) {
-      callback(err({ msg: `no client with name ${fromName} found.` }));
+      if (callback)
+        callback(err({ msg: `no client with name ${fromName} found.` }));
       return;
     }
 
     // does the second client (to) exist?
     const toClient = clients.find((client) => client.name === toName);
     if (!toClient) {
-      callback(err({ msg: `no client with name ${toName} found.` }));
+      if (callback)
+        callback(err({ msg: `no client with name ${toName} found.` }));
       return;
     }
 
@@ -132,7 +135,7 @@ io.on("connection", (socket) => {
       return from.name === fromName && to.name === toName;
     });
     if (mapping) {
-      callback(err({ msg: `mapping already exists.` }));
+      if (callback) callback(err({ msg: `mapping already exists.` }));
       return;
     }
 
@@ -148,7 +151,7 @@ io.on("connection", (socket) => {
     // send the client list and mappings to all UIs
     io.in("ui_room").emit("remote/state", { clients, clientMap });
 
-    callback(ok());
+    if (callback) callback(ok());
   });
 
   socket.on("unmap", (fromName: string, toName: string, callback) => {
@@ -157,7 +160,7 @@ io.on("connection", (socket) => {
       return from.name === fromName && to.name === toName;
     });
     if (mappingIdx < 0) {
-      callback(err({ msg: `mapping doesn't exists.` }));
+      if (callback) callback(err({ msg: `mapping doesn't exists.` }));
       return;
     }
 
@@ -171,7 +174,7 @@ io.on("connection", (socket) => {
     // send message to 'to' to remove receiver
     io.to(to.socketId).emit("remote/unbecome/receiver", from.name);
 
-    callback(ok());
+    if (callback) callback(ok());
   });
 
   // on receipt of a message pass it on to all mapped clients
