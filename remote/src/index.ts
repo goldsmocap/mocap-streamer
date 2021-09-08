@@ -30,6 +30,47 @@ let uis: string[] = [];
 let clients: Client[] = [];
 let clientMap: [Client, Client][] = [];
 
+function map(fromName: string, toName: string, callback?: any) {
+  // does the first client (from) exist?
+  const fromClient = clients.find((client) => client.name === fromName);
+  if (!fromClient) {
+    if (callback)
+      callback(err({ msg: `no client with name ${fromName} found.` }));
+    return;
+  }
+
+  // does the second client (to) exist?
+  const toClient = clients.find((client) => client.name === toName);
+  if (!toClient) {
+    if (callback)
+      callback(err({ msg: `no client with name ${toName} found.` }));
+    return;
+  }
+
+  // does the mapping already exist
+  const mapping = clientMap.find(([from, to]) => {
+    return from.name === fromName && to.name === toName;
+  });
+  if (mapping) {
+    if (callback) callback(err({ msg: `mapping already exists.` }));
+    return;
+  }
+
+  logger.info(`🌫️ Mapped ${fromClient.name} -> ${toClient.name}.`);
+  clientMap.push([fromClient, toClient]);
+
+  // send message to 'from' to set up as a sender
+  io.to(fromClient.socketId).emit("remote/become/sender", toClient.name);
+
+  // send message to 'to' to setup as a receiver
+  io.to(toClient.socketId).emit("remote/become/receiver", fromClient.name);
+
+  // send the client list and mappings to all UIs
+  io.in("ui_room").emit("remote/state", { clients, clientMap });
+
+  if (callback) callback(ok());
+}
+
 io.on("connection", (socket) => {
   logger.info(`⚡ WS connected.`, { socketId: socket.id });
 
@@ -90,6 +131,17 @@ io.on("connection", (socket) => {
     logger.info(`🌫️ Client ${name} joined.`);
     clients.push({ name, socketId: socket.id });
 
+    // auto wire client
+    if (name.startsWith("rx_")) {
+      console.log("🌫️ auto-wiring receiver");
+      const transmitters = clients.filter(({ name }) => name.startsWith("tx_"));
+      transmitters.forEach((tx) => map(tx.name, name));
+    } else if (name.startsWith("tx_")) {
+      console.log("🌫️ auto-wiring transmitter");
+      const receivers = clients.filter(({ name }) => name.startsWith("rx_"));
+      receivers.forEach((rx) => map(name, rx.name));
+    }
+
     // send the client list and mappings to all UIs
     io.in("ui_room").emit("remote/state", { clients, clientMap });
     if (callback) callback(ok());
@@ -113,46 +165,7 @@ io.on("connection", (socket) => {
       callback(err({ msg: `unable to find client with name ${oldName}` }));
   });
 
-  socket.on("map", (fromName: string, toName: string, callback) => {
-    // does the first client (from) exist?
-    const fromClient = clients.find((client) => client.name === fromName);
-    if (!fromClient) {
-      if (callback)
-        callback(err({ msg: `no client with name ${fromName} found.` }));
-      return;
-    }
-
-    // does the second client (to) exist?
-    const toClient = clients.find((client) => client.name === toName);
-    if (!toClient) {
-      if (callback)
-        callback(err({ msg: `no client with name ${toName} found.` }));
-      return;
-    }
-
-    // does the mapping already exist
-    const mapping = clientMap.find(([from, to]) => {
-      return from.name === fromName && to.name === toName;
-    });
-    if (mapping) {
-      if (callback) callback(err({ msg: `mapping already exists.` }));
-      return;
-    }
-
-    logger.info(`🌫️ Mapped ${fromClient.name} -> ${toClient.name}.`);
-    clientMap.push([fromClient, toClient]);
-
-    // send message to 'from' to set up as a sender
-    io.to(fromClient.socketId).emit("remote/become/sender", toClient.name);
-
-    // send message to 'to' to setup as a receiver
-    io.to(toClient.socketId).emit("remote/become/receiver", fromClient.name);
-
-    // send the client list and mappings to all UIs
-    io.in("ui_room").emit("remote/state", { clients, clientMap });
-
-    if (callback) callback(ok());
-  });
+  socket.on("map", map);
 
   socket.on("unmap", (fromName: string, toName: string, callback) => {
     // does the mapping already exist
