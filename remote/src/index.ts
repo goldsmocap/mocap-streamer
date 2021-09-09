@@ -195,7 +195,10 @@ io.on("connection", (socket) => {
     clientMap
       .filter(([from]) => from.socketId === socket.id)
       .forEach(([from, to]) => {
-        io.to(to.socketId).emit<any>("message", { from: from.name, data: msg });
+        io.to(to.socketId).emit<any>("message", {
+          from: from.name,
+          data: btoa(msg),
+        });
       });
   });
 });
