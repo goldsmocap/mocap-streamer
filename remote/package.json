@@ -1,6 +1,6 @@
 {
   "name": "remote",
-  "version": "0.0.1",
+  "version": "1.0.6",
   "description": "Stream aggregator for axis-neuron",
   "author": "Oliver Winks",
   "license": "MIT",
