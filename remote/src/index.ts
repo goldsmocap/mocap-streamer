@@ -1,5 +1,6 @@
 import http from "http";
 import express from "express";
+import btoa from "btoa";
 import { Server } from "socket.io";
 import { Client } from "shared";
 import { err, ok } from "./wsResult";
