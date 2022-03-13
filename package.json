@@ -1,11 +1,18 @@
 {
-    "private": true,
-    "workspaces": ["remote", "local", "local-webui", "shared"],
-
-    "scripts": {
-      "remote": "yarn workspace remote",
-      "local": "yarn workspace local",
-      "local-webui": "yarn workspace local-webui",
-      "shared": "yarn workspace shared"
-    }
+  "private": true,
+  "workspaces": [
+    "remote",
+    "local",
+    "local-webui",
+    "shared"
+  ],
+  "scripts": {
+    "remote": "yarn workspace remote",
+    "local": "yarn workspace local",
+    "local-webui": "yarn workspace local-webui",
+    "shared": "yarn workspace shared"
+  },
+  "devDependencies": {
+    "mermaid": "^8.14.0"
   }
+}
