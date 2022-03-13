@@ -16,7 +16,7 @@
     
     click Local "https://github.com/goldsmocap/axis-streamer/blob/main/local/README.md" "See the README for the 'Local Server' component"
     click UI "https://github.com/goldsmocap/axis-streamer/blob/main/local-webui/README.md" "See the README for the 'Web UI' component"
-    click Remote "https://github.com/goldsmocap/axis-streamer/blob/main/Remote/README.md" "See the README for the 'Remote' component"
+    click Remote "https://github.com/goldsmocap/axis-streamer/blob/main/remote/README.md" "See the README for the 'Remote' component"
     
     %%click Suit...add docs for suit and set-up
     %%click Client...add docs for using external software with the streamer
