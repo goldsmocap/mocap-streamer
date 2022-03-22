@@ -1,21 +1,48 @@
+# Project Overview:
+
+## Sending and Receiving Data:
+```mermaid
+  flowchart TD;
+
+    Suit([Motion-Capture Suit])--User Datagram Protocol 'UDP'-->
+    Local(Local Server);
+    
+    UI[/Web User-Interface/]--Control Data-->
+    Remote[(Remote Server)]<--Websockets-->
+    Local(Local Server)--User Datagram Protocol 'UDP'--> 
+    Client[/Streaming Client/];
 
 
+    
+    click Local "https://github.com/goldsmocap/axis-streamer/blob/main/local/README.md" "See the README for the 'Local Server' component"
+    click UI "https://github.com/goldsmocap/axis-streamer/blob/main/local-webui/README.md" "See the README for the 'Web UI' component"
+    click Remote "https://github.com/goldsmocap/axis-streamer/blob/main/remote/README.md" "See the README for the 'Remote' component"
+    
+    %%click Suit...add docs for suit and set-up
+    %%click Client...add docs for using external software with the streamer
 
-                           + -------------- +
-    + ------------------>  |  Remote Server | <- Running in the cloud (Digital Ocean)
-    |                      + -------------- +
-    |                         ^          ^
-    |                         |          |
-    |                         |          |   WS (sending mocap data)
-    |           + ----------- +          + ----------- +
-    |           |                   |                  |
-    |           |           UK      |    USA           |
-    |   + -------------- +          |          + -------------- +
-    |   |  Local Server  |          |          |  Local Server  | <- Connected to Axis Neuron mocap suit via UDP (port 7002)
-    |   + -------------- +          |          + -------------- +
-    |           ^                   |                       \
-    |           |                   |                        \
-    |           |                   |                         \   <- UDP socket (sending labeled mocap data from local suit and/or remote suits)
-    |     + -------- +              |
-    + --- |  Web UI  |              |
-          + -------- +              |
+```
+
+## Sending Data:
+```mermaid
+  flowchart TD;
+
+    Suit([Motion-Capture Suit])--User Datagram Protocol 'UDP'-->
+    Local(Local Server)--Websockets-->
+    Remote[(Remote Server)];
+
+    UIUI[/Web User-Interface/]--Control Data-->Remote; 
+
+```
+
+## Receiving Data:
+```mermaid
+  flowchart TD;
+
+    UI[/Web User-Interface/]--Control Data-->
+    Remote[(Remote Server)]--Websockets-->
+    Local(Local Server) -- User Datagram Protocol 'UDP'--> 
+    Client[/Streaming Client/];
+    
+```
+

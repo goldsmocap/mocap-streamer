@@ -1,25 +1,29 @@
-# Building the project
+# Local Server
+
+This module defines a local server that distributes data to and from the [remote server](/remote/README.md).
+
+## Building the project
 
 TODO: finish this
 
-# Deploying to Digital Ocean
+## Deploying to Digital Ocean
 
-## Build Docker Image
+### Build Docker Image
 
-## Run Docker Container
+### Run Docker Container
 The docker container must be run using the host's network hence the `--network host` option.
 
 `sudo docker run -d --network host --name axis-streamer goldsmithsmocap/axis-streamer:<tag>`
 
-TODO: finish ths
+TODO: finish this
 
-# Architecture
+## Architecture
 
 TODO: finish this
 
-# Troubleshooting
+## Troubleshooting
 
-**Unity not picking up data stream from Axis-Streamer**
+**Unity not picking up a data stream from Axis-Streamer**
 
 1. Make sure that Axis-Streamer is receiving data from Axis-Neuron. TODO: finish this.
 
@@ -38,6 +42,7 @@ ports we're expecting packets to be delivered to and ask it to route traffic to 
 device. This is known as Port Forwarding or Port Mapping.
 
 **Unity complaining about port reuse (not receiving data from axis-neuron but you are receiving data from the remote axis-streamer)**
+
 1. This is most likely due to binding a UDP source to 0.0.0.0. Using this address (which is specified by default if no address is provided to bind the UDP socket to) will bind the UDP socket to ALL addresses blocking anything (Unity included) from binding to any port to receive data from axis-neuron.
 
 **Axis-Streamer not receiving data from Axis-Neuron**
