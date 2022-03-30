@@ -1,5 +1,6 @@
+import { WebSocket } from "ws";
 export interface Client {
     name: string;
-    socketId: string;
+    ws: WebSocket;
 }
 export declare type Connection = [Client, Client];

@@ -1,5 +1,6 @@
 import { Observer } from "rxjs";
-import { getRemoteWs } from "../../remote";
+import { match, P } from "ts-pattern";
+import { getRemoteWs, GetWebSocketError } from "../../remote";
 import { observerToWs } from "../../rxadapters/rxWs";
 
 export interface WsSinkOptions {
@@ -8,18 +9,23 @@ export interface WsSinkOptions {
 }
 
 export interface WsSink {
-  kind: "WsSink";
+  _tag: "WsSink";
   name: string;
   observer: Observer<any>;
 }
 
-export function wsSink(options: WsSinkOptions): Promise<WsSink> {
+export function wsSink(options: WsSinkOptions): Promise<GetWebSocketError | WsSink> {
   return getRemoteWs().then((ws) => {
-    const observer = observerToWs(ws, options.debug);
-    return {
-      kind: "WsSink",
-      name: options.name,
-      observer,
-    };
+    return match(ws)
+      .with({ _tag: "Right", right: P.select() }, (ws) => {
+        const observer = observerToWs(ws, options.debug);
+        return {
+          _tag: "WsSink",
+          name: options.name,
+          observer,
+        } as WsSink;
+      })
+      .with({ _tag: "Left", left: P.select() }, (err) => err)
+      .run();
   });
 }

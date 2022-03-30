@@ -1,19 +1,23 @@
-import { Socket } from "socket.io-client";
 import * as Rx from "rxjs";
-import { logger } from "../log";
+import WebSocket from "ws";
+import { logger } from "shared";
 
-export function observableFromWs<T>(ws: Socket): Rx.Observable<T> {
+export function observableFromWs<T>(ws: WebSocket): Rx.Observable<T> {
   return new Rx.Observable<T>((observer) => {
-    ws.on("message", (t: T) => observer.next(t));
-    ws.on("disconnect", () => observer.complete());
+    ws.on("message", function message(evt: MessageEvent<T>) {
+      observer.next(evt.data);
+    });
+    ws.on("close", function () {
+      observer.complete;
+    });
   });
 }
 
-export function observerToWs(ws: Socket, debug?: boolean): Rx.Observer<any> {
+export function observerToWs(ws: WebSocket, debug?: boolean): Rx.Observer<any> {
   return {
     next: (t) => {
       if (debug) logger.info(`WsSink received ${t.length}.`);
-      ws.emit("message", t);
+      ws.send(JSON.stringify(t));
     },
     error: (_err) => ws.close(),
     complete: () => ws.close(),

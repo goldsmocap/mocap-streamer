@@ -1,8 +1,10 @@
 import { ConnectableObservable, Subject } from "rxjs";
 import { multicast } from "rxjs/operators";
-import { getRemoteWs } from "../../remote";
+import { match, P } from "ts-pattern";
+import { logger } from "shared";
+import { getRemoteWs, GetWebSocketError, WebSocketClosed, WebSocketConnecting } from "../../remote";
 import { observableFromWs } from "../../rxadapters/rxWs";
-import { logger } from "../../log";
+import { Either } from "fp-ts/Either";
 
 export interface WsSourceOptions {
   name: string;
@@ -10,33 +12,38 @@ export interface WsSourceOptions {
 }
 
 export interface WsSource {
-  kind: "WsSource";
+  _tag: "WsSource";
   name: string;
   observable: ConnectableObservable<any>;
 }
 
-export function wsSource(options: WsSourceOptions): Promise<WsSource> {
+export function wsSource(options: WsSourceOptions): Promise<GetWebSocketError | WsSource> {
   return getRemoteWs().then((ws) => {
-    // create a new subject
-    const subject = new Subject<any>();
+    return match(ws)
+      .with({ _tag: "Right", right: P.select() }, (ws) => {
+        // create a new subject
+        const subject = new Subject<any>();
 
-    // create a new observable from the socket and multicast it through the subject
-    const observable = observableFromWs(ws);
-    const multicasted = observable.pipe(
-      multicast(subject)
-    ) as ConnectableObservable<any>;
+        // create a new observable from the socket and multicast it through the subject
+        const observable = observableFromWs(ws);
+        const multicasted = observable.pipe(multicast(subject)) as ConnectableObservable<any>;
 
-    if (options.debug ?? false) {
-      multicasted.subscribe({
-        next: (buf) => logger.info(`WsSource received ${buf.length}`),
-      });
-      multicasted.connect();
-    }
+        if (options.debug ?? false) {
+          multicasted.subscribe({
+            next: (buf) => logger.info(`WsSource received ${buf.length}`),
+          });
+          multicasted.connect();
+        }
 
-    return {
-      kind: "WsSource",
-      name: options.name,
-      observable: multicasted,
-    };
+        return {
+          _tag: "WsSource",
+          name: options.name,
+          observable: multicasted,
+        } as WsSource;
+      })
+      .with({ _tag: "Left", left: P.select() }, (err) => {
+        return err as GetWebSocketError;
+      })
+      .run();
   });
 }

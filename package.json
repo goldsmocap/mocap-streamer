@@ -1,11 +1,16 @@
 {
     "private": true,
-    "workspaces": ["remote", "local", "local-webui", "shared"],
-
+    "workspaces": [
+        "remote",
+        "local",
+        "ui",
+        "shared"
+    ],
     "scripts": {
-      "remote": "yarn workspace remote",
-      "local": "yarn workspace local",
-      "local-webui": "yarn workspace local-webui",
-      "shared": "yarn workspace shared"
-    }
-  }
+        "remote": "yarn workspace remote",
+        "local": "yarn workspace local",
+        "ui": "yarn workspace ui",
+        "shared": "yarn workspace shared"
+    },
+    "packageManager": "yarn@3.2.0"
+}

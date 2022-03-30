@@ -1,8 +1,9 @@
 import express, { Router } from "express";
+import { logger } from "shared";
 import { UdpSourceOptions, udpSource } from "../flows/udp";
 import { WsSourceOptions, wsSource } from "../flows/ws";
 import { sources } from "../flows";
-import { logger } from "../log";
+import { match, P } from "ts-pattern";
 
 type SourceOptions =
   | { kind: "UdpSource"; options: UdpSourceOptions }
@@ -10,32 +11,34 @@ type SourceOptions =
 
 // Routes
 ///////////////////////////////////////////////////////////////////////////////
-export function sourceRoutes(): Router {
-  const router = express.Router();
+export const sourceRoutes = express.Router();
 
-  router.post("/source", (req, res) => {
-    const body = req.body as SourceOptions;
+sourceRoutes.post("/source", (req, res) => {
+  const body = req.body as SourceOptions;
 
-    switch (body.kind) {
-      case "UdpSource":
-        udpSource(body.options)
-          .then((source) => {
-            sources.push(source);
-            res.send();
-          })
-          .catch((err) => res.status(400).send(err));
-        break;
+  switch (body.kind) {
+    case "UdpSource":
+      udpSource(body.options)
+        .then((source) => {
+          sources.push(source);
+          res.send();
+        })
+        .catch((err) => res.status(400).send(err));
+      break;
 
-      case "WsSource":
-        wsSource(body.options)
-          .then((source) => {
-            sources.push(source);
-            res.send();
-          })
-          .catch((err) => res.status(400).send(err));
-        break;
-    }
-  });
-
-  return router;
-}
+    case "WsSource":
+      wsSource(body.options)
+        .then((source) => {
+          match(source)
+            .with({ _tag: "WsSource" }, (source) => {
+              sources.push(source);
+              res.send();
+            })
+            .with({ _tag: "WebSocketClosed" }, () => logger.warn("Websocket is closed"))
+            .with({ _tag: "WebSocketConnecting" }, () => logger.warn("Websocket still connecting"))
+            .run();
+        })
+        .catch((err) => res.status(400).send(err));
+      break;
+  }
+});

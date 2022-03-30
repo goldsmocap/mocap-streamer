@@ -1,8 +1,8 @@
 import { ConnectableObservable, Subject } from "rxjs";
 import { multicast } from "rxjs/operators";
+import { logger } from "shared";
 import { observableFromUdp } from "../../rxadapters/rxUdp";
 import { useUdpSocket } from "./useUdpSocket";
-import { logger } from "../../log";
 
 export interface UdpSourceOptions {
   name: string;
@@ -12,7 +12,7 @@ export interface UdpSourceOptions {
 }
 
 export interface UdpSource {
-  kind: "UdpSource";
+  _tag: "UdpSource";
   name: string;
   port: number;
   address: string;
@@ -30,9 +30,7 @@ export function udpSource(options: UdpSourceOptions): Promise<UdpSource> {
 
     // create a new observable from the socket and multicast it through the subject
     const observable = observableFromUdp(socket);
-    const multicasted = observable.pipe(
-      multicast(subject)
-    ) as ConnectableObservable<any>;
+    const multicasted = observable.pipe(multicast(subject)) as ConnectableObservable<any>;
 
     if (options.debug ?? false) {
       multicasted.subscribe({
@@ -42,7 +40,7 @@ export function udpSource(options: UdpSourceOptions): Promise<UdpSource> {
     }
 
     return {
-      kind: "UdpSource",
+      _tag: "UdpSource",
       name: options.name,
       port: options.port,
       address,

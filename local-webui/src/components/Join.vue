@@ -3,7 +3,7 @@
     id="join-modal"
     ref="joinModal"
     size="sm"
-    title="💃 Join Remote Streamer 💃"
+    title="💃 Join MocapStreamer 💃"
     header-class="d-flex justify-content-center"
     hide-header-close
     hide-footer
@@ -12,22 +12,18 @@
     centered
     visible
   >
-    <h6>Welcome to Axis-Streamer</h6>
-    <p class="mb-5">
-      Please provide a name for yourself and join the remote streamer.
-    </p>
-    <ValidationObserver v-slot="{ handleSubmit, invalid }">
+    <h6>Welcome to MocapStreamer</h6>
+    <p class="mb-5">Please enter MocapStreamer URL</p>
+    <validation-observer v-slot="{ handleSubmit, invalid }">
       <b-form @submit.prevent="handleSubmit(join)">
-        <ValidationProvider
+        <validation-provider
           rules="required|isIpWithPort"
           name="Remote URL"
           v-slot="{ errors }"
         >
           <b-input-group class="my-2">
             <b-input-group-prepend>
-              <b-button class="border" disabled>
-                <b-icon icon="globe" />
-              </b-button>
+              <b-button class="border" disabled>ws://</b-button>
             </b-input-group-prepend>
             <b-input type="text" v-model="url" />
           </b-input-group>
@@ -38,9 +34,9 @@
           >
             {{ err }}
           </small>
-        </ValidationProvider>
+        </validation-provider>
 
-        <ValidationProvider
+        <!-- <ValidationProvider
           rules="required"
           name="Client name"
           v-slot="{ errors }"
@@ -60,31 +56,29 @@
           >
             {{ err }}
           </small>
-        </ValidationProvider>
+        </ValidationProvider> -->
 
         <div class="d-flex justify-content-end my-2">
-          <b-button type="submit" :disabled="invalid" variant="primary">
+          <b-button type="submit" block :disabled="invalid" variant="primary">
             Join
           </b-button>
         </div>
       </b-form>
-    </ValidationObserver>
+    </validation-observer>
   </b-modal>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 import axios from "axios";
-import { defineComponent, ref, Ref } from "@vue/composition-api";
-import { clientName, registerUiWithRemote } from "../hooks/useRemote";
+import { ref, Ref } from "@vue/composition-api";
+import { registerUiWithRemote } from "../hooks/useRemote";
 
 const REMOTE_SERVER_URL =
   process.env.NODE_ENV === "production"
-    ? "http://46.101.24.208:3000"
-    : "http://127.0.0.1:3000";
+    ? "46.101.24.208:3000"
+    : "127.0.0.1:3000";
 
-export default defineComponent({
-  setup(props, { root }) {
-    const joinModal: Ref<any> = ref(undefined);
+const joinModal: Ref<any> = ref(undefined);
 
     const url = ref(REMOTE_SERVER_URL);
     const name = ref("");
@@ -99,33 +93,49 @@ export default defineComponent({
       });
 
     function join() {
-      registerUiWithRemote(url.value)
+      registerUiWithRemote(`ws://${url.value}`)
         .then((ws) => {
-          console.log(`⚡ Asking local streamer to join the remote.`);
-
           // handle WS disconnect
-          ws.on("disconnect", () => {
-            root.$bvToast.toast(
-              "You got disconnected! Please refresh the page.",
-              {
-                noCloseButton: true,
-                variant: "danger",
-                toaster: "b-toaster-bottom-center",
-              }
-            );
-          });
+          ws.onclose = () => {
+            root.$bvToast.toast("You got disconnected!", {
+              noCloseButton: true,
+              variant: "danger",
+              toaster: "b-toaster-bottom-center",
+            });
 
-          return axios
-            .post(`api/remote/join/${name.value}`, { url: url.value })
-            .then((_) => (clientName.value = name.value))
-            .catch((err) => {});
-        })
-        .then((_res) => {
-          console.log(`⚡ Local streamer joined.`);
+            joinModal.value.show();
+          };
+
           joinModal.value.hide();
+
+          // console.log(`⚡ Asking local streamer to join the remote.`);
+
+          // return axios.post(`api/remote/join/${name.value}`, {
+          //   url: url.value,
+          // });
         })
+        // .then((_res) => {
+        //   console.log(`⚡ Local streamer joined.`);
+        //   clientName.value = name.value;
+        // })
+        // .catch((err) => {
+        //   console.log(
+        //     `⚡Unable to contact local streamer, it may not be running.`
+        //   );
+
+        //   root.$bvToast.toast(
+        //     `Unable to contact local streamer, it may not be running.\n If you are just running the UI you can ignore this message.`,
+        //     {
+        //       noCloseButton: true,
+        //       solid: true,
+        //       variant: "warning",
+        //       toaster: "b-toaster-bottom-center",
+        //     }
+        //   );
+        // })
         .catch((err) => {
-          root.$bvToast.toast(`${err.response.data}`, {
+          console.error(err);
+          root.$bvToast.toast("Unable to connect to MocapStreamer", {
             noCloseButton: true,
             solid: true,
             variant: "danger",

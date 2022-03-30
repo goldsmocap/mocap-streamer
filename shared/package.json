@@ -9,8 +9,13 @@
     "license": "ISC",
     "main": "dist/index.js",
     "typings": "dist/index.d.ts",
-
     "scripts": {
         "build": "tsc"
+    },
+    "dependencies": {
+        "winston": "^3.6.0"
+    },
+    "devDependencies": {
+        "typescript": "^4.6.3"
     }
 }

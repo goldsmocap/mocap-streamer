@@ -1,5 +1,5 @@
 import dgram from "dgram";
-import { logger } from "../../log";
+import { logger } from "shared";
 
 export function useUdpSocket(
   port: number,

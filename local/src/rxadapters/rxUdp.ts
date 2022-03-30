@@ -1,6 +1,6 @@
 import * as dgram from "dgram";
 import * as Rx from "rxjs";
-import { logger } from "../log";
+import { logger } from "shared";
 
 export function observableFromUdp(socket: dgram.Socket): Rx.Observable<Buffer> {
   return new Rx.Observable<Buffer>((observer) => {

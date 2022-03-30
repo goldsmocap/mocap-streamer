@@ -47,7 +47,7 @@ for (const [rule, validation] of Object.entries(rules)) {
   });
 }
 extend("isIpWithPort", (str) => {
-  const urlRegex = /^(https?:\/\/)((0|[1-9][0-9]{0,2})\.){3}(0|[1-9][0-9]{0,2})(:(0|[1-9][0-9]{0,4}))?$/;
+  const urlRegex = /^((0|[1-9][0-9]{0,2})\.){3}(0|[1-9][0-9]{0,2})(:(0|[1-9][0-9]{0,4}))?$/;
   const matches = str.match(urlRegex);
   return matches !== null;
 });
