@@ -15,13 +15,14 @@
     "@vueuse/head": "^0.7.5",
     "daisyui": "^2.13.4",
     "fp-ts": "^2.11.9",
-    "shared": "^0.1.0",
+    "shared": "*",
     "tailwindcss": "^3.0.23",
     "ts-pattern": "^4.0.1",
     "vue": "^3.2.31",
     "vue-router": "4"
   },
   "devDependencies": {
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/jsdom": "^16.2.14",
     "@types/node": "^16.11.26",
     "@vitejs/plugin-vue": "^2.2.4",

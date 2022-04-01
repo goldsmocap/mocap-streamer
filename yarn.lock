@@ -132,6 +132,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@originjs/vite-plugin-commonjs@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "@originjs/vite-plugin-commonjs@npm:1.0.3"
+  dependencies:
+    esbuild: ^0.14.14
+  checksum: e4cd22a73e2be726fc78f794942333b8c6ede20c7b57edebe3d7bf52119532ef3206142f36498fbb22fb34fc706d30cd5efb10d1d84bf8d11be09ed7b90b8aaf
+  languageName: node
+  linkType: hard
+
 "@popperjs/core@npm:^2.11.4":
   version: 2.11.4
   resolution: "@popperjs/core@npm:2.11.4"
@@ -4009,12 +4018,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"shared@^0.1.0, shared@workspace:shared":
+"shared@*, shared@^0.1.0, shared@workspace:shared":
   version: 0.0.0-use.local
   resolution: "shared@workspace:shared"
   dependencies:
     typescript: ^4.6.3
-    winston: ^3.6.0
   languageName: unknown
   linkType: soft
 
@@ -4481,6 +4489,7 @@ __metadata:
   resolution: "ui@workspace:ui"
   dependencies:
     "@heroicons/vue": ^1.0.6
+    "@originjs/vite-plugin-commonjs": ^1.0.3
     "@popperjs/core": ^2.11.4
     "@types/jsdom": ^16.2.14
     "@types/node": ^16.11.26
@@ -4496,7 +4505,7 @@ __metadata:
     postcss: ^8.4.12
     postcss-nested: ^5.0.6
     prettier: ^2.6.1
-    shared: ^0.1.0
+    shared: "*"
     tailwindcss: ^3.0.23
     ts-pattern: ^4.0.1
     typescript: ~4.6.3
@@ -4847,7 +4856,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"winston@npm:^3.3.3, winston@npm:^3.6.0":
+"winston@npm:^3.3.3":
   version: 3.6.0
   resolution: "winston@npm:3.6.0"
   dependencies:

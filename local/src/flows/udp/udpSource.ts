@@ -1,6 +1,6 @@
 import { ConnectableObservable, Subject } from "rxjs";
 import { multicast } from "rxjs/operators";
-import { logger } from "shared";
+import { logger } from "../../logging";
 import { observableFromUdp } from "../../rxadapters/rxUdp";
 import { useUdpSocket } from "./useUdpSocket";
 

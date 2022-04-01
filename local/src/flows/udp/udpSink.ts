@@ -1,6 +1,6 @@
 import dgram from "dgram";
 import { Observer } from "rxjs";
-import { logger } from "shared";
+import { logger } from "../../logging";
 import { observerToUdp } from "../../rxadapters/rxUdp";
 import { useUdpSocket } from "./useUdpSocket";
 

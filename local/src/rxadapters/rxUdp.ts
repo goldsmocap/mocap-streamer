@@ -1,6 +1,6 @@
 import * as dgram from "dgram";
 import * as Rx from "rxjs";
-import { logger } from "shared";
+import { logger } from "../logging";
 
 export function observableFromUdp(socket: dgram.Socket): Rx.Observable<Buffer> {
   return new Rx.Observable<Buffer>((observer) => {
@@ -38,10 +38,7 @@ export function observerToUdp(
   return {
     next: ({ from, data }) => {
       if (from === sender) {
-        if (debug)
-          logger.info(
-            `${from} sending to ${address}:${port}, data ${data.byteLength}`
-          );
+        if (debug) logger.info(`${from} sending to ${address}:${port}, data ${data.byteLength}`);
         socket.send(data, 0, data.byteLength, port, address);
       }
     },

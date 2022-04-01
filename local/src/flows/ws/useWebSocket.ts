@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { logger } from "shared";
+import { logger } from "../../logging";
 
 // export function useWsServer(
 //   httpServer: http.Server,

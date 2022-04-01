@@ -1,7 +1,7 @@
 import { ConnectableObservable, Subject } from "rxjs";
 import { multicast } from "rxjs/operators";
 import { match, P } from "ts-pattern";
-import { logger } from "shared";
+import { logger } from "../../logging";
 import { getRemoteWs, GetWebSocketError, WebSocketClosed, WebSocketConnecting } from "../../remote";
 import { observableFromWs } from "../../rxadapters/rxWs";
 import { Either } from "fp-ts/Either";

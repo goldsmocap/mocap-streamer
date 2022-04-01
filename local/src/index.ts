@@ -2,7 +2,7 @@ import path from "path";
 import http from "http";
 import express from "express";
 import cors from "cors";
-import { logger } from "shared";
+import { logger } from "./logging";
 import { sinkRoutes, sourceRoutes, apiRoutes } from "./routes";
 
 export default function run() {

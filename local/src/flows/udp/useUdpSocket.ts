@@ -1,10 +1,7 @@
 import dgram from "dgram";
-import { logger } from "shared";
+import { logger } from "../../logging";
 
-export function useUdpSocket(
-  port: number,
-  address: string
-): Promise<dgram.Socket> {
+export function useUdpSocket(port: number, address: string): Promise<dgram.Socket> {
   return new Promise((resolve, reject) => {
     const socket = dgram.createSocket("udp4");
 

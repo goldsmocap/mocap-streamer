@@ -1,19 +1,24 @@
 import { Router } from "express";
 import { match, P } from "ts-pattern";
-import logger from "winston";
+import { joinRemote, serialize } from "shared/dist/messages";
 import { getRemoteWs, newRemoteWs, nameOnRemote } from "../remote";
+import { logger } from "../logging";
 
 export const apiRoutes = Router();
 
-apiRoutes.get("/ping", (_, res) => {
+apiRoutes.get("/status", (_, res) => {
   getRemoteWs()
     .then((wsOrErr) =>
       match(wsOrErr)
-        .with({ _tag: "Left", left: { _tag: "WebSocketClosed" } }, () => res.send())
-        .with({ _tag: "Left", left: { _tag: "WebSocketConnecting" } }, () =>
-          res.status(500).send("Local streamer is still connecting to remote. Please refresh page.")
+        .with({ _tag: "Left", left: { _tag: "WebSocketClosed" } }, () =>
+          res.send({ status: "CLOSED", nameOnRemote })
         )
-        .with({ _tag: "Right", right: P.any }, () => res.send(nameOnRemote))
+        .with({ _tag: "Left", left: { _tag: "WebSocketConnecting" } }, () =>
+          res.send({ status: "CONNECTING", nameOnRemote })
+        )
+        .with({ _tag: "Right", right: P.any }, () =>
+          res.send({ status: "CONNECTED", joined: nameOnRemote ? true : false, nameOnRemote })
+        )
         .run()
     )
     .catch((err) => res.status(500).send(err));
@@ -21,29 +26,27 @@ apiRoutes.get("/ping", (_, res) => {
 
 apiRoutes.post("/join", (req, res) => {
   const name = req.body.name as string;
-  const url = req.body.url as string;
+  const remoteUrl = req.body.remoteUrl as string;
 
-  newRemoteWs(url)
+  newRemoteWs(remoteUrl)
     .then((wsOrErr) => {
-      logger.info("HHHHHHEEEEEEELLLLLLLLOOOOOOOOO");
       match(wsOrErr)
+        .with({ _tag: "Right", right: P.select() }, (ws) => {
+          ws.send(serialize(joinRemote(name)));
+          res.send();
+        })
         .with({ _tag: "Left", left: { _tag: "WebSocketAlreadyConnected" } }, () => {
           logger.warn("⚡ WebSocket already connected to remote server.");
-          res.send("Already connected");
+          res.status(500).send("Already connected");
         })
         .with({ _tag: "Left", left: P.any }, () => {
           logger.warn("⚡ Oops");
           res.status(500).send("Something went wrong");
         })
-        .with({ _tag: "Right", right: P.select() }, (ws) => {
-          logger.info("I GOT HERE!!!!!");
-          ws.send(JSON.stringify({ type: "join", payload: name }));
-          res.send();
-        })
         .run();
     })
     .catch((err) => {
-      logger.error(`Encountered an error, ${err}`);
+      logger.error(`💀 Encountered an error ${err}`);
       // you are already connected or there was some other error
       res.status(500).send(err);
     });

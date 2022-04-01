@@ -1,6 +1,6 @@
 import * as Rx from "rxjs";
 import WebSocket from "ws";
-import { logger } from "shared";
+import { logger } from "../logging";
 
 export function observableFromWs<T>(ws: WebSocket): Rx.Observable<T> {
   return new Rx.Observable<T>((observer) => {

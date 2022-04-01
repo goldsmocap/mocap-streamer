@@ -14,4 +14,7 @@ export default defineConfig({
   server: {
     port: 8080,
   },
+  optimizeDeps: {
+    include: ["../shared/dist/messages", "../shared/dist/clients"],
+  },
 });
