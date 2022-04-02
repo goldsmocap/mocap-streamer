@@ -28,10 +28,9 @@ export type RegistrationError = WebSocketAlreadyConnected | WebSocketConnecting 
 let remoteWs: WebSocket | undefined = undefined;
 
 export const remoteBaseUrl: Ref<string | undefined> = ref(undefined);
+export const remoteState: Ref<ClientSummaryState> = ref({ clients: [], clientMap: [] });
 
 function handleRemoteState(state: ClientSummaryState) {
-  console.log(state);
-
   // are you managing a local server?
   if (managingLocalServer.value) {
     // is the local server you are managing still connected to the remote server?
@@ -42,6 +41,8 @@ function handleRemoteState(state: ClientSummaryState) {
       nameOnRemote.value = undefined;
     }
   }
+
+  remoteState.value = state;
 }
 
 export function registerUiWithRemote(

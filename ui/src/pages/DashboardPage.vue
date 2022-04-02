@@ -11,6 +11,7 @@ import { remoteBaseUrl } from "../remote";
 import { managingLocalServer, nameOnRemote, localJoin } from "../local";
 import Modal from "../components/Modal.vue";
 import SearchForLocal from "../components/SearchForLocal.vue";
+import ClientTable from "../components/ClientTable.vue";
 
 // search
 const searchResult: Ref<Option<SearchResult>> = ref(none);
@@ -65,8 +66,8 @@ function leave() {
   <div class="w-screen h-screen p-1 sm:p-2 md:p-4 lg:p-8">
     <div class="rounded-lg w-full h-full bg-white border shadow-xl text-black p-4">
       <!-- Header -->
-      <div class="mb-4">
-        <div v-if="managingLocalServer" class="flex">
+      <div class="mb-8">
+        <div v-if="managingLocalServer" class="flex items-center">
           <div class="grow">
             <div class="flex items-center">
               <user-circle-icon class="w-8 mr-2" /> {{ nameOnRemote }}
@@ -90,6 +91,9 @@ function leave() {
           </div>
         </div>
       </div>
+
+      <!-- Table -->
+      <client-table />
     </div>
   </div>
 
