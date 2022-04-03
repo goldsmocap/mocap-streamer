@@ -1,6 +1,11 @@
 import { WebSocket } from "ws";
+export declare type ClientRole = "SENDER" | "RECEIVER" | "BOTH";
+export declare const roleSender: ClientRole;
+export declare const roleReceiver: ClientRole;
+export declare const roleBoth: ClientRole;
 export declare type Client = {
     name: string;
+    role: ClientRole;
     ws: WebSocket;
 };
 export declare type ClientMap = [Client, Client][];
@@ -10,6 +15,7 @@ export declare type ClientState = {
 };
 export declare type ClientSummary = {
     name: string;
+    role: ClientRole;
 };
 export declare type ClientSummaryMap = [ClientSummary, ClientSummary][];
 export declare type ClientSummaryState = {

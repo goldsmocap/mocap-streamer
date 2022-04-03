@@ -1,7 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clientSummaryState = exports.clientSummary = void 0;
-const clientSummary = (client) => ({ name: client.name });
+exports.clientSummaryState = exports.clientSummary = exports.roleBoth = exports.roleReceiver = exports.roleSender = void 0;
+exports.roleSender = "SENDER";
+exports.roleReceiver = "RECEIVER";
+exports.roleBoth = "BOTH";
+const clientSummary = (client) => ({
+    name: client.name,
+    role: client.role,
+});
 exports.clientSummary = clientSummary;
 const clientSummaryState = (clientState) => {
     return {

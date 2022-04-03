@@ -72,6 +72,7 @@ export function newRemoteWs(
 
       default:
         // if not then create new connection
+        remoteBaseUrl.value = url.replace("ws://", "");
         remoteWs = new WebSocket(url);
 
         remoteWs.onopen = () => {
@@ -98,7 +99,7 @@ export function newRemoteWs(
           switch (msg._tag) {
             case "join_remote_success":
               nameOnRemote.value = msg.name;
-              console.log(`💃 successfully joined remote with name ${nameOnRemote}`);
+              console.log(`💃 successfully joined remote with name ${nameOnRemote.value}`);
               break;
 
             case "rename_success":

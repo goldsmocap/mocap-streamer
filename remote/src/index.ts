@@ -2,17 +2,18 @@ import http from "http";
 import cors from "cors";
 import express, { Router } from "express";
 import { WebSocket } from "ws";
-import { ClientState } from "../../shared/dist/clients";
+import { ClientRole, ClientState } from "../../shared/dist/clients";
 import {
   WsMessage,
-  becomeReceiver,
-  becomeSender,
-  bvhFrame,
-  joinRemoteFail,
-  joinRemoteSuccess,
-  remoteState,
+  becomeReceiverMsg,
+  becomeSenderMsg,
+  bvhFrameMsg,
+  joinRemoteFailMsg,
+  joinRemoteSuccessMsg,
+  remoteStateMsg,
+  renameSuccessMsg,
   serialize,
-  unbecomeReceiver,
+  unbecomeReceiverMsg,
 } from "../../shared/dist/messages";
 import { logger } from "./logging";
 import "./types";
@@ -33,10 +34,7 @@ app.use(express.json()); // json body parser
 
 // initialise websocket
 ///////////////////////////////////////////////////////////////////////////////
-function handleDisconnect(ws: WebSocket, err?: any) {
-  const clientName = ws.name;
-  logger.info(`⚡ WS disconnected.`, clientName, err);
-
+function removeAllMappings(clientName: string) {
   const i = state.clients.findIndex((client) => client.name === clientName);
   if (i >= 0) {
     logger.info(`🕸 All mappings to and from ${state.clients[i].name} removed.`);
@@ -50,7 +48,7 @@ function handleDisconnect(ws: WebSocket, err?: any) {
 
   // send the client list and mappings to all UIs
   // const wsMsg = newMsg({ type: "remote_state", payload: remoteState() });
-  wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+  wss.clients.forEach((ws) => ws.send(serialize(remoteStateMsg(state))));
   // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 }
 
@@ -63,15 +61,15 @@ wss.on("connection", (ws) => {
   // disconnected socket.
   ws.on("close", () => {
     logger.info("⚡ WS closed.", ws.name);
-    handleDisconnect(ws);
+    if (ws.name) removeAllMappings(ws.name);
   });
   ws.on("disconnect", () => {
     logger.info("⚡ WS disconnected", ws.name);
-    handleDisconnect(ws);
+    if (ws.name) removeAllMappings(ws.name);
   });
   ws.on("error", (err) => {
     logger.info("⚡ Ws connection error.", err);
-    handleDisconnect(ws, err);
+    if (ws.name) removeAllMappings(ws.name);
   });
 
   // on receipt of a message pass it on to all mapped clients
@@ -82,7 +80,7 @@ wss.on("connection", (ws) => {
       case "bvh_frame":
         state.clientMap
           .filter(([from]) => from.name === msg.from)
-          .forEach(([from, to]) => to.ws.send(serialize(bvhFrame(msg.frame, from.name))));
+          .forEach(([from, to]) => to.ws.send(serialize(bvhFrameMsg(msg.frame, from.name))));
         break;
 
       // case "register_ui":
@@ -99,27 +97,28 @@ wss.on("connection", (ws) => {
 
       case "join_remote":
         const name = msg.name as string;
+        const role = msg.role as ClientRole;
 
         // has this name already been taken?
         const nameTaken = state.clients.find((client) => client.name === name);
         if (nameTaken) {
-          ws.send(serialize(joinRemoteFail("name taken")));
+          ws.send(serialize(joinRemoteFailMsg("name taken")));
           return;
         }
 
         // add the client
         logger.info(`💃 Client ${name} joined.`);
-        state.clients.push({ name, ws });
+        state.clients.push({ name, role, ws });
 
         // monkey-patch the `ws` to include the name so we can find the client later
         // when this socket disoconnects
         ws.name = name;
 
         // send the client a response to say joining was successful
-        ws.send(serialize(joinRemoteSuccess(name)));
+        ws.send(serialize(joinRemoteSuccessMsg(name)));
 
         // send the client list and mappings to all UIs
-        wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+        wss.clients.forEach((ws) => ws.send(serialize(remoteStateMsg(state))));
         // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
         break;
     }
@@ -131,7 +130,24 @@ wss.on("connection", (ws) => {
 const router = Router();
 
 router.get("/status", (req, res) => {
-  res.send({ wsConnections: wss.clients.size, state: remoteState(state) });
+  res.send({ wsConnections: wss.clients.size, state: remoteStateMsg(state) });
+});
+
+router.put("/change-role/:name", (req, res) => {
+  const name = req.params.name;
+  const newRole = req.body.newRole as ClientRole;
+
+  // update client role
+  const client = state.clients.find((client) => client.name === name);
+  if (client) {
+    client.role = newRole;
+  }
+
+  // send the client list and mappings to all UIs
+  wss.clients.forEach((ws) => ws.send(serialize(remoteStateMsg(state))));
+  // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
+
+  res.send();
 });
 
 router.put("/rename/:oldName", (req, res) => {
@@ -143,27 +159,19 @@ router.put("/rename/:oldName", (req, res) => {
   if (oldClient) {
     logger.info(`✏️ Renamed client from ${oldName} to ${newName}.`);
     oldClient.name = newName;
+    oldClient.ws.name = newName;
 
     // send the client a success message
-    oldClient.ws.send(JSON.stringify({ type: "rename_success", payload: newName }));
+    oldClient.ws.send(serialize(renameSuccessMsg(newName)));
 
     // send the client list and mappings to all UIs
-    wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+    wss.clients.forEach((ws) => ws.send(serialize(remoteStateMsg(state))));
     // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 
     res.send();
   } else {
     res.status(500).send(`unable to find client with name ${oldName}`);
   }
-});
-
-router.get("/leave/:name", (req, res) => {
-  const nameToRemove = req.params.name;
-
-  // find the connection with the given name and close it.
-  state.clients.find(({ name }) => name === nameToRemove)?.ws.close();
-
-  res.send();
 });
 
 router.put("/map", (req, res) => {
@@ -197,13 +205,13 @@ router.put("/map", (req, res) => {
   state.clientMap.push([fromClient, toClient]);
 
   // send message to 'from' to set up as a sender
-  fromClient.ws.send(serialize(becomeSender(toClient.name)));
+  fromClient.ws.send(serialize(becomeSenderMsg(toClient.name)));
 
   // send message to 'to' to setup as a receiver
-  toClient.ws.send(serialize(becomeReceiver(fromClient.name)));
+  toClient.ws.send(serialize(becomeReceiverMsg(fromClient.name)));
 
   // send the client list and mappings to all UIs
-  wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+  wss.clients.forEach((ws) => ws.send(serialize(remoteStateMsg(state))));
   // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 
   res.send();
@@ -227,11 +235,35 @@ router.put("/unmap", (req, res) => {
   state.clientMap.splice(mappingIdx, 1);
 
   // send the client list and mappings to all UIs
-  wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+  wss.clients.forEach((ws) => ws.send(serialize(remoteStateMsg(state))));
   // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 
   // send message to 'to' to remove receiver
-  to.ws.send(serialize(unbecomeReceiver(from.name)));
+  to.ws.send(serialize(unbecomeReceiverMsg(from.name)));
+
+  res.send();
+});
+
+router.get("/leave/:name", (req, res) => {
+  const clientName = req.params.name;
+
+  // remove name from ws
+  const client = state.clients.find((client) => client.name === clientName);
+  if (client) {
+    client.ws.name = undefined;
+  }
+
+  // remove all mapping to and from client
+  removeAllMappings(clientName);
+
+  res.send();
+});
+
+router.get("/close/:name", (req, res) => {
+  const nameToRemove = req.params.name;
+
+  // find the connection with the given name and close it.
+  state.clients.find(({ name }) => name === nameToRemove)?.ws.close();
 
   res.send();
 });

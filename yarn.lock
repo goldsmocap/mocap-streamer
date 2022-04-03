@@ -1618,6 +1618,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"concurrently@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "concurrently@npm:7.1.0"
+  dependencies:
+    chalk: ^4.1.0
+    date-fns: ^2.16.1
+    lodash: ^4.17.21
+    rxjs: ^6.6.3
+    spawn-command: ^0.0.2-1
+    supports-color: ^8.1.0
+    tree-kill: ^1.2.2
+    yargs: ^16.2.0
+  bin:
+    concurrently: dist/bin/concurrently.js
+  checksum: 723996afc73af7ea914a03726c75b63be6ce83f0825b0bc54de0568ba89490e217ca88523f251fe1e5c30ee2780572dce830b530ef35e435e64c1f94cfd4e4af
+  languageName: node
+  linkType: hard
+
 "config-chain@npm:^1.1.11":
   version: 1.1.13
   resolution: "config-chain@npm:1.1.13"
@@ -3774,6 +3792,7 @@ __metadata:
     "@vueuse/core": ^8.2.0
     "@vueuse/head": ^0.7.5
     autoprefixer: ^10.4.4
+    concurrently: ^7.1.0
     daisyui: ^2.13.4
     electron: ^18.0.1
     electron-packager: ^15.4.0
