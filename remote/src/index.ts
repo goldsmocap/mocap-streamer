@@ -2,7 +2,7 @@ import http from "http";
 import cors from "cors";
 import express, { Router } from "express";
 import { WebSocket } from "ws";
-import { ClientState } from "shared/dist/clients";
+import { ClientState } from "../../shared/dist/clients";
 import {
   WsMessage,
   becomeReceiver,
@@ -13,7 +13,7 @@ import {
   remoteState,
   serialize,
   unbecomeReceiver,
-} from "shared/dist/messages";
+} from "../../shared/dist/messages";
 import { logger } from "./logging";
 import "./types";
 
@@ -50,7 +50,8 @@ function handleDisconnect(ws: WebSocket, err?: any) {
 
   // send the client list and mappings to all UIs
   // const wsMsg = newMsg({ type: "remote_state", payload: remoteState() });
-  wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
+  wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+  // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 }
 
 const httpServer = http.createServer(app);
@@ -84,17 +85,17 @@ wss.on("connection", (ws) => {
           .forEach(([from, to]) => to.ws.send(serialize(bvhFrame(msg.frame, from.name))));
         break;
 
-      case "register_ui":
-        logger.info(`🎨 UI registered.`);
+      // case "register_ui":
+      //   logger.info(`🎨 UI registered.`);
 
-        // monkey-patch the `ws` to include the name so we can find the client later
-        // when this socket disoconnects
-        ws.name = "ui";
+      //   // monkey-patch the `ws` to include the name so we can find the client later
+      //   // when this socket disoconnects
+      //   ws.name = "ui";
 
-        // send ui a confirmation message)
-        // TODO: is this even needed?
-        // ws.send(newMsg({ type: "registration_success", payload: remoteState() }));
-        break;
+      //   // send ui a confirmation message)
+      //   // TODO: is this even needed?
+      //   // ws.send(newMsg({ type: "registration_success", payload: remoteState() }));
+      //   break;
 
       case "join_remote":
         const name = msg.name as string;
@@ -118,7 +119,8 @@ wss.on("connection", (ws) => {
         ws.send(serialize(joinRemoteSuccess(name)));
 
         // send the client list and mappings to all UIs
-        wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
+        wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+        // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
         break;
     }
   });
@@ -146,7 +148,8 @@ router.put("/rename/:oldName", (req, res) => {
     oldClient.ws.send(JSON.stringify({ type: "rename_success", payload: newName }));
 
     // send the client list and mappings to all UIs
-    wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
+    wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+    // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 
     res.send();
   } else {
@@ -200,7 +203,8 @@ router.put("/map", (req, res) => {
   toClient.ws.send(serialize(becomeReceiver(fromClient.name)));
 
   // send the client list and mappings to all UIs
-  wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
+  wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+  // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 
   res.send();
 });
@@ -223,7 +227,8 @@ router.put("/unmap", (req, res) => {
   state.clientMap.splice(mappingIdx, 1);
 
   // send the client list and mappings to all UIs
-  wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
+  wss.clients.forEach((ws) => ws.send(serialize(remoteState(state))));
+  // wss.getUis().forEach((ws) => ws.send(serialize(remoteState(state))));
 
   // send message to 'to' to remove receiver
   to.ws.send(serialize(unbecomeReceiver(from.name)));

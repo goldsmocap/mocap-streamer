@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
+        "module": "esnext",
         "strict": true,
         "esModuleInterop": true,
-        "target": "es6",
+        "target": "esnext",
         "noImplicitAny": true,
         "moduleResolution": "node",
         "sourceMap": true,
@@ -17,5 +17,6 @@
     },
     "include": [
         "src/**/*"
-    ]
+    ],
+    "references": [{ "path": "../shared" }]
 }

@@ -4,13 +4,13 @@
         "remote",
         "local",
         "ui",
-        "shared"
+        "local-electron"
     ],
     "scripts": {
         "remote": "yarn workspace remote",
         "local": "yarn workspace local",
         "ui": "yarn workspace ui",
-        "shared": "yarn workspace shared"
+        "local-electron": "yarn workspace local-electron"
     },
     "packageManager": "yarn@3.2.0"
 }

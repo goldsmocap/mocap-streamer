@@ -22,7 +22,6 @@
     "express": "^4.17.1",
     "minimist": "^1.2.5",
     "rxjs": "^6.6.6",
-    "shared": "^0.1.0",
     "socket.io-client": "^4.0.0",
     "ts-pattern": "^4.0.1",
     "winston": "^3.3.3"

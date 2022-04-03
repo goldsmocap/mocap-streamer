@@ -9,6 +9,7 @@
     },
     {
       "path": "./tsconfig.vitest.json"
-    }
+    },
+    { "path": "../shared" }
   ]
 }

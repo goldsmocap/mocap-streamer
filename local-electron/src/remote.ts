@@ -1,41 +1,65 @@
-import { left, right, type Either } from "fp-ts/lib/Either";
+import type { Ref } from "vue";
+import type { Either } from "fp-ts/Either";
+import type { ClientSummaryState } from "../../shared/clients";
+import type { WsMessage } from "../../shared/messages";
+
+import { ref } from "vue";
+import { right, left } from "fp-ts/Either";
 import { match } from "ts-pattern";
-import WebSocket from "ws";
-import { WsMessage } from "../../shared/messages";
-import { connections, connectSink, sinks, sources } from "./flows";
-import { wsSink, wsSource } from "./flows/ws";
-import { udpSink, udpSource } from "./flows/udp";
-import { logger } from "./logging";
+import { nameOnRemote, managingLocalServer } from "./server";
+import { connections, connectSink, sinks, sources } from "./server/flows";
+import { wsSink, wsSource } from "./server/flows/ws";
+import { udpSink, udpSource } from "./server/flows/udp";
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Types
 export type WebSocketClosed = { _tag: "WebSocketClosed" };
-const webSocketClosed: WebSocketClosed = { _tag: "WebSocketClosed" };
+export const webSocketClosed: WebSocketClosed = { _tag: "WebSocketClosed" };
 
 export type WebSocketConnecting = { _tag: "WebSocketConnecting" };
-const webSocketConnecting: WebSocketConnecting = { _tag: "WebSocketConnecting" };
+export const webSocketConnecting: WebSocketConnecting = { _tag: "WebSocketConnecting" };
 
 export type WebSocketAlreadyConnected = { _tag: "WebSocketAlreadyConnected"; ws: WebSocket };
-function webSocketAlreadyConnected(ws: WebSocket): WebSocketAlreadyConnected {
+export function webSocketAlreadyConnected(ws: WebSocket): WebSocketAlreadyConnected {
   return { _tag: "WebSocketAlreadyConnected", ws };
 }
 
 export type NewWebSocketError = WebSocketAlreadyConnected | WebSocketConnecting | WebSocketClosed;
 export type GetWebSocketError = WebSocketClosed | WebSocketConnecting;
+export type RegistrationError = WebSocketAlreadyConnected | WebSocketConnecting | WebSocketClosed;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 let remoteWs: WebSocket | undefined = undefined;
-
 export let isSending = false;
-export let nameOnRemote: string | undefined = undefined;
+
+export const remoteBaseUrl: Ref<string | undefined> = ref(undefined);
+export const remoteState: Ref<ClientSummaryState> = ref({ clients: [], clientMap: [] });
+
+function handleRemoteState(state: ClientSummaryState) {
+  // are you managing a local server?
+  if (managingLocalServer.value) {
+    // is the local server you are managing still connected to the remote server?
+    const client = state.clients.find((client) => client.name === nameOnRemote.value);
+    const clientFound = !!client;
+    if (!clientFound) {
+      console.log(`💃 local server has lost connection with remote.`);
+      nameOnRemote.value = undefined;
+    }
+  }
+
+  remoteState.value = state;
+}
 
 function handleDisconnect() {
-  nameOnRemote = undefined;
+  nameOnRemote.value = undefined;
   isSending = false;
 }
 
-export function newRemoteWs(url: string): Promise<Either<NewWebSocketError, WebSocket>> {
+export function newRemoteWs(
+  url: string,
+  onRemoteDisconnect: () => void
+): Promise<Either<NewWebSocketError, WebSocket>> {
   return new Promise((resolve, reject) => {
     switch (remoteWs?.readyState) {
       case WebSocket.OPEN:
@@ -50,42 +74,39 @@ export function newRemoteWs(url: string): Promise<Either<NewWebSocketError, WebS
         // if not then create new connection
         remoteWs = new WebSocket(url);
 
-        remoteWs.on("open", function open() {
-          logger.info(`⚡ WS connection to remote streamer established.`);
+        remoteWs.onopen = () => {
+          console.log(`⚡ WS connection to remote streamer established.`);
           resolve(right(remoteWs as WebSocket));
-        });
+        };
 
-        remoteWs.on("close", function close() {
-          logger.info(`⚡ WS disconnected from remote streamer.`);
+        remoteWs.onclose = () => {
+          console.log(`⚡ WS disconnected from remote streamer.`);
           handleDisconnect();
+          onRemoteDisconnect();
           resolve(left(webSocketClosed));
-        });
-        remoteWs.on("disconnect", () => {
-          logger.info(`⚡ WS disconnected from remote streamer.`);
+        };
+        remoteWs.onerror = (err) => {
+          console.log("⚡ WS failed to connect!");
           handleDisconnect();
-          resolve(left(webSocketClosed));
-        });
-        remoteWs.on("error", (err) => {
-          logger.error("⚡ WS failed to connect!");
-          handleDisconnect();
+          onRemoteDisconnect();
           reject(err);
-        });
+        };
 
-        remoteWs.on("message", (raw) => {
-          const msg = JSON.parse(raw.toString()) as WsMessage;
+        remoteWs.onmessage = (raw) => {
+          const msg = JSON.parse(raw.data) as WsMessage;
 
           switch (msg._tag) {
             case "join_remote_success":
-              nameOnRemote = msg.name;
-              logger.info(`💃 successfully joined remote with name ${nameOnRemote}`);
+              nameOnRemote.value = msg.name;
+              console.log(`💃 successfully joined remote with name ${nameOnRemote}`);
               break;
 
             case "rename_success":
-              nameOnRemote = msg.name;
+              nameOnRemote.value = msg.name;
               break;
 
             case "become_receiver":
-              logger.info("becoming receiver");
+              console.log("becoming receiver");
 
               // create a WS source (if it doesn't already exist)
               Promise.resolve(sources.find(({ _tag }) => _tag === "WsSource"))
@@ -134,10 +155,10 @@ export function newRemoteWs(url: string): Promise<Either<NewWebSocketError, WebS
               const i = sinks.findIndex(({ name }) => name === `UDP_SINK_${msg.from}`);
 
               if (i >= 0) {
-                logger.info(`🔌 removing UDP sink from ${msg.from}`);
+                console.log(`🔌 removing UDP sink from ${msg.from}`);
                 sinks.splice(i, 1);
 
-                logger.info(`🔌 unsubscribing all flows from ${msg.from}`);
+                console.log(`🔌 unsubscribing all flows from ${msg.from}`);
                 const j = connections.findIndex((conn) => conn.from === msg.from);
 
                 if (j >= 0) {
@@ -147,16 +168,16 @@ export function newRemoteWs(url: string): Promise<Either<NewWebSocketError, WebS
 
                 // TODO: send message to remote
               } else {
-                logger.info(`Uh Oh! Can't find UDP_SINK_${msg.from}`);
+                console.log(`Uh Oh! Can't find UDP_SINK_${msg.from}`);
 
                 // TODO: send error to remote
               }
               break;
 
             case "become_sender":
-              logger.info("becoming sender");
+              console.log("becoming sender");
               if (isSending) {
-                logger.info("you're already a sender!");
+                console.log("you're already a sender!");
                 // TODO: send message to remote
                 return;
               }
@@ -198,8 +219,12 @@ export function newRemoteWs(url: string): Promise<Either<NewWebSocketError, WebS
                   // TODO: Implement this!
                 });
               break;
+
+            case "remote_state":
+              handleRemoteState(msg.state);
+              break;
           }
-        });
+        };
     }
   });
 }

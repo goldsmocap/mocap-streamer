@@ -1,11 +1,11 @@
 import type { Ref } from "vue";
 import type { Either } from "fp-ts/Either";
-import type { ClientSummaryState } from "shared/dist/clients";
-import type { WsMessage } from "shared/dist/messages";
+import type { ClientSummaryState } from "../../shared/dist/clients";
+import type { WsMessage } from "../../shared/dist/messages";
 
 import { ref } from "vue";
 import { right, left } from "fp-ts/Either";
-import { registerUi, serialize } from "shared/dist/messages";
+import { registerUi, serialize } from "../../shared/dist/messages";
 import { nameOnRemote, managingLocalServer } from "./local";
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
