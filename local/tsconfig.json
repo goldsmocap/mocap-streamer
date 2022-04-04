@@ -1,22 +1,20 @@
 {
-    "compilerOptions": {
-        "module": "esnext",
-        "strict": true,
-        "esModuleInterop": true,
-        "target": "esnext",
-        "noImplicitAny": true,
-        "moduleResolution": "node",
-        "sourceMap": true,
-        "outDir": "dist",
-        "baseUrl": ".",
-        "paths": {
-            "*": [
-                "node_modules/*"
-            ]
-        }
-    },
-    "include": [
-        "src/**/*"
-    ],
-    "references": [{ "path": "../shared" }]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "baseUrl": "./",
+    "strict": true,
+    "paths": {},
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
+  },
+  "references": [
+    { "path": "../shared" }
+  ]
 }

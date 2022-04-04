@@ -1,47 +1,77 @@
-# Building the project
+# electron-vite-vue
 
-TODO: finish this
+[![awesome-vite](https://awesome.re/mentioned-badge.svg)](https://github.com/vitejs/awesome-vite)
+![GitHub license](https://img.shields.io/github/license/caoxiemeihao/electron-vite-vue?style=flat)
+![GitHub stars](https://img.shields.io/github/stars/caoxiemeihao/electron-vite-vue?color=fa6470&style=flat)
+![GitHub forks](https://img.shields.io/github/forks/caoxiemeihao/electron-vite-vue?style=flat)
 
-# Deploying to Digital Ocean
 
-## Build Docker Image
+**English | [简体中文](README.zh-CN.md)**
 
-## Run Docker Container
-The docker container must be run using the host's network hence the `--network host` option.
+🥳 Real simple `Electron` + `Vue` + `Vite` boilerplate.
 
-`sudo docker run -d --network host --name axis-streamer goldsmithsmocap/axis-streamer:<tag>`
+## Quick Start
 
-TODO: finish ths
+[![quick-start](https://asciinema.org/a/483731.svg)](https://asciinema.org/a/483731)
 
-# Architecture
+## Overview
 
-TODO: finish this
+This is a `Vite`-integrated `Electron` template built with simplification in mind.
 
-# Troubleshooting
+The repo contains only the most basic files, dependencies and functionalities to ensure flexibility for various scenarios. 
 
-**Unity not picking up data stream from Axis-Streamer**
+You need a basic understanding of `Electron` and `Vite` to get started. But that's not mandatory - you can learn almost all the details by reading through the source code. Trust me, this repo is not that complex. 😋
 
-1. Make sure that Axis-Streamer is receiving data from Axis-Neuron. TODO: finish this.
+## Directory
 
-2. Make sure the firewall is not stopping UDP traffic from Axis-Streamer. TODO: finish this.
+A `dist` folder will be generated everytime when `dev` or `build` command is executed. File structure of `dist` is identical to the `packages` directory to avoid any potential path calculation errors.
 
-3. Make sure the ports that axis-streamer is sending data to are forwarded on your router.
+```tree
+├
+├── dist                      Will be generated following the structure of "packages" directory
+├   ├── main
+├   ├── preload
+├   ├── renderer
+├
+├── scripts
+├   ├── build.mjs             Build script -> npm run build
+├   ├── watch.mjs             Develop script -> npm run dev
+├
+├── packages
+├   ├── main                  Main-process source code
+├       ├── vite.config.ts
+├   ├── preload               Preload-script source code
+├       ├── vite.config.ts
+├   ├── renderer              Renderer-process source code
+├       ├── vite.config.ts
+├
+```
 
-Most users of axis-streamer will be connecting to the internet via a router. The router presents
-a single IP address to the outside world, hiding the computers connected to the internet throught it.
-These computers don't have an external IP address instead they are given an IP by the router (e.g. 192.168.1.x). When sending a packet of data to the outside world the router is able to keep track of which
-device the request came from and match it to the response passing it back to the correct machine.However, if a packet is received from the outside world which doesn't have a corresponding request the
-router is unable to correctly route the packet. This is known as NAT.
+## Learn About Electron-vue-vite
 
-Axis-Streamer sends packets to a client in this manner so we need to manually tell the router which
-ports we're expecting packets to be delivered to and ask it to route traffic to those ports to our
-device. This is known as Port Forwarding or Port Mapping.
+Used in main-process 👉 [electron-vite-boilerplate](https://github.com/caoxiemeihao/electron-vite-boilerplate)
 
-**Unity complaining about port reuse (not receiving data from axis-neuron but you are receiving data from the remote axis-streamer)**
-1. This is most likely due to binding a UDP source to 0.0.0.0. Using this address (which is specified by default if no address is provided to bind the UDP socket to) will bind the UDP socket to ALL addresses blocking anything (Unity included) from binding to any port to receive data from axis-neuron.
+Used in Renderer-process 👉 [electron-vite-boilerplate/tree/nodeIntegration](https://github.com/caoxiemeihao/electron-vite-boilerplate/tree/nodeIntegration)
 
-**Axis-Streamer not receiving data from Axis-Neuron**
+**ES Modules**
 
-1. Check that your firewall is not blocking Axis-Neuron. TODO: how to do this?
+- [execa](https://www.npmjs.com/package/execa)
+- [node-fetch](https://www.npmjs.com/package/node-fetch)
+- [file-type](https://www.npmjs.com/package/file-type)
 
-2. Check the broadcast settings in Axis-Streamer. TODO: how to do this?
+**Native Addons**
+
+- [sqlite3](https://www.npmjs.com/package/sqlite3)
+- [serialport](https://www.npmjs.com/package/serialport)
+
+## Main window
+<img width="400px" src="https://raw.githubusercontent.com/caoxiemeihao/blog/main/electron-vue-vite/screenshot/electron-15.png" />
+
+## <!-- Wechat | | -->请我喝杯下午茶 🥳
+
+<div style="display:flex;">
+  <!-- <img height="333px" src="https://raw.githubusercontent.com/caoxiemeihao/blog/main/assets/wechat/group/qrcode.jpg" />
+  &nbsp;&nbsp;&nbsp;&nbsp; -->
+  <img height="333px" src="https://raw.githubusercontent.com/caoxiemeihao/blog/main/assets/wechat/%24qrcode/%24.png" />
+</div>
+

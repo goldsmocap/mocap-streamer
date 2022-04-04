@@ -1,10 +1,14 @@
 name: Deploy Remote
 
 on:
-  workflow_run:
-    workflows: ["Publish Remote"]
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      host:
+        type: string
+        required: true
+      username:
+        type: string
+        required: true
 
 jobs:
   deploy:
@@ -15,8 +19,8 @@ jobs:
     - name: Copy docker-compose.yml to Digital Ocean
       uses: appleboy/scp-action@master
       with:
-        host: ${{ secrets.DO_HOST }}
-        username: ${{ secrets.DO_USERNAME }}
+        host: ${{ github.event.inputs.host }}
+        username: ${{ github.event.inputs.username }}
         key: ${{ secrets.SSH_KEY }}
         source: "docker-compose.yml"
         target: "~"
@@ -24,8 +28,8 @@ jobs:
     - name: Deploy with docker-compose
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.DO_HOST }}
-        username: ${{ secrets.DO_USERNAME }}
+        host: ${{ github.event.inputs.host }}
+        username: ${{ github.event.inputs.username }}
         key: ${{ secrets.SSH_KEY }}
         script: |
           cd ~

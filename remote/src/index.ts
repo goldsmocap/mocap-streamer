@@ -22,6 +22,7 @@ const app = express();
 
 // state
 ///////////////////////////////////////////////////////////////////////////////
+let debug = false;
 const state: ClientState = {
   clients: [],
   clientMap: [],
@@ -29,7 +30,7 @@ const state: ClientState = {
 
 // apply middleware
 ///////////////////////////////////////////////////////////////////////////////
-app.use(cors({ origin: ["http://localhost:8080"] }));
+app.use(cors({ origin: ["*"] }));
 app.use(express.json()); // json body parser
 
 // initialise websocket
@@ -78,22 +79,14 @@ wss.on("connection", (ws) => {
 
     switch (msg._tag) {
       case "bvh_frame":
+        if (debug) console.log(`frame received from ${ws.name}`);
         state.clientMap
-          .filter(([from]) => from.name === msg.from)
-          .forEach(([from, to]) => to.ws.send(serialize(bvhFrameMsg(msg.frame, from.name))));
+          .filter(([from]) => from.name === ws.name)
+          .forEach(([from, to]) => {
+            msg.from = from.name;
+            to.ws.send(serialize(msg));
+          });
         break;
-
-      // case "register_ui":
-      //   logger.info(`🎨 UI registered.`);
-
-      //   // monkey-patch the `ws` to include the name so we can find the client later
-      //   // when this socket disoconnects
-      //   ws.name = "ui";
-
-      //   // send ui a confirmation message)
-      //   // TODO: is this even needed?
-      //   // ws.send(newMsg({ type: "registration_success", payload: remoteState() }));
-      //   break;
 
       case "join_remote":
         const name = msg.name as string;
@@ -259,12 +252,9 @@ router.get("/leave/:name", (req, res) => {
   res.send();
 });
 
-router.get("/close/:name", (req, res) => {
-  const nameToRemove = req.params.name;
-
-  // find the connection with the given name and close it.
-  state.clients.find(({ name }) => name === nameToRemove)?.ws.close();
-
+router.get("/debug/:onoff", (req, res) => {
+  const isOn = req.params.onoff === "on";
+  debug = isOn;
   res.send();
 });
 

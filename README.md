@@ -1,3 +1,17 @@
+# Stuff to do
+- IPC communiction between main and renderer in electron is currently untyped which is a cause for potential errors.
+  Because the communication is largely (if not all) based around the websocket comms which already use fully typed
+  messages (see shared/messages) I should just use that message type (call it Message rather than WsMessage because
+  it's not exclusively a websocket message protocol.
+
+- maybe move ws.on("message") stuff to main/index rather than in main/remote that way newRemoteWs just builds a WS 
+  or errors and returns and all the juicy stuff happens in index
+
+- Handle errors in the UI everywhere.
+
+- review all routes through the program (e.g. connect only, connect and join, rename, etc) and make sure we can't
+  get into silly states and are handling errors correctly
+
 # About
 
 TODO: explain how the project works.

@@ -2,15 +2,11 @@
     "private": true,
     "workspaces": [
         "remote",
-        "local",
-        "ui",
-        "local-electron"
+        "local"
     ],
     "scripts": {
         "remote": "yarn workspace remote",
-        "local": "yarn workspace local",
-        "ui": "yarn workspace ui",
-        "local-electron": "yarn workspace local-electron"
+        "local": "yarn workspace local"
     },
     "packageManager": "yarn@3.2.0"
 }

@@ -2,10 +2,10 @@ import { ClientRole, ClientState, ClientSummaryState, clientSummaryState } from 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Messages
-export type BvhFrameMsg = { _tag: "bvh_frame"; frame: any; from: string };
-export const bvhFrameMsg = (frame: any, from: string): BvhFrameMsg => ({
+export type BvhFrameMsg = { _tag: "bvh_frame"; base64: string; from?: string };
+export const bvhFrameMsg = (frame: Buffer, from?: string): BvhFrameMsg => ({
   _tag: "bvh_frame",
-  frame,
+  base64: frame.toString("base64"),
   from,
 });
 

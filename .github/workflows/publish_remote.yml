@@ -1,9 +1,11 @@
 name: Publish Remote
 
 on:
-  push:
-    tags:
-      - remote_*
+  workflow_dispatch:
+    inputs:
+      release_version:
+        type: string
+        required: true
 
 jobs:
   build:
@@ -11,9 +13,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Set environment variables
-        run: echo "RELEASE_VERSION=${GITHUB_REF#*remote_}" >> $GITHUB_ENV
 
       - name: Login to DockerHub
         uses: docker/login-action@v1 
@@ -26,4 +25,4 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: goldsmithsmocap/remote-streamer:${{ env.RELEASE_VERSION }},goldsmithsmocap/remote-streamer:latest
+          tags: goldsmithsmocap/remote-streamer:${{ github.event.inputs.release_version }},goldsmithsmocap/remote-streamer:latest
