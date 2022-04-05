@@ -92,5 +92,5 @@ jobs:
           username: ${{ github.event.inputs.username }}
           key: ${{ secrets.SSH_KEY }}
           source: "./${{ github.event.inputs.release_version }}.zip"
-          target: "~/releases"
-          strip_components: 2
+          target: "~"
+          # strip_components: 1
