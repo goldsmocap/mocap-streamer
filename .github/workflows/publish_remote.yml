@@ -26,3 +26,54 @@ jobs:
         with:
           push: true
           tags: goldsmithsmocap/remote-streamer:${{ github.event.inputs.release_version }},goldsmithsmocap/remote-streamer:latest
+
+  release:
+    name: Make release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old tag if it exists
+        uses: julb/action-manage-tag@v1
+        with:
+          name: ${{ github.event.inputs.release_version }}
+          state: absent
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Create new tag
+        uses: julb/action-manage-tag@v1
+        with:
+          name: ${{ github.event.inputs.release_version }}
+          state: present
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Build release artifacts
+        run: |
+          mkdir app
+          cp docker-compose.yml app/
+          sed -i 's/${REMOTE_VERSION}/${{ github.event.inputs.release_version }}/g' app/docker-compose.yml
+          zip -r ${{ github.event.inputs.release_version }}.zip app
+
+      - name: Create a new release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          release_name: ${{ github.event.inputs.release_version }}
+          tag_name: ${{ github.event.inputs.release_version }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Upload artifact to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ github.event.inputs.release_version }}.zip
+          asset_name: ${{ github.event.inputs.release_version }}.zip
+          asset_content_type: application/gzip
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
