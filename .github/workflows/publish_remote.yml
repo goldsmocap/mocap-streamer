@@ -6,6 +6,12 @@ on:
       release_version:
         type: string
         required: true
+      host:
+        type: string
+        required: true
+      username:
+        type: string
+        required: true
 
 jobs:
   build:
