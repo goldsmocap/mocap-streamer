@@ -1,0 +1,10 @@
+{
+  "name": "shared",
+  "packageManager": "yarn@3.2.0",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.3"
+  }
+}

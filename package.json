@@ -2,11 +2,13 @@
     "private": true,
     "workspaces": [
         "remote",
-        "local"
+        "local",
+        "shared"
     ],
     "scripts": {
         "remote": "yarn workspace remote",
-        "local": "yarn workspace local"
+        "local": "yarn workspace local",
+        "shared": "yarn workspace shared"
     },
     "packageManager": "yarn@3.2.0"
 }

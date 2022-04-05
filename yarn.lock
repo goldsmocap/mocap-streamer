@@ -5879,6 +5879,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"shared@workspace:shared":
+  version: 0.0.0-use.local
+  resolution: "shared@workspace:shared"
+  dependencies:
+    typescript: ^4.6.3
+  languageName: unknown
+  linkType: soft
+
 "shebang-command@npm:^2.0.0":
   version: 2.0.0
   resolution: "shebang-command@npm:2.0.0"
