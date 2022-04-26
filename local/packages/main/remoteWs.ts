@@ -116,6 +116,7 @@ export function newRemoteWs(
                     debug: false,
                   }).then((sink) => {
                     sinks.push(sink);
+                    win?.webContents.send("sink_created", sink.sender, sink.toPort);
                     return sink;
                   });
                 })

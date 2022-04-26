@@ -1,17 +1,17 @@
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import type { ClientRole, ClientSummary } from "../../../shared/clients";
+import type { ClientRole, ClientSummary, ClientSummaryMap } from "../../../../../shared/clients";
 
 import { ipcRenderer } from "electron";
 import { computed, ref, watch } from "vue";
 import { DotsHorizontalIcon } from "@heroicons/vue/solid";
-import { roleBoth, roleReceiver, roleSender } from "../../../shared/clients";
-import { remoteName, remoteState } from "../remote";
+import { roleBoth, roleReceiver, roleSender } from "../../../../../shared/clients";
+import { remoteName, remoteState, senderPorts } from "../remote";
 import Modal from "../components/Modal.vue";
 import ClientTableCell from "./ClientTableCell.vue";
 
-const clients = computed(() => remoteState.value.clients);
-const clientMap = computed(() => remoteState.value.clientMap);
+const clients: Ref<ClientSummary[]> = computed(() => remoteState.value.clients);
+const clientMap: Ref<ClientSummaryMap> = computed(() => remoteState.value.clientMap);
 // const clients: Ref<ClientSummary[]> = ref([
 //   { name: "Ohuu", role: roleSender },
 //   { name: "Neal", role: roleReceiver },
@@ -33,6 +33,12 @@ const receivers = computed(() =>
 const renameOpen = ref(false);
 const oldName = ref("");
 const newName = ref("");
+
+function getPortNumber(sender: string, receiver: string): number | undefined {
+  return clientMap.value.find(([{ name: senderName }, { name: receiverName }]) => {
+    return sender == senderName && receiver == receiverName;
+  })?.[2]?.port;
+}
 
 function openRename(clientToRename: string) {
   oldName.value = clientToRename;
@@ -146,6 +152,7 @@ function leave(name: string) {
           v-for="receiver in receivers"
           :sender="sender.name"
           :receiver="receiver.name"
+          :port-number="getPortNumber(sender.name, receiver.name)"
           :connected="isConnected(sender, receiver)"
           @map="map"
           @unmap="unmap"

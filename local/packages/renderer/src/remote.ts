@@ -1,5 +1,5 @@
 import type { Ref } from "vue";
-import type { ClientSummaryState } from "../../shared/clients";
+import type { ClientSummaryState } from "../../../../shared/clients";
 
 import { ipcRenderer } from "electron";
 import { ref } from "vue";
@@ -9,9 +9,21 @@ export const remoteConnected = ref(false);
 export const remoteJoined = ref(false);
 
 export const remoteState: Ref<ClientSummaryState> = ref({ clients: [], clientMap: [] });
+// export let senderPorts: [string, number][] = [];
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // IPC from main
+ipcRenderer.on("sink_created", (_, sender: string, portNumber: number) => {
+  // senderPorts = [[sender, portNumber], ...senderPorts];
+  remoteState.value.clientMap = remoteState.value.clientMap.map(([from, to, context]) => {
+    if (from.name === sender && to.name === remoteName.value) {
+      return [from, to, { ...context, port: portNumber }];
+    } else {
+      return [from, to, context];
+    }
+  });
+});
+
 ipcRenderer.on("connect_remote_success", (_, newRemoteBaseUrl: string) => {
   console.log(`⚡ successfully connected to remote at ${newRemoteBaseUrl}`);
   remoteConnected.value = true;

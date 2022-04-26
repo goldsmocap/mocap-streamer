@@ -7,7 +7,6 @@ import {
   WsMessage,
   becomeReceiverMsg,
   becomeSenderMsg,
-  bvhFrameMsg,
   joinRemoteFailMsg,
   joinRemoteSuccessMsg,
   remoteStateMsg,
@@ -91,6 +90,12 @@ wss.on("connection", (ws) => {
       case "join_remote":
         const name = msg.name as string;
         const role = msg.role as ClientRole;
+
+        // is the name blank?
+        if (name.length === 0) {
+          ws.send(serialize(joinRemoteFailMsg("name cannot be blank")));
+          return;
+        }
 
         // has this name already been taken?
         const nameTaken = state.clients.find((client) => client.name === name);

@@ -11,8 +11,9 @@ export type Client = { name: string; role: ClientRole; ws: WebSocket };
 export type ClientMap = [Client, Client][];
 export type ClientState = { clients: Client[]; clientMap: ClientMap };
 
+export type Context = { port: number | undefined };
 export type ClientSummary = { name: string; role: ClientRole };
-export type ClientSummaryMap = [ClientSummary, ClientSummary][];
+export type ClientSummaryMap = [ClientSummary, ClientSummary, Context?][];
 export type ClientSummaryState = { clients: ClientSummary[]; clientMap: ClientSummaryMap };
 
 export const clientSummary = (client: Client): ClientSummary => ({

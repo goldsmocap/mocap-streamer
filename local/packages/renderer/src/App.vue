@@ -1,10 +1,4 @@
-<script setup lang="ts">
-import { ipcRenderer } from "electron";
-
-function poop() {
-  ipcRenderer.send("click");
-}
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <router-view></router-view>

@@ -10,6 +10,7 @@ const props = defineProps({
     required: true,
     type: String,
   },
+  portNumber: Number,
   connected: {
     default: false,
     type: Boolean,
@@ -28,8 +29,9 @@ function handleClick() {
 </script>
 
 <template>
-  <td class="p-1" :class="[connected ? 'connected' : 'not-connected']">
-    <div class="cell" @click="handleClick">
+  <td :class="[connected ? 'connected' : 'not-connected']">
+    <div class="cell m-0" @click="handleClick">
+      <span v-if="portNumber" class="badge badge-xs absolute -m-1">{{ portNumber }}</span>
       <minus-icon v-if="connected" class="icon" />
       <plus-icon v-else class="icon" />
     </div>
