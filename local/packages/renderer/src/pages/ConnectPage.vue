@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { ClientRole } from "../../../../../shared/dist/clients";
+import type { ClientRole } from "../../../shared/clients";
 
 import { ipcRenderer } from "electron";
 import { watch } from "vue";

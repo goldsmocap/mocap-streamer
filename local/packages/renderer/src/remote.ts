@@ -1,5 +1,5 @@
 import type { Ref } from "vue";
-import type { ClientSummaryState } from "../../../../shared/dist/clients";
+import type { ClientSummaryState } from "../../shared/clients";
 
 import { ipcRenderer } from "electron";
 import { ref } from "vue";

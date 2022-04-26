@@ -1,15 +1,11 @@
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import type {
-  ClientRole,
-  ClientSummary,
-  ClientSummaryMap,
-} from "../../../../../shared/dist/clients";
+import type { ClientRole, ClientSummary } from "../../../shared/clients";
 
 import { ipcRenderer } from "electron";
 import { computed, ref, watch } from "vue";
 import { DotsHorizontalIcon } from "@heroicons/vue/solid";
-import { roleBoth, roleReceiver, roleSender } from "../../../../../shared/clients";
+import { roleBoth, roleReceiver, roleSender } from "../../../shared/clients";
 import { remoteName, remoteState } from "../remote";
 import Modal from "../components/Modal.vue";
 import ClientTableCell from "./ClientTableCell.vue";

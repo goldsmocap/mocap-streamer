@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { Ref } from "vue";
-import type { ClientRole } from "../../../../../shared/dist/clients";
+import type { ClientRole } from "../../../shared/clients";
 
 import { ipcRenderer } from "electron";
 import { ref, watch } from "vue";
