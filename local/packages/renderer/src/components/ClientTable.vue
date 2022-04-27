@@ -6,7 +6,7 @@ import { ipcRenderer } from "electron";
 import { computed, ref, watch } from "vue";
 import { DotsHorizontalIcon } from "@heroicons/vue/solid";
 import { roleBoth, roleReceiver, roleSender } from "../../../../../shared/clients";
-import { remoteName, remoteState, senderPorts } from "../remote";
+import { remoteName, remoteState } from "../remote";
 import Modal from "../components/Modal.vue";
 import ClientTableCell from "./ClientTableCell.vue";
 

@@ -88,7 +88,7 @@ wss.on("connection", (ws) => {
         break;
 
       case "join_remote":
-        const name = msg.name as string;
+        const name = (msg.name as string).trim();
         const role = msg.role as ClientRole;
 
         // is the name blank?
