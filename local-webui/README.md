@@ -1,4 +1,4 @@
-# web-ui
+# Web-UI
 
 ## Project setup
 ```
