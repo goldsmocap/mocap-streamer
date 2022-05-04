@@ -1,4 +1,4 @@
-name: Publish Remote
+name: Build and Deploy Remote
 
 on:
   workflow_dispatch:
