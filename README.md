@@ -23,7 +23,7 @@ TODO: explain how the project works.
 
 *Prerequisites: git, node, yarn*
 
-1. Clone the project from github `git clone git@github.com:PaperPlaneSoftware/axis-streamer.git`
+1. Clone the project from github `git clone https://github.com/goldsmocap/mocap-streamer`
 
 2. Navigate to the project root and install dependencies: `yarn`
 
@@ -69,7 +69,7 @@ __Deploy to Goldsmiths Digital Ocean Server__
 
 This is done by manually triggering the `Deploy Remote` workflow in github.com.
 
-1. Open the project in github.com `https://github.com/PaperPlaneSoftware/axis-streamer`.
+1. Open the project in github.com `https://github.com/goldsmocap/mocap-streamer`.
 
 2. Navigate to the actions tab.
 
@@ -87,4 +87,4 @@ This process requires `pkg` which can be install via `npm install -g pkg`
 
     This creates a new directory `remote/bin` which contains 3 executables, 1 for windows, 1 for mac and 1 for linux.
 
-2. Open a browser and navigate to the github page for the project `https://github.com/PaperPlaneSoftware/axis-streamer` and create a new release using the 3 binaries you ject created.
+2. Open a browser and navigate to the github page for the project `https://github.com/goldsmocap/mocap-streamer` and create a new release using the 3 binaries you ject created.
