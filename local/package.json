@@ -8,6 +8,7 @@
   "description": "Goldsmiths Mocap Streamer is a cutting-edge tool that streams live motion capture (BVH) data over the internet, allowing users from multiple remote locations to interact in the same shared digital space.",
   "homepage": "www.mocapstreamer.live/",
   "repository": "https://github.com/goldsmocap/mocap-streamer",
+  
   "scripts": {
     "dev": "node scripts/watch.mjs",
     "prebuild": "vue-tsc --noEmit --p packages/renderer/tsconfig.json && node scripts/build.mjs",

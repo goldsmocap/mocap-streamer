@@ -9,6 +9,7 @@
   ],
   "mac": {
     "artifactName": "${productName} ${version}.${ext}",
+    "icon": "icon.png",
     "category": "public.app-category.utilities",
     "target": [
       "dmg"
@@ -23,6 +24,7 @@
         ]
       }
     ],
+    "icon": "icon.png",
     "artifactName": "${productName} ${version}.${ext}"
   },
   "nsis": {
