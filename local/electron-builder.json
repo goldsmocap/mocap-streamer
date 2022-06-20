@@ -1,5 +1,5 @@
 {
-  "appId": "YouAppID",
+  "appId": "com.goldsmithsMocap.mocapStreamer",
   "asar": true,
   "directories": {
     "output": "release/${version}"
@@ -8,7 +8,8 @@
     "dist"
   ],
   "mac": {
-    "artifactName": "${productName}_${version}.${ext}",
+    "artifactName": "${productName} ${version}.${ext}",
+    "category": "public.app-category.utilities",
     "target": [
       "dmg"
     ]
@@ -22,7 +23,7 @@
         ]
       }
     ],
-    "artifactName": "${productName}_${version}.${ext}"
+    "artifactName": "${productName} ${version}.${ext}"
   },
   "nsis": {
     "oneClick": false,

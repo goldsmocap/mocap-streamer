@@ -3,5 +3,9 @@
 @tailwind utilities;
 
 body {
-    @apply w-screen h-screen bg-gradient-to-tr from-purple-400 to-pink-500;
+    @apply w-screen h-screen bg-gradient-to-tr from-white-400 to-pink-500;
 }
+
+.btn {
+    @apply rounded-full;
+  }

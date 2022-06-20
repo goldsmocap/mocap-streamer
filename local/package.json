@@ -1,9 +1,13 @@
 {
   "name": "local",
-  "version": "1.0.0",
+  "productName": "Goldsmiths Mocap Streamer",
+  "version": "1.0.1",
   "main": "dist/main/index.cjs",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "author": "Oliver Winks <https://paperplane.software>",
   "license": "MIT",
+  "description": "Goldsmiths Mocap Streamer is a cutting-edge tool that streams live motion capture (BVH) data over the internet, allowing users from multiple remote locations to interact in the same shared digital space.",
+  "homepage": "www.mocapstreamer.live/",
+  "repository": "https://github.com/goldsmocap/mocap-streamer",
   "scripts": {
     "dev": "node scripts/watch.mjs",
     "prebuild": "vue-tsc --noEmit --p packages/renderer/tsconfig.json && node scripts/build.mjs",
