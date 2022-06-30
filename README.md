@@ -81,10 +81,16 @@ Assuming there are no errors the Digital Ocean server running in London (IP addr
 
 ## Release Local-Streamer
 
-This process requires `pkg` which can be install via `npm install -g pkg`
+**NOTE** This will only build an installer for the platform you run it on. For example if you are using a Windows machine it will create a windows executable.
 
-1. Build the executables by running `yarn local pkg`.
+1. Update the version in package.json
 
-    This creates a new directory `remote/bin` which contains 3 executables, 1 for windows, 1 for mac and 1 for linux.
+2. Run `yarn local prebuild`
 
-2. Open a browser and navigate to the github page for the project `https://github.com/PaperPlaneSoftware/axis-streamer` and create a new release using the 3 binaries you ject created.
+3. Run `yarn local build`
+
+4. Zip the folder created by build `release/<version_number>`
+
+5. Rename the zip to `local_<version_number>-<platform>.zip`
+
+6. Copy zip to release in github
