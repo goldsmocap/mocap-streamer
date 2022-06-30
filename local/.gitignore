@@ -1,5 +1,4 @@
 node_modules
-.DS_Store
 dist
 dist-ssr
 *.local
@@ -7,4 +6,7 @@ dist-ssr
 
 tmp
 **/.tmp
-release
+release/
+
+# mac-specific files
+.DS_Store
