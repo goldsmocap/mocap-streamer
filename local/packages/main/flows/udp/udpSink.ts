@@ -4,7 +4,12 @@ import { observerToUdp } from "../../rxadapters/rxUdp";
 import { useUdpSocket } from "./useUdpSocket";
 
 const sendingSockets: dgram.Socket[] = [];
-let nextPort = 5000;
+let nextPort = 5001;
+
+export function incPort() {
+  console.log("Hellllooo?");
+  nextPort = nextPort + 1;
+}
 
 export interface UdpSinkOptions {
   name: string;
@@ -50,7 +55,7 @@ export function udpSink(options: UdpSinkOptions): Promise<UdpSink> {
 
   // create a new observer from the socket to observe the source
   const toAddress = options.toAddress ?? "127.0.0.1";
-  const toPort = options.toPort ?? existingSocket ? nextPort : ++nextPort;
+  const toPort = options.toPort ?? nextPort;
   return socket
     .then((socket) => observerToUdp(toAddress, toPort, socket, options.sender, options.debug))
     .then((observer) => {

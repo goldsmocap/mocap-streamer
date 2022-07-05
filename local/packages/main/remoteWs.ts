@@ -8,6 +8,7 @@ import { match } from "ts-pattern";
 import { sources, sinks, connections, connectSink } from "./flows/index";
 import { udpSource, udpSink } from "./flows/udp";
 import { wsSource, wsSink } from "./flows/ws";
+import { incPort } from "./flows/udp/udpSink";
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Types
@@ -126,6 +127,8 @@ export function newRemoteWs(
 
                 // send message to remote
                 .then((_) => {
+                  incPort();
+
                   /* TODO: Implement this! */
                 })
 
@@ -142,7 +145,7 @@ export function newRemoteWs(
                 sinks.splice(i, 1);
 
                 console.log(`🔌 unsubscribing all flows from ${msg.from}`);
-                const j = connections.findIndex((conn) => conn.from === msg.from);
+                const j = connections.findIndex((conn) => conn.to.endsWith(msg.from));
 
                 if (j >= 0) {
                   connections[j].subscription.unsubscribe();

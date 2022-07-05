@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { Ref } from "vue";
+import { Ref, watchEffect } from "vue";
 import type { ClientRole, ClientSummary, ClientSummaryMap } from "../../../../../shared/clients";
 
 import { ipcRenderer } from "electron";

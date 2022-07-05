@@ -1,5 +1,7 @@
 <script lang="ts" setup>
+import { ref, Ref } from "vue";
 import { MinusIcon, PlusIcon } from "@heroicons/vue/solid";
+import { remoteState } from "../remote";
 
 const props = defineProps({
   sender: {
