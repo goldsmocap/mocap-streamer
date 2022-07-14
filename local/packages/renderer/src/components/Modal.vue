@@ -36,7 +36,8 @@ const emit = defineEmits<{
         class="w-16 text-red-500 border border-red-600 rounded-full mx-auto"
       />
 
-      <div class="mt-4 mb-2 w-full">
+      <div class="mt-4 mb-2 w-full bg-yellow-300">
+     
         <slot />
       </div>
     </div>

@@ -42,7 +42,7 @@ const login = (args: any) => {
 
 <template>
   <div class="modal modal-open">
-    <div class="modal-box">
+    <div class="modal-box bg-yellow-300">
       <information-circle-icon class="btn btn-xs btn-circle float-right" />
       <h1 class="font-bold text-xl mb-6">Welcome to MocapStreamer</h1>
 
