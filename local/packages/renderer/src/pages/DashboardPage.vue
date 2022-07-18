@@ -67,7 +67,7 @@ function close() {
 
 <template>
   <div class="w-screen h-screen p-1 sm:p-2 md:p-4 lg:p-8">
-    <div class="rounded-lg w-full h-full bg-white border shadow-xl text-black p-4">
+    <div class="rounded-box w-full h-full p-4">
       <!-- Header -->
       <div class="mb-8">
         <div v-if="remoteJoined" class="flex items-center w-full">

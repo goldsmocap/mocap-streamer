@@ -3,5 +3,75 @@
 @tailwind utilities;
 
 body {
-    @apply w-screen h-screen bg-gradient-to-tr from-purple-400 to-pink-500;
+    @apply w-screen h-screen bg-neutral;
+    z-index: 100;
 }
+
+.dropdown-content{
+    @apply bg-primary;
+}
+
+.receiver-name, .sender-name{
+    @apply bg-yellow-100 capitalize text-base;
+}
+
+.receiver-title, .sender-title, .top-left, .table, .table-matrix, .divider-border{
+    @apply bg-base-100 capitalize text-base;
+    @apply border border-neutral;
+}
+
+.table{
+    @apply table-compact;
+}
+
+.sender-title{
+    @apply py-8;
+}
+
+.rounded-box, .modal-box{
+    @apply bg-primary;
+}
+
+.background{
+    z-index: -100;
+    @apply static;
+}
+
+.circle{
+    @apply bg-secondary;
+}
+
+.select, .input {
+    @apply bg-base-100;
+}
+
+h1 {
+    @apply text-neutral;
+    @apply font-bold;
+    @apply text-xl; 
+}
+
+form{
+    @apply text-neutral;
+}
+
+p {
+    @apply text-neutral;
+}
+
+.bvh-port-data{
+    @apply text-accent object-contain;
+    text-align: center;
+}
+
+.circleA{
+    @apply justify-center items-center;
+}
+
+.label{
+    @apply text-neutral;
+}
+
+.btn {
+    @apply btn-secondary text-base-100;
+  }

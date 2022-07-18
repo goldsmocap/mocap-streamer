@@ -42,9 +42,10 @@ const login = (args: any) => {
 
 <template>
   <div class="modal modal-open">
-    <div class="modal-box bg-yellow-300">
-      <information-circle-icon class="btn btn-xs btn-circle float-right" />
-      <h1 class="font-bold text-xl mb-6">Welcome to MocapStreamer</h1>
+
+    <div class="modal-box">
+      <!-- <information-circle-icon class="btn btn-xs btn-circle float-right" /> -->
+      <h1 class="mb-6">Welcome to MocapStreamer</h1>
 
       <p class="mb-2">Please enter the URL for the remote server.</p>
 
@@ -59,8 +60,8 @@ const login = (args: any) => {
             v-model="remoteUrl"
           /> -->
 
-          <div class="divider mb-2">JOIN AS STREAMER</div>
-          <label class="label cursor-pointer">
+          <div class="divider mb-2"><p>JOIN AS STREAMER</p></div>
+          <label class="label cursor-pointer text-neutral">
             <span>Join remote server and start streaming data?</span>
             <input class="checkbox" type="checkbox" v-model="join" />
           </label>
@@ -91,6 +92,11 @@ const login = (args: any) => {
           </div>
         </Form>
       </div>
+    </div>
+
+    <div class="background">
+      <div class="flex circle circleA w-36 h-36 rounded-full absolute bottom-0 left-0 "><p class="bvh-port-data"></p></div>
+      <div class="circle circleB w-36 h-36 rounded-full absolute top-0 right-0"></div>
     </div>
   </div>
 </template>

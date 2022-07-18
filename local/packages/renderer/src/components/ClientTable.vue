@@ -12,6 +12,8 @@ import ClientTableCell from "./ClientTableCell.vue";
 
 const clients: Ref<ClientSummary[]> = computed(() => remoteState.value.clients);
 const clientMap: Ref<ClientSummaryMap> = computed(() => remoteState.value.clientMap);
+
+////Test data for visualisation
 // const clients: Ref<ClientSummary[]> = ref([
 //   { name: "Ohuu", role: roleSender },
 //   { name: "Neal", role: roleReceiver },
@@ -94,13 +96,13 @@ function leave(name: string) {
   <table class="table">
     <thead>
       <tr>
-        <th colspan="2" rowspan="2" class="bg-white border-none"></th>
-        <th :colspan="receivers.length" class="bg-white text-justify">
-          <div class="w-full text-center text-gray-400 normal-case text-base">receivers</div>
+        <th colspan="2" rowspan="2" class="top-left divider-border"></th>
+        <th :colspan="receivers.length" class="receiver-title divider-border">
+          <div class="w-full text-center">receivers</div>
         </th>
       </tr>
-      <tr>
-        <th v-for="receiver in receivers" class="normal-case text-base text-center">
+      <tr class="zebra divider-border">
+        <th v-for="receiver in receivers" class="receiver-name text-center divider-border">
           <p>{{ receiver.name }}</p>
           <div class="dropdown dropdown-down">
             <label tabindex="0" class="link">
@@ -108,7 +110,7 @@ function leave(name: string) {
             </label>
             <ul
               tabindex="0"
-              class="dropdown-content menu bg-base-100 shadow rounded-box text-xs ml-4"
+              class="dropdown-content menu box text-xs ml-4"
             >
               <li><a @click="receiveAll(receiver.name)">receive all</a></li>
               <li v-if="receiver.role === 'BOTH'">
@@ -123,20 +125,20 @@ function leave(name: string) {
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(sender, i) in senders">
-        <th v-if="i == 0" :rowspan="senders.length" class="border-none">
-          <div class="-rotate-90 text-gray-400">senders</div>
+      <tr v-for="(sender, i) in senders" class="hover">
+        <th v-if="i == 0" :rowspan="senders.length" class="sender-title border border-green-700">
+          <div class="-rotate-90 w-full text-center">senders</div>
         </th>
-        <th class="bg-base-200">
-          <span class="mr-8">{{ sender.name }}</span>
+        <th class="sender-name divider-border">
+          <span class="mr-8 ">{{ sender.name }}</span>
 
-          <div class="dropdown dropdown-right float-right">
+          <div class="dropdown dropdown-right float-right ">
             <label tabindex="0" class="link">
               <dots-horizontal-icon class="w-4" />
             </label>
             <ul
               tabindex="0"
-              class="dropdown-content menu bg-base-100 shadow rounded-box text-xs ml-4"
+              class="dropdown-content menu rounded-box text-xs ml-4"
             >
               <li><a @click="sendAll(sender.name)">send all</a></li>
               <li v-if="sender.role === 'BOTH'">
@@ -155,7 +157,7 @@ function leave(name: string) {
           :port-number="getPortNumber(sender.name, receiver.name)"
           :connected="isConnected(sender, receiver)"
           @map="map"
-          @unmap="unmap"
+          @unmap="unmap" class="table-matrix divider-border"
         />
       </tr>
     </tbody>
