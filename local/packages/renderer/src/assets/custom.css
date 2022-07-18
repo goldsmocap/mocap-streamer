@@ -16,8 +16,7 @@ body {
 }
 
 .receiver-title, .sender-title, .top-left, .table, .table-matrix, .divider-border{
-    @apply bg-base-100 capitalize text-base;
-    @apply border border-neutral;
+    @apply bg-base-100 capitalize text-base border border-neutral;
 }
 
 .table{
@@ -46,9 +45,7 @@ body {
 }
 
 h1 {
-    @apply text-neutral;
-    @apply font-bold;
-    @apply text-xl; 
+    @apply text-neutral font-bold text-xl; 
 }
 
 form{
@@ -72,6 +69,10 @@ p {
     @apply text-neutral;
 }
 
-.btn {
+.checkbox{
+    @apply checked:checkbox-secondary;
+}
+
+.btn{
     @apply btn-secondary text-base-100;
   }
