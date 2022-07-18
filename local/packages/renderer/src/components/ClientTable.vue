@@ -96,10 +96,10 @@ function leave(name: string) {
 <div class="table-container">
   <table class="table">
     <!-- collumn headings -->
-    <thead>
+    <thead class="collumn-headings">
       <tr>
-        <th colspan="2" rowspan="2" class="top-left divider-border"></th>
-        <th :colspan="receivers.length" class="receiver-title divider-border">
+        <th colspan="2" rowspan="2" class="top-left"></th>
+        <th :colspan="receivers.length" class="receiver-title">
           <div class="w-full text-center">receivers</div>
         </th>
       </tr>

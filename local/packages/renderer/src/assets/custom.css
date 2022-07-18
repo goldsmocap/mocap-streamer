@@ -22,23 +22,26 @@ body {
 
 /* sticky not working as intended */
 
+.collumn-headings{
+    @apply sticky top-0 bg-secondary;
+    }
 .sender-name{
     @apply left-0 border-secondary;
     z-index: 120;
 }
 
-.top-left{
-    @apply static bg-none;
+/* .top-left{
+    @apply static top-0 ;
     z-index: 1;
     
-}
+} */
 
 .receiver-title, .sender-title{
     z-index: 1;
 }
 
 .receiver-title, .sender-title, .top-left, .table, .table-matrix, .divider-border{
-    @apply bg-base-100 capitalize text-base border border-neutral;
+    /* @apply bg-base-100 capitalize text-base border border-neutral; */
 }
 
 .table{
