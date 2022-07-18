@@ -64,8 +64,8 @@ p {
     text-align: center;
 }
 
-.circleA{
-    @apply justify-center items-center;
+.bg-circle{
+    @apply flex circle justify-center items-center w-36 h-36 rounded-full absolute;
 }
 
 .label{

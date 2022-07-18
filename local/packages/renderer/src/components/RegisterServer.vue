@@ -95,8 +95,8 @@ const login = (args: any) => {
     </div>
 
     <div class="background">
-      <div class="flex circle circleA w-36 h-36 rounded-full absolute bottom-0 left-0 "><p class="bvh-port-data"></p></div>
-      <div class="circle circleB w-36 h-36 rounded-full absolute top-0 right-0"></div>
+      <div class="bg-circle bottom-0 left-0 "><p class="bvh-port-data">jbjhbhjh hi i'm bottom left  jbjhbhjh hi i'm bottom left jbjhbhjh hi i'm bottom left jbjhbhjh hi i'm bottom left jbjhbhjh hi i'm bottom left jbjhbhjh hi i'm bottom left</p></div>
+      <div class="bg-circle top-0 right-0"></div>
     </div>
   </div>
 </template>
