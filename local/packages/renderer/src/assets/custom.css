@@ -12,7 +12,29 @@ body {
 }
 
 .receiver-name, .sender-name{
-    @apply bg-yellow-100 capitalize text-base;
+    @apply capitalize text-base hover  sticky; 
+}
+
+.receiver-name{
+    @apply top-0 divider-border;
+    z-index: 150;
+}
+
+/* sticky not working as intended */
+
+.sender-name{
+    @apply left-0 border-secondary;
+    z-index: 120;
+}
+
+.top-left{
+    @apply static bg-none;
+    z-index: 1;
+    
+}
+
+.receiver-title, .sender-title{
+    z-index: 1;
 }
 
 .receiver-title, .sender-title, .top-left, .table, .table-matrix, .divider-border{
@@ -24,11 +46,19 @@ body {
 }
 
 .sender-title{
-    @apply py-8;
+    /* @apply py-8; */
+    @apply relative;
+}
+
+.table-container{
+    @apply bg-none modal-box max-w-none min-w-0 w-full p-0 border-0;
+    max-height:calc(100vh - 125px);
+    /* display:table; */
 }
 
 .rounded-box, .modal-box{
     @apply bg-primary;
+    box-shadow: none;
 }
 
 .background{

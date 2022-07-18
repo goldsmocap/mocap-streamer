@@ -93,7 +93,9 @@ function leave(name: string) {
 </script>
 
 <template>
+<div class="table-container">
   <table class="table">
+    <!-- collumn headings -->
     <thead>
       <tr>
         <th colspan="2" rowspan="2" class="top-left divider-border"></th>
@@ -101,7 +103,7 @@ function leave(name: string) {
           <div class="w-full text-center">receivers</div>
         </th>
       </tr>
-      <tr class="zebra divider-border">
+      <tr class="divider-border">
         <th v-for="receiver in receivers" class="receiver-name text-center divider-border">
           <p>{{ receiver.name }}</p>
           <div class="dropdown dropdown-down">
@@ -124,13 +126,15 @@ function leave(name: string) {
         </th>
       </tr>
     </thead>
+    <!-- row headings -->
     <tbody>
-      <tr v-for="(sender, i) in senders" class="hover">
-        <th v-if="i == 0" :rowspan="senders.length" class="sender-title border border-green-700">
+      <tr v-for="(sender, i) in senders">
+        <th v-if="i == 0" :rowspan="senders.length" class="sender-title">
           <div class="-rotate-90 w-full text-center">senders</div>
         </th>
-        <th class="sender-name divider-border">
-          <span class="mr-8 ">{{ sender.name }}</span>
+
+        <th class="sender-name class=hover">
+          <span class="mr-2 ">{{ sender.name }}</span>
 
           <div class="dropdown dropdown-right float-right ">
             <label tabindex="0" class="link">
@@ -138,7 +142,7 @@ function leave(name: string) {
             </label>
             <ul
               tabindex="0"
-              class="dropdown-content menu rounded-box text-xs ml-4"
+              class="dropdown-content menu text-xs ml-4"
             >
               <li><a @click="sendAll(sender.name)">send all</a></li>
               <li v-if="sender.role === 'BOTH'">
@@ -162,6 +166,7 @@ function leave(name: string) {
       </tr>
     </tbody>
   </table>
+  </div>
 
   <modal v-if="renameOpen" v-model:open="renameOpen">
     <p class="w-full text-center">Rename {{ oldName }}</p>
