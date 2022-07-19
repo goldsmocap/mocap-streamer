@@ -44,7 +44,7 @@ const login = (args: any) => {
   <div class="modal modal-open">
     <div class="modal-box">
       <information-circle-icon class="btn btn-xs btn-circle float-right" />
-      <h1 class="font-bold text-xl mb-6">Welcome to MocapStreamer</h1>
+      <h1 class="font-bold text-xl mb-6">Welcome</h1>
 
       <p class="mb-2">Please enter the URL for the remote server.</p>
 
