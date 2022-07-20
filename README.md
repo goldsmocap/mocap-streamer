@@ -2,9 +2,9 @@
 
 The Goldsmiths Mocap Streamer consists of objects for transmitting BVH data in real-time.
 
-You can [download a pre-built version of our application](https://github.com/goldsmocap/axis-streamer/releases/latest). Alternatively, you can [build your own from our source code](/blob/main/README.md#making-a-release). (Please note: you will need to [deploy your own remote server](/tree/main/remote#deploying-to-digital-ocean) in any instance) 
+You can [download a pre-built version of our application](https://github.com/goldsmocap/axis-streamer/releases/latest). Alternatively, you can [build your own from our source code](/README.md#making-a-release). (Please note: you will need to [deploy your own remote server](/remote/README.md#deploying-to-digital-ocean) in any instance) 
 
-This codebase is entirely open to forks and contributions via our [GitHub](https://github.com/goldsmocap/axis-streamer/), subject to our [MPL License](https://github.com/goldsmocap/axis-streamer/blob/main/LICENSE)
+This codebase is entirely open to forks and contributions via our [GitHub](https://github.com/goldsmocap/axis-streamer/), subject to our [MPL License](/LICENSE)
 
 <!--- Using html to add CSS ID "gitBadge"--->
 <a href="https://github.com/goldsmocap/mocap-streamer/issues" id="gitBadge">
@@ -42,7 +42,7 @@ It works like this:
 
     
     click Local "https://github.com/goldsmocap/axis-streamer/blob/main/local/README.md" "See the README for the 'Local Server' component"
-    click UI "https://github.com/goldsmocap/axis-streamer/blob/main/local-webui/README.md" "See the README for the 'Web UI' component"
+    click UI "https://github.com/goldsmocap/axis-streamer/blob/main/local/README.md" "See the README for the 'Web UI' component"
     click Remote "https://github.com/goldsmocap/axis-streamer/blob/main/remote/README.md" "See the README for the 'Remote' component"
     
     %%click Suit...add docs for suit and set-up
