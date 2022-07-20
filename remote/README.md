@@ -1,30 +1,27 @@
-# Building the project
-
-TODO: finish this
-
 # Deploying to Digital Ocean
 
 ## Build Docker Image
+
+...
 
 ## Run Docker Container
 The docker container must be run using the host's network hence the `--network host` option.
 
 `sudo docker run -d --network host --name axis-streamer goldsmithsmocap/axis-streamer:<tag>`
 
-TODO: finish ths
 
 # Architecture
 
-TODO: finish this
+...
 
 # Troubleshooting
 
 **Unity not picking up data stream from Axis-Streamer**
 
-1. Make sure that Axis-Streamer is receiving data from Axis-Neuron. TODO: finish this.
+1. Make sure that Axis-Streamer is receiving data from Axis-Neuron.
 
-2. Make sure the firewall is not stopping UDP traffic from Axis-Streamer. TODO: finish this.
-
+2. Make sure the firewall is not stopping UDP traffic from Axis-Streamer.
+   
 3. Make sure the ports that axis-streamer is sending data to are forwarded on your router.
 
 Most users of axis-streamer will be connecting to the internet via a router. The router presents
@@ -40,6 +37,6 @@ device. This is known as Port Forwarding or Port Mapping.
 
 **Axis-Streamer not receiving data from Axis-Neuron**
 
-1. Check that your firewall is not blocking Axis-Neuron. TODO: how to do this?
+1. Check that your firewall is not blocking Axis-Neuron.
 
-2. Check the broadcast settings in Axis-Streamer. TODO: how to do this?
+2. Check the broadcast settings in Axis-Streamer. 

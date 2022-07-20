@@ -5,6 +5,7 @@ The Goldsmiths Mocap Streamer consists of objects for transmitting labelled boun
 The codebase is entirely open to forks and contributions via our [GitHub](https://github.com/goldsmocap/axis-streamer/), subject to our [MPL License](https://github.com/goldsmocap/axis-streamer/blob/main/LICENSE)
 
 
+<!-- Repo Card -->
 [![Repo Stats Card](https://github-readme-stats.vercel.app/api/pin/?username=goldsmocap&repo=mocap-streamer)](https://github.com/goldsmocap/mocap-streamer) 
 
 

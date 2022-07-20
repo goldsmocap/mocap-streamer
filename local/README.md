@@ -1,4 +1,6 @@
-# electron-vite-vue
+
+The local folder of this project uses an electron-vite-vue boilerplate by github user caoxiemeihao. The documentation for this structure can be found below.
+# Electron-vite-vue
 
 [![awesome-vite](https://awesome.re/mentioned-badge.svg)](https://github.com/vitejs/awesome-vite)
 ![GitHub license](https://img.shields.io/github/license/caoxiemeihao/electron-vite-vue?style=flat)
