@@ -41,7 +41,7 @@ It works like this:
 
 
     
-    click Local "https://github.com/goldsmocap/axis-streamer/blob/main/local/README.md" "See the README for the 'Local Server' component"
+    click LocalA "https://github.com/goldsmocap/axis-streamer/blob/main/local/README.md" "See the README for the 'Local Server' component"
     click UI "https://github.com/goldsmocap/axis-streamer/blob/main/local/README.md" "See the README for the 'Web UI' component"
     click Remote "https://github.com/goldsmocap/axis-streamer/blob/main/remote/README.md" "See the README for the 'Remote' component"
     
