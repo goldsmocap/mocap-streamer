@@ -10,10 +10,5 @@
         "local": "yarn workspace local",
         "shared": "yarn workspace shared"
     },
-    "packageManager": "yarn@3.2.0",
-
-    "devDependencies": {
-        "mermaidjs": "9.0.0"
-      }
-    
+    "packageManager": "yarn@3.2.0"
 }

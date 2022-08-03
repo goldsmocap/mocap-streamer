@@ -4426,8 +4426,8 @@ __metadata:
     typescript: ^4.6.3
     vee-validate: ^4.5.11
     vite: ^2.8.6
-    vite-plugin-electron-renderer: ^0.3.2
-    vite-plugin-resolve: ^2.0.1
+    vite-plugin-electron-renderer: 0.3.2
+    vite-plugin-resolve: 2.0.1
     vue: ^3.2.31
     vue-router: ^4.0.14
     vue-tsc: ^0.31.1
@@ -6613,7 +6613,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-plugin-electron-renderer@npm:^0.3.2":
+"vite-plugin-electron-renderer@npm:0.3.2":
   version: 0.3.2
   resolution: "vite-plugin-electron-renderer@npm:0.3.2"
   dependencies:
@@ -6629,7 +6629,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-plugin-resolve@npm:^2.0.1":
+"vite-plugin-resolve@npm:2.0.1":
   version: 2.0.1
   resolution: "vite-plugin-resolve@npm:2.0.1"
   checksum: b5f404085a332835b8c66291d6133911ccd91354f935ba7da32d43c6899dc044a3fadb3833f06f1d2a89afc6b7081dcd302328991087b0f1bcd4212c2a34be5c
