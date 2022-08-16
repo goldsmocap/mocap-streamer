@@ -1,42 +1,52 @@
-# Deploying to Digital Ocean
+# Deploying your own remote server
+
+## Architecture
+
+The project uses a client-server architecture. The server-side part (i.e the remote server) is run using a docker image, which is in turn defined by a Dockerfile.
 
 ## Build Docker Image
 
-...
+You can build your own docker image with the following template
+
+`docker build -t [NAME OF IMAGE] [FILEPATH]`
+
+for example, using our root directory Dockerfile, you would run:
+
+`docker build -t mocap-streamer goldsmithsmocap/mocap-streamer`
 
 ## Run Docker Container
-The docker container must be run using the host's network hence the `--network host` option.
 
-`sudo docker run -d --network host --name axis-streamer goldsmithsmocap/axis-streamer:<tag>`
+Then, the resultant image must be referenced to run a docker image.
 
+(The docker container must be run using the host's network hence the `--network host` option.)
 
-# Architecture
+`sudo docker run -d --network host --name mocap-streamer goldsmithsmocap/mocap-streamer:<tag>`
 
-...
+Run this part on your remote server. We are using digital ocean, but you can use whatever you like!
 
 # Troubleshooting
 
 **Unity not picking up data stream from Axis-Streamer**
 
-1. Make sure that Axis-Streamer is receiving data from Axis-Neuron.
+1. Make sure that Mocap-Streamer is receiving data from Axis-Neuron.
 
-2. Make sure the firewall is not stopping UDP traffic from Axis-Streamer.
+2. Make sure the firewall is not stopping UDP traffic from Mocap-Streamer.
    
-3. Make sure the ports that axis-streamer is sending data to are forwarded on your router.
+3. Make sure the ports that Mocap-Streamer is sending data to are forwarded on your router.
 
-Most users of axis-streamer will be connecting to the internet via a router. The router presents
-a single IP address to the outside world, hiding the computers connected to the internet throught it.
+Most users of Mocap-Streamer will be connecting to the internet via a router. The router presents
+a single IP address to the outside world, hiding the computers connected to the internet through it.
 These computers don't have an external IP address instead they are given an IP by the router (e.g. 192.168.1.x). When sending a packet of data to the outside world the router is able to keep track of which
 device the request came from and match it to the response passing it back to the correct machine.However, if a packet is received from the outside world which doesn't have a corresponding request the
 router is unable to correctly route the packet. This is known as NAT.
 
-Axis-Streamer sends packets to a client in this manner so we need to manually tell the router which
+Mocap-Streamer sends packets to a client in this manner so we need to manually tell the router which
 ports we're expecting packets to be delivered to and ask it to route traffic to those ports to our
 device. This is known as Port Forwarding or Port Mapping.
 
 
-**Axis-Streamer not receiving data from Axis-Neuron**
+**Mocap-Streamer not receiving data from Axis-Neuron**
 
 1. Check that your firewall is not blocking Axis-Neuron.
 
-2. Check the broadcast settings in Axis-Streamer. 
+2. Check the broadcast settings in Axis-Neuron. 
