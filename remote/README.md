@@ -14,6 +14,8 @@ All you need is:
 
 Set environment variable called $REMOTE_VERSION
 
+(For example, this can be done in ubuntu by appending EXPORT REMOTE_VERSION=x.x.x to /etc/profile)
+
 Copy *only* the docker-compose file to the server
 
 Start up the server:
