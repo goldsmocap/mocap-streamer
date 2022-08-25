@@ -4,7 +4,42 @@
 
 The project uses a client-server architecture. The server-side part (i.e the remote server) is run using a docker image, which is in turn defined by a Dockerfile.
 
-## Build Docker Image
+## Requirements
+
+All you need is:
+- A server with docker installed, and 
+- The ability to SSH into that server ([You can read more about that here](https://www.digitalocean.com/community/tutorials/how-to-use-ssh-to-connect-to-a-remote-server))
+
+## Deploying the vanilla server (no changes)
+
+Set environment variable called $REMOTE_VERSION
+
+Copy *only* the docker-compose file to the server
+
+Start up the server:
+
+```docker-compose up```
+
+To take the server down, run:
+
+```docker-compose down```
+
+(note: you can run either of these processes in the background with an optional ```d``` flag)
+
+## Deploying a modified server (with changes)
+
+Pull the repo to your local development machine as usual
+
+Make your changes
+
+Copy the updated codebase to a server with docker installed
+
+[Build the docker image from within the server](https://github.com/goldsmocap/mocap-streamer/tree/main/remote/README.md#building-a-docker-image)
+
+[Run the container from within the server](https://github.com/goldsmocap/mocap-streamer/tree/main/remote/README.md#running-a-docker-container)
+
+
+## Building a Docker Image
 
 You can build your own docker image with the following template
 
@@ -14,7 +49,7 @@ for example, using our root directory Dockerfile, you would run:
 
 `docker build -t mocap-streamer goldsmithsmocap/mocap-streamer`
 
-## Run Docker Container
+## Running a Docker Container
 
 Then, the resultant image must be referenced to run a docker image.
 
@@ -24,7 +59,7 @@ Then, the resultant image must be referenced to run a docker image.
 
 Run this part on your remote server. We are using digital ocean, but you can use whatever you like!
 
-# Troubleshooting
+# Troubleshooting Server Connections
 
 **Unity not picking up data stream from Axis-Streamer**
 
