@@ -7,7 +7,6 @@ const sendingSockets: dgram.Socket[] = [];
 let nextPort = 5001;
 
 export function incPort() {
-  console.log("Hellllooo?");
   nextPort = nextPort + 1;
 }
 

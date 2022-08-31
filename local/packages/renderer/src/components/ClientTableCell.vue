@@ -33,7 +33,7 @@ function handleClick() {
 <template>
   <td :class="[connected ? 'connected' : 'not-connected']">
     <div class="cell m-0" @click="handleClick">
-      <span v-if="portNumber" class="badge badge-xs absolute -m-1">{{ portNumber }}</span>
+      <span class="badge badge-xs absolute -m-1">{{ portNumber }}</span>
       <minus-icon v-if="connected" class="icon" />
       <plus-icon v-else class="icon" />
     </div>
