@@ -1,5 +1,85 @@
+# Current data flow via routes/flows (main flows udp)
+
+``` 
+Suit: UDP Sink
+
+Local streamer: Udp Source (binary packet) -> Some processing via rxjs -> Websocket Sink
+
+Remote: Websocket source -> websocket sink/share data
+
+Local streamer: Websocket source -> Udp Sink
+
+Realtime: Plugin udp source -> parsing -> model 
+
+```
+
+# Changing data flow
+
+To make a new, hardcoded package in the backend (ie osc) clone the most similar folder (udp in this case) and change accordingly
+
+To add a data transformer, write something (either hardcoded or factored out into its own flow) which takes any arbitrary data format, does a transform, then spits it out as usual:
+
+```
+Any -> f(x) -> any
+```
+
+Then place this in-between a source and sink. This should only happen once to the data. You dont want to transform your data twice! This can be done a number of ways, for example:
+
+(Preferred method, processing is done clientside)
+
+```
+Local streamer: Udp Source (binary packet) -> Your TRANSFORM here -> Some processing via rxjs -> Websocket Sink
+
+Remote: Websocket source -> websocket sink/share data
+
+Local streamer: Websocket source -> Udp Sink
+```
+
+*OR*
+
+(Not recommended, processing is done serverside)
+
+```
+Local streamer: Udp Source (binary packet) ->  Some processing via rxjs -> Websocket Sink
+
+Remote: Websocket source -> Your TRANSFORM here -> websocket sink/share data
+
+Local streamer: Websocket source -> Udp Sink
+```
+
+*OR*
+
+(Not recommended, processing is done clientside, however could be useful when aasymettrical processing would be benefitial (for example, a receiver wants to process all the data they get in a specific way, without affecting the data of the original streams, or data received by other receivers.)
+
+```
+Local streamer: Udp Source (binary packet) ->  Some processing via rxjs -> Websocket Sink
+
+Remote: Websocket source ->  websocket sink/share data
+
+Local streamer: Websocket source -> Your TRANSFORM here -> Udp Sink
+
+```
+
+
+# Implementation:
+
+Changing data type would be rather similar to the parts of the interface which communicate role or name from interface to backend…
+
+1. Store data type (with sensible defaults but re-assignable by interface)
+2. Change the become/unbecome sender and receiver code in the “remoteWs.ts” file to make flows with the transformations in the middle.
+
+Notes:
+
+Stringly messages are sent from the ipc renderer, backend uses cases (looking for these strings) to call a number of relevant functions. This can be used to rename the datatype
+
+Web socket messages have been pseudotyped via a serialise function….(declared and typed in the messages.d.ts file)
 
 The local folder of this project uses an electron-vite-vue boilerplate by github user caoxiemeihao. The documentation for this structure can be found below.
+
+
+
+
+
 # Electron-vite-vue
 
 [![awesome-vite](https://awesome.re/mentioned-badge.svg)](https://github.com/vitejs/awesome-vite)
