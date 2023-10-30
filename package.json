@@ -40,6 +40,11 @@
   },
   "packageManager": "yarn@3.6.3",
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.4.2",
+    "@fortawesome/free-brands-svg-icons": "^6.4.2",
+    "@fortawesome/free-regular-svg-icons": "^6.4.2",
+    "@fortawesome/free-solid-svg-icons": "^6.4.2",
+    "@fortawesome/vue-fontawesome": "latest-3",
     "livekit-client": "^1.13.3",
     "livekit-server-sdk": "^1.2.6"
   }
