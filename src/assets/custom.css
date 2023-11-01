@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    @apply w-screen h-screen bg-gradient-to-tr from-purple-400 to-pink-500;
+}

@@ -1,23 +1,46 @@
+import { createHead } from "@vueuse/head";
 import { createApp } from "vue";
-import "./style.css";
 import App from "./App.vue";
 import "./samples/node-api";
+import "./style.css";
+import ConnectPage from "./views/pages/ConnectPage.vue";
+import Dashboard from "./views/pages/Dashboard.vue";
+import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
+import { OhVueIcon, addIcons } from "oh-vue-icons";
+import {
+  FaSpinner,
+  HiArrowLeft,
+  HiXCircle,
+  HiInformationCircle,
+  HiExclamationCircle,
+} from "oh-vue-icons/icons";
 
-/* import the fontawesome core */
-import { library } from "@fortawesome/fontawesome-svg-core";
+addIcons(
+  FaSpinner,
+  HiArrowLeft,
+  HiXCircle,
+  HiInformationCircle,
+  HiExclamationCircle
+);
 
-/* import font awesome icon component */
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+const app = createApp(App);
+const head = createHead();
 
-/* import specific icons */
-import { faSpinner, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+app.component("v-icon", OhVueIcon);
 
-/* add icons to the library */
-library.add(faSpinner, faArrowLeft);
+const routes: ReadonlyArray<RouteRecordRaw> = [
+  { path: "/", component: ConnectPage },
+  { path: "/dashboard", component: Dashboard },
+];
 
-createApp(App)
-  .component("font-awesome-icon", FontAwesomeIcon)
-  .mount("#app")
-  .$nextTick(() => {
-    postMessage({ payload: "removeLoading" }, "*");
-  });
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes,
+});
+
+app.use(head);
+app.use(router);
+
+app.mount("#app").$nextTick(() => {
+  postMessage({ payload: "removeLoading" }, "*");
+});

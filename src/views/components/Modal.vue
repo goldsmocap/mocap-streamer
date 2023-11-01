@@ -1,59 +1,49 @@
 <script setup lang="ts">
-import { onMounted, ref, useSlots, watch } from "vue";
-const dialog = ref<HTMLDialogElement | null>(null);
-
-const slots = useSlots();
-
-const props = defineProps<{
-  isOpen: boolean;
-  onClose?: () => void;
+const { type, open, closeable } = defineProps<{
+  closeable?: boolean;
+  open: boolean;
+  type?: "info" | "warn" | "error" | null;
 }>();
 
-onMounted(() => {
-  if (dialog.value != null) {
-    dialog.value.onclose = props.onClose ?? null;
-  }
-});
-
-watch(
-  () => props.isOpen,
-  (isOpen, previousIsOpen) => {
-    if (dialog.value != null && previousIsOpen != isOpen) {
-      if (isOpen) {
-        dialog.value.showModal();
-      } else {
-        dialog.value.close();
-        props.onClose?.();
-      }
-    }
-  }
-);
+const emit = defineEmits<{
+  "update:open": [isOpen: boolean];
+}>();
 </script>
 
 <template>
-  <dialog
-    ref="dialog"
-    class="backdrop:bg-slate-900/50 w-lg h-lg flex content-center justify-center"
-  >
-    <form
-      v-if="dialog?.open"
-      class="bg-slate-700 rounded max-h-[calc(100vh-16rem)] max-w-[clamp(26rem,50vw,35rem)] flex flex-col content-stretch"
-    >
+  <div class="modal" :class="{ 'modal-open': open }">
+    <div class="modal-box">
       <div
-        v-if="slots.header"
-        class="bg-slate-700 border-b-2 border-b-slate-500 rounded-t px-3"
+        class="flex"
+        :class="type == null ? 'justify-end' : 'justify-between'"
       >
-        <slot name="header" />
+        <v-icon
+          v-if="type === 'info'"
+          name="hi-information-circle"
+          class="w-16 text-gray-800 border border-gray-900 rounded-full"
+        />
+        <v-icon
+          v-else-if="type === 'warn'"
+          name="hi-exclamation-circle"
+          class="w-16 text-yellow-500 border border-yellow-600 rounded-full"
+        />
+        <v-icon
+          v-else-if="type === 'error'"
+          name="hi-exclamation-circle"
+          class="w-16 text-red-500 border border-red-600 rounded-full"
+        />
+
+        <v-icon
+          v-if="closeable"
+          name="hi-x-circle"
+          class="btn btn-xs btn-circle justify-self-end"
+          @click="emit('update:open', false)"
+        />
       </div>
-      <div v-if="slots.body" class="overflow-y-auto max-h-full w-fit px-3">
-        <slot name="body" />
+
+      <div class="mb-2 w-full">
+        <slot />
       </div>
-      <div
-        v-if="slots.footer"
-        class="bg-slate-700 border-t-2 border-t-slate-500 rounded-b px-3"
-      >
-        <slot name="footer" />
-      </div>
-    </form>
-  </dialog>
+    </div>
+  </div>
 </template>
