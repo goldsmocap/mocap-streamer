@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RoomEvent } from "livekit-client";
-import { reactive, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { store } from "../../store";
 import Modal from "../components/Modal.vue";
@@ -11,6 +11,8 @@ interface LogMessage {
   type?: "info" | "error" | "warn";
   text: string;
 }
+
+const participants = ref([...(store.room?.participants.values() ?? [])]);
 
 const log: Array<LogMessage> = [];
 
@@ -28,14 +30,14 @@ store.room?.on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
 });
 store.room?.on(RoomEvent.ParticipantConnected, (participant) => {
   console.log("Connecting", participant.identity);
-  // store.room?.participants.set(participant.sid, participant);
+  participants.value = [...participants.value, participant];
 });
 store.room?.on(RoomEvent.ParticipantDisconnected, (participant) => {
   console.log("Disconnecting", participant.identity);
-  // store.room?.participants.delete(participant.sid);
+  participants.value = participants.value.filter(
+    ({ sid }) => sid !== participant.sid
+  );
 });
-
-const participants = reactive([...(store.room?.participants.entries() ?? [])]);
 
 watch(() => participants, console.log);
 
@@ -96,7 +98,7 @@ store.room?.on(RoomEvent.Disconnected, () => {
       <div class="border-l-2 border-slate-400 px-4 w-[70%]">
         <h3 class="py-2 border-b border-inherit">Connected Participants</h3>
         <ul>
-          <li v-for="[sid, participant] in participants" :key="sid">
+          <li v-for="participant in participants" :key="participant.sid">
             {{ participant.identity }}
           </li>
         </ul>
