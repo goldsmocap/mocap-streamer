@@ -1842,6 +1842,7 @@ __metadata:
     livekit-server-sdk: ^1.2.6
     oh-vue-icons: ^1.0.0-rc3
     postcss: ^8.4.30
+    rxjs: ^7.8.1
     tailwindcss: ^3.3.3
     typescript: ^5.1.6
     vee-validate: ^4.11.8
@@ -3805,7 +3806,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:*":
+"rxjs@npm:*, rxjs@npm:^7.8.1":
   version: 7.8.1
   resolution: "rxjs@npm:7.8.1"
   dependencies:

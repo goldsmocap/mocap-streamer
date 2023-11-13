@@ -11,7 +11,7 @@ import * as yup from "yup";
 const router = useRouter();
 
 const connecting = ref(false);
-const connectError = ref();
+const connectError = ref<unknown>(null);
 
 const schema = computed(() =>
   yup.object({
@@ -69,6 +69,9 @@ const roomConnect = async (args: any) => {
         </label>
         <ErrorMessage class="block text-error text-sm" name="roomName" />
 
+        <span v-if="connectError != null" class="text-error">
+          {{ connectError }}
+        </span>
         <button
           type="submit"
           class="btn btn-block btn-primary my-4 col-span-2 disabled:bg-primary/50 disabled:text-inherit"
@@ -80,38 +83,6 @@ const roomConnect = async (args: any) => {
           </span>
           <span v-else>Connect to Room</span>
         </button>
-        <!-- <div class="divider mb-2">JOIN AS STREAMER</div>
-        <label class="label cursor-pointer">
-          <span>Join remote server and start streaming data?</span>
-          <input class="checkbox" type="checkbox" v-model="join" />
-        </label>
-
-        <div v-if="join">
-          <Field
-            class="input input-bordered w-full mb-2"
-            name="nameOnRemote"
-            placeholder="name on remote"
-          />
-          <ErrorMessage class="block text-error text-sm" name="nameOnRemote" />
-          <input
-              class="input input-bordered w-full mb-2"
-              type="text"
-              placeholder="name on remote"
-              v-model="nameOnRemote"
-            />
-
-          <select class="select select-bordered w-full mb-2" v-model="role">
-            <option value="SENDER">SENDER</option>
-            <option value="RECEIVER">RECEIVER</option>
-            <option value="BOTH">BOTH</option>
-          </select>
-        </div>
-
-        <div class="modal-action">
-          <button class="btn" type="submit">
-            Connect<span v-if="join">&nbsp; & Join</span>
-          </button>
-        </div> -->
       </Form>
     </div>
   </Modal>

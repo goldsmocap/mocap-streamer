@@ -1,7 +1,10 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
-import { createToken, fetchToken } from "./livekit";
+import { fetchToken } from "./livekit";
+import * as dgram from "dgram";
+import { observableFromUdp } from "./rxUdp";
+import { Subscription } from "rxjs";
 
 // The built directory structure
 //
@@ -41,6 +44,9 @@ const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
 
+let localSocket: dgram.Socket | null = null;
+let subscription: Subscription | null = null;
+
 async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
@@ -78,19 +84,36 @@ async function createWindow() {
 
   ipcMain.handle(
     "create-token",
-    async (event, roomName: string, participantName: string) => {
-      console.log(roomName);
-      console.log(participantName);
-      // return createToken(roomName, participantName, "devkey", "secret");
-      return fetchToken(roomName, participantName);
-    }
+    async (_evt, roomName: string, participantName: string) =>
+      fetchToken(roomName, participantName)
   );
+
+  ipcMain.handle("udpConnect", (_evt, address: string, port: number) => {
+    console.log("connecting to", address, port);
+    localSocket = dgram.createSocket("udp4");
+    localSocket.bind(port, address);
+    const localBuffer = observableFromUdp(localSocket);
+    subscription = localBuffer.subscribe({
+      next: (buffer) => win.webContents.send("udpDataReceived", buffer),
+    });
+  });
+
+  ipcMain.handle("udpDisconnect", () => {
+    localSocket?.close();
+    subscription?.unsubscribe();
+    localSocket = null;
+    subscription = null;
+  });
 }
 
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   win = null;
+  if (localSocket != null) {
+    localSocket.close();
+    subscription?.unsubscribe();
+  }
   if (process.platform !== "darwin") app.quit();
 });
 
