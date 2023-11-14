@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ipcRenderer } from "electron";
-import { Room } from "livekit-client";
+import Peer from "peerjs";
 import { computed, ref } from "vue";
 import { store } from "../../store";
 import { useRouter } from "vue-router";
@@ -10,37 +9,30 @@ import * as yup from "yup";
 
 const router = useRouter();
 
-const connecting = ref(false);
+const connecting = ref(true);
 const connectError = ref<unknown>(null);
 
 const schema = computed(() =>
   yup.object({
-    participantName: yup.string().trim().required(),
-    roomName: yup.string().trim().required(),
+    destinationId: yup.string().trim(),
   })
 );
+const myId = ref<string | null>(null);
+store.identity = new Peer();
+store.identity.on("open", (id) => {
+  connecting.value = false;
+  connectError.value = null;
+  myId.value = id;
+});
+store.identity.on("error", (err) => (connectError.value = err.message));
 
-const roomConnect = async (args: any) => {
-  connecting.value = true;
-  store.participantName = args.participantName;
-  store.roomName = args.roomName;
+const connectToDestination = async (args: any) => {
+  // connecting.value = true;
+  store.dataConn = store.identity?.connect(args.destinationId, {
+    reliable: false,
+  });
 
-  const token = await ipcRenderer.invoke(
-    "create-token",
-    args.roomName,
-    args.participantName
-  );
-
-  const room = new Room();
-
-  await room
-    .connect("ws://staging.mocapstreamer.com:7880", token)
-    .then(() => {
-      store.room = room;
-      router.push("/dashboard");
-    })
-    .catch((err) => (connectError.value = err))
-    .finally(() => (connecting.value = false));
+  router.push("/dashboard");
 };
 </script>
 
@@ -48,26 +40,26 @@ const roomConnect = async (args: any) => {
   <Modal :open="true">
     <h1 class="font-bold text-xl mb-6">Welcome to MocapStreamer</h1>
 
+    <div class="mb-4 flex flex-row gap-6">
+      <label>My ID</label>
+      <span class="input input-bordered px-2 h-fit">
+        {{ myId }}
+      </span>
+    </div>
     <div class="form-control">
       <Form
         class="w-full"
         :validation-schema="schema"
-        :initial-values="store"
-        @submit="roomConnect"
+        @submit="connectToDestination"
       >
         <label>
-          <span>Participant Name</span>
+          <span>Destination ID</span>
           <Field
             class="input input-bordered w-full mb-2"
-            name="participantName"
+            name="destinationId"
           />
         </label>
-        <ErrorMessage class="block text-error text-sm" name="participantName" />
-        <label>
-          <span>Room Name</span>
-          <Field class="input input-bordered w-full mb-2" name="roomName" />
-        </label>
-        <ErrorMessage class="block text-error text-sm" name="roomName" />
+        <ErrorMessage class="block text-error text-sm" name="destinationId" />
 
         <span v-if="connectError != null" class="text-error">
           {{ connectError }}
@@ -81,7 +73,7 @@ const roomConnect = async (args: any) => {
             Connecting
             <v-icon name="fa-spinner" animation="spin" />
           </span>
-          <span v-else>Connect to Room</span>
+          <span v-else>Connect</span>
         </button>
       </Form>
     </div>

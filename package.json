@@ -21,7 +21,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build && electron-builder",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint 'src/**/*.{ts,vue}'",
+    "findissues": "yarn typecheck && yarn lint"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.3.3",
@@ -41,9 +44,8 @@
   "packageManager": "yarn@3.6.3",
   "dependencies": {
     "@vueuse/head": "^2.0.0",
-    "livekit-client": "^1.13.3",
-    "livekit-server-sdk": "^1.2.6",
     "oh-vue-icons": "^1.0.0-rc3",
+    "peerjs": "^1.5.1",
     "rxjs": "^7.8.1",
     "vee-validate": "^4.11.8",
     "vue-router": "^4.2.5",

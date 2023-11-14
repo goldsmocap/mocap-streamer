@@ -1,7 +1,6 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
-import { fetchToken } from "./livekit";
 import * as dgram from "dgram";
 import { observableFromUdp } from "./rxUdp";
 import { Subscription } from "rxjs";
@@ -81,12 +80,6 @@ async function createWindow() {
     return { action: "deny" };
   });
   // win.webContents.on('will-navigate', (event, url) => { }) #344
-
-  ipcMain.handle(
-    "create-token",
-    async (_evt, roomName: string, participantName: string) =>
-      fetchToken(roomName, participantName)
-  );
 
   ipcMain.handle("udpConnect", (_evt, address: string, port: number) => {
     console.log("connecting to", address, port);

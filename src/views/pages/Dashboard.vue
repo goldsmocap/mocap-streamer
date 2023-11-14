@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { DataPacket_Kind, RoomEvent } from "livekit-client";
-import { computed, reactive, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { DataConnection } from "peerjs";
 import { useRouter } from "vue-router";
 import { store } from "../../store";
 import Modal from "../components/Modal.vue";
@@ -15,7 +15,41 @@ interface LogMessage {
   text: string;
 }
 
-const participants = ref([...(store.room?.participants.values() ?? [])]);
+const participants = ref<DataConnection[]>([]);
+
+function setUpConnection(conn: DataConnection, emitLog: boolean = true) {
+  const setUpListeners = (conn: DataConnection) => {
+    console.log(conn);
+    if (emitLog) {
+      log.value.push({ type: "info", text: `${conn.peer} has connected.` });
+    }
+    participants.value.push(conn);
+    conn.on("close", () => {
+      if (emitLog) {
+        log.value.push({
+          type: "info",
+          text: `${conn.peer} has disconnected.`,
+        });
+      }
+      participants.value = participants.value.filter(
+        (other) => conn.connectionId !== other.connectionId
+      );
+    });
+
+    conn.on("data", (data) => {
+      console.log(conn.peer, (data as Buffer).length);
+    });
+  };
+  if (conn.open) {
+    setUpListeners(conn);
+  } else {
+    conn.on("open", () => setUpListeners(conn));
+  }
+}
+
+if (store.dataConn != null) {
+  setUpConnection(store.dataConn as DataConnection, false);
+}
 
 const log = ref<LogMessage[]>([]);
 
@@ -29,28 +63,12 @@ const connectionSchema = computed(() =>
       .lessThan(2 ** 16),
   })
 );
-// const address = ref<string>()
 const status = ref<"connected" | "disconnected" | "no-response">(
   "disconnected"
 );
 const lastReceivedTimestamp = ref<number | null>(null);
 const noResponseTimeoutId = ref<NodeJS.Timeout | null>(null);
 const packetCount = ref<number>(0);
-
-// interface LocalConnectionState {
-//   connection: { address: string; port: number };
-//   status: "connected" | "disconnected" | "no-response";
-//   lastReceivedTimestamp: number | null;
-//   noResponseTimeout: NodeJS.Timeout | null;
-//   packetCount: number;
-// }
-// const localConnectionState = reactive<LocalConnectionState>({
-//   connection: { address: "127.0.0.1", port: 7004 },
-//   status: "disconnected",
-//   lastReceivedTimestamp: null,
-//   noResponseTimeout: null,
-//   packetCount: 0,
-// });
 
 function noResponseTimeout() {
   return setTimeout(() => {
@@ -71,23 +89,17 @@ function connectUdp(args: any) {
     .catch(console.error);
 }
 
-const message = Buffer.from("hello");
-
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
   if (status.value !== "disconnected") {
-    if (packetCount.value++ % 16 === 0) {
-      // store.room?.localParticipant.publishData(message, DataPacket_Kind.LOSSY, {
-      //   topic: "mocap-data",
-      // })
-      store.room?.localParticipant.publishData(buffer, DataPacket_Kind.LOSSY);
-      // .then(() => {
-      //   lastReceivedTimestamp.value = Date.now();
-      //   if (noResponseTimeoutId.value != null) {
-      //     clearTimeout(noResponseTimeoutId.value);
-      //   }
-      //   noResponseTimeoutId.value = noResponseTimeout();
-      // })
-      // .catch(console.error);
+    if (packetCount.value++ % 1000 === 0) {
+      const data = buffer.toString();
+      console.log("sending", data.length);
+      participants.value.forEach((conn) => conn?.send(data.toString()));
+      lastReceivedTimestamp.value = Date.now();
+      if (noResponseTimeoutId.value != null) {
+        clearTimeout(noResponseTimeoutId.value);
+      }
+      noResponseTimeoutId.value = noResponseTimeout();
     }
   }
 });
@@ -105,10 +117,19 @@ function disconnectUdp() {
   }
 }
 
-watch(() => participants, console.log);
+function disconnectPeers() {
+  store.dataConn?.close();
+  store.dataConn = undefined;
+  // participants.value.forEach((conn) => conn.close());
+}
+
+function disconnectAll() {
+  disconnectUdp();
+  disconnectPeers();
+}
 
 watch(
-  () => store.room,
+  () => store.dataConn,
   (room) => {
     if (room == null) {
       router.push("/");
@@ -116,47 +137,7 @@ watch(
   }
 );
 
-store.room?.on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-  if (store.room?.localParticipant.sid !== participant?.sid) {
-    console.log(
-      "data received!",
-      payload.length,
-      topic,
-      kind,
-      participant?.sid,
-      store.room?.localParticipant.sid
-    );
-  }
-});
-store.room?.on(RoomEvent.ParticipantConnected, (participant) => {
-  log.value.push({
-    type: "info",
-    text: `${participant.identity} has connected.`,
-  });
-  participants.value = [...participants.value, participant];
-  console.log(participant.identity);
-});
-store.room?.on(RoomEvent.ParticipantDisconnected, (participant) => {
-  log.value.push({
-    type: "info",
-    text: `${participant.identity} has disconnected.`,
-  });
-  participants.value = participants.value.filter(
-    ({ sid }) => sid !== participant.sid
-  );
-});
-
-store.room?.on(RoomEvent.Reconnecting, () => {
-  log.value.push({ type: "error", text: "Connection dropped. Reconnecting …" });
-});
-store.room?.on(RoomEvent.Reconnected, () => {
-  log.value.push({ type: "info", text: "Reconnected" });
-});
-
-store.room?.on(RoomEvent.Disconnected, () => {
-  store.room = null;
-  router.push("/");
-});
+store.identity?.on("connection", setUpConnection);
 </script>
 
 <template>
@@ -167,23 +148,14 @@ store.room?.on(RoomEvent.Disconnected, () => {
       <div class="flex flex-row gap-2 text-white/50">
         <button
           class="bg-slate-500/75 hover:bg-slate-500 aspect-square rounded px-1.5 py-0.5"
-          @click="
-            () => {
-              disconnectUdp();
-              store.room?.disconnect();
-            }
-          "
+          @click="disconnectAll"
         >
           <v-icon name="hi-arrow-left" />
         </button>
-        <h1 class="text-lg" v-text="store.room?.name" />
       </div>
       <h2>
         Connected as
-        <span
-          class="border-b border-slate-400"
-          v-text="store.room?.localParticipant.identity"
-        />
+        <span class="border-b border-slate-400" v-text="store.identity?.id" />
       </h2>
     </nav>
     <div class="flex flex-row flex-nowrap justify-between mb-8">
@@ -208,8 +180,8 @@ store.room?.on(RoomEvent.Disconnected, () => {
       <div class="border-l-2 border-slate-400 px-4 w-[70%]">
         <h3 class="py-2 border-b border-inherit">Connected Participants</h3>
         <ul>
-          <li v-for="participant in participants" :key="participant.sid">
-            {{ participant.identity }}
+          <li v-for="participant in participants" :key="participant.peer">
+            {{ participant.peer }}
           </li>
         </ul>
       </div>

@@ -1,13 +1,9 @@
-import { Room } from "livekit-client";
+import Peer, { DataConnection } from "peerjs";
 import { reactive } from "vue";
 
-interface Store {
-  participantName: string;
-  roomName: string;
-  room?: Room | null;
+export interface Store {
+  identity?: Peer;
+  dataConn?: DataConnection;
 }
 
-export const store = reactive<Store>({
-  participantName: "",
-  roomName: "",
-});
+export const store = reactive<Store>({});
