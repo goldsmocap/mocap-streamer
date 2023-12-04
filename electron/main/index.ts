@@ -2,8 +2,8 @@ import { app, BrowserWindow, shell, ipcMain } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
 import * as dgram from "dgram";
-import { observableFromUdp } from "./rxUdp";
-import { Subscription } from "rxjs";
+import { observableFromUdp, observerToUdp } from "./rxUdp";
+import { Subscription, Observer } from "rxjs";
 
 // The built directory structure
 //
@@ -43,8 +43,9 @@ const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
 
-let localSocket: dgram.Socket | null = null;
+let inboundSocket: dgram.Socket | null = null;
 let subscription: Subscription | null = null;
+let outboundObserver: Observer<Buffer> | null;
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -81,21 +82,42 @@ async function createWindow() {
   });
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 
-  ipcMain.handle("udpConnect", (_evt, address: string, port: number) => {
+  ipcMain.handle("udpConnectInbound", (_evt, address: string, port: number) => {
     console.log("connecting to", address, port);
-    localSocket = dgram.createSocket("udp4");
-    localSocket.bind(port, address);
-    const localBuffer = observableFromUdp(localSocket);
+    inboundSocket = dgram.createSocket("udp4");
+    inboundSocket.bind(port, address);
+    const localBuffer = observableFromUdp(inboundSocket);
     subscription = localBuffer.subscribe({
       next: (buffer) => win.webContents.send("udpDataReceived", buffer),
     });
   });
 
-  ipcMain.handle("udpDisconnect", () => {
-    localSocket?.close();
+  ipcMain.handle("udpDisconnectInbound", () => {
+    inboundSocket?.close();
     subscription?.unsubscribe();
-    localSocket = null;
+    inboundSocket = null;
     subscription = null;
+  });
+
+  ipcMain.handle(
+    "udpConnectOutbound",
+    (_evt, address: string, port: number) => {
+      console.log("starting to send to", address, port);
+      outboundObserver = observerToUdp(
+        address,
+        port,
+        dgram.createSocket("udp4")
+      );
+    }
+  );
+
+  ipcMain.handle("udpSendOutbound", (_evt, value: Buffer) => {
+    outboundObserver.next(value);
+  });
+
+  ipcMain.handle("udpDisconnectOutbound", () => {
+    outboundObserver.complete();
+    outboundObserver = null;
   });
 }
 
@@ -103,8 +125,8 @@ app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   win = null;
-  if (localSocket != null) {
-    localSocket.close();
+  if (inboundSocket != null) {
+    inboundSocket.close();
     subscription?.unsubscribe();
   }
   if (process.platform !== "darwin") app.quit();

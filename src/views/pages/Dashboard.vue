@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { DataConnection } from "peerjs";
 import { useRouter } from "vue-router";
 import { store } from "../../store";
@@ -16,6 +16,22 @@ interface LogMessage {
 }
 
 const participants = ref<DataConnection[]>([]);
+
+interface Connection {
+  status: "connected" | "disconnected" | "no-response";
+  lastReceived?: number | null;
+  responseTimeoutId?: NodeJS.Timeout | null;
+}
+
+const inboundConnection = reactive<Connection>({
+  status: "disconnected",
+  lastReceived: null,
+  responseTimeoutId: null,
+});
+
+const outboundConnection = reactive<Connection>({
+  status: "disconnected",
+});
 
 function setUpConnection(conn: DataConnection, emitLog: boolean = true) {
   const setUpListeners = (conn: DataConnection) => {
@@ -37,7 +53,15 @@ function setUpConnection(conn: DataConnection, emitLog: boolean = true) {
     });
 
     conn.on("data", (data) => {
-      console.log(conn.peer, (data as Buffer).length);
+      if (outboundConnection.status !== "disconnected") {
+        const msg = Buffer.from(
+          data as ArrayBuffer,
+          0,
+          (data as ArrayBuffer).byteLength
+        );
+        console.log(conn.peer, msg.length, msg);
+        ipcRenderer.invoke("udpSendOutbound", msg);
+      }
     });
   };
   if (conn.open) {
@@ -63,57 +87,65 @@ const connectionSchema = computed(() =>
       .lessThan(2 ** 16),
   })
 );
-const status = ref<"connected" | "disconnected" | "no-response">(
-  "disconnected"
-);
-const lastReceivedTimestamp = ref<number | null>(null);
-const noResponseTimeoutId = ref<NodeJS.Timeout | null>(null);
-const packetCount = ref<number>(0);
 
 function noResponseTimeout() {
   return setTimeout(() => {
-    status.value = "no-response";
+    inboundConnection.status = "no-response";
   }, 10000);
 }
 
-function connectUdp(args: any) {
+function connectUdpInbound(args: any) {
   ipcRenderer
-    // .invoke("udpConnect", args.address, args.port)
-    .invoke("udpConnect", "127.0.0.1", 7004)
+    // .invoke("udpConnectInbound", args.address, args.port)
+    .invoke("udpConnectInbound", "127.0.0.1", 7004)
     .then(() => {
       log.value.push({ type: "info", text: "Connecting to Axis Studio" });
-      status.value = "connected";
-      lastReceivedTimestamp.value = Date.now();
-      noResponseTimeoutId.value = noResponseTimeout();
+      inboundConnection.status = "connected";
+      inboundConnection.lastReceived = Date.now();
+      inboundConnection.responseTimeoutId = noResponseTimeout();
     })
     .catch(console.error);
 }
 
+function connectUdpOutbound(args: any) {
+  ipcRenderer.invoke("udpConnectOutbound", "127.0.0.1", 7000).then(() => {
+    log.value.push({ type: "info", text: "Starting to send data to unity" });
+    outboundConnection.status = "connected";
+  });
+}
+
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
-  if (status.value !== "disconnected") {
-    if (packetCount.value++ % 1000 === 0) {
-      const data = buffer.toString();
-      console.log("sending", data.length);
-      participants.value.forEach((conn) => conn?.send(data.toString()));
-      lastReceivedTimestamp.value = Date.now();
-      if (noResponseTimeoutId.value != null) {
-        clearTimeout(noResponseTimeoutId.value);
-      }
-      noResponseTimeoutId.value = noResponseTimeout();
+  if (inboundConnection.status !== "disconnected") {
+    participants.value.forEach((conn) => conn?.send(buffer));
+    if (outboundConnection.status !== "disconnected") {
+      console.log("Received local data", buffer);
+      ipcRenderer.invoke("udpSendOutbound", buffer);
     }
+    inboundConnection.lastReceived = Date.now();
+    if (inboundConnection.responseTimeoutId != null) {
+      clearTimeout(inboundConnection.responseTimeoutId);
+    }
+    inboundConnection.responseTimeoutId = noResponseTimeout();
   }
 });
 
-function disconnectUdp() {
-  if (status.value !== "disconnected") {
-    status.value = "disconnected";
-    ipcRenderer.invoke("udpDisconnect").then(() => {
-      if (noResponseTimeoutId.value != null) {
-        clearTimeout(noResponseTimeoutId.value);
+function disconnectUdpInbound() {
+  if (inboundConnection.status !== "disconnected") {
+    inboundConnection.status = "disconnected";
+    ipcRenderer.invoke("udpDisconnectInbound").then(() => {
+      if (inboundConnection.responseTimeoutId != null) {
+        clearTimeout(inboundConnection.responseTimeoutId);
       }
-      lastReceivedTimestamp.value = null;
-      noResponseTimeoutId.value = null;
+      inboundConnection.lastReceived = null;
+      inboundConnection.responseTimeoutId = null;
     });
+  }
+}
+
+function disconnectUdpOutbound() {
+  if (outboundConnection.status !== "disconnected") {
+    outboundConnection.status = "disconnected";
+    ipcRenderer.invoke("udpDisconnectOutbound");
   }
 }
 
@@ -124,7 +156,8 @@ function disconnectPeers() {
 }
 
 function disconnectAll() {
-  disconnectUdp();
+  disconnectUdpInbound();
+  disconnectUdpOutbound();
   disconnectPeers();
 }
 
@@ -213,19 +246,40 @@ store.identity?.on("connection", setUpConnection);
         Connect Axis Studio
       </button>
     </Form> -->
-    <button
-      v-if="status === 'disconnected'"
-      @click="connectUdp"
-      class="btn btn-block btn-primary my-4"
-    >
-      Connect Axis Studio
-    </button>
-    <div v-else>
-      <span v-if="status === 'connected'">Connected</span>
-      <span v-else>No response</span>
-      <button class="btn btn-block btn-primary my-4" @click="disconnectUdp">
-        Disconnect
+    <div class="grid grid-cols-2 gap-2">
+      <button
+        v-if="inboundConnection.status === 'disconnected'"
+        @click="connectUdpInbound"
+        class="btn btn-block btn-primary my-4"
+      >
+        Connect Axis Studio
       </button>
+      <div v-else>
+        <button
+          class="btn btn-block btn-primary my-4"
+          @click="disconnectUdpInbound"
+        >
+          Disconnect Axis Studio
+        </button>
+        <span v-if="inboundConnection.status === 'connected'">Connected</span>
+        <span v-else>No response</span>
+      </div>
+      <button
+        v-if="outboundConnection.status === 'disconnected'"
+        @click="connectUdpOutbound"
+        class="btn btn-block btn-primary my-4"
+      >
+        Connect Unity
+      </button>
+      <div v-else>
+        <button
+          class="btn btn-block btn-primary my-4"
+          @click="disconnectUdpOutbound"
+        >
+          Disconnect Unity
+        </button>
+        <span>Connected</span>
+      </div>
     </div>
   </Modal>
 </template>
