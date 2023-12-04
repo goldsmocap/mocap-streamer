@@ -23,13 +23,13 @@ interface Connection {
   responseTimeoutId?: NodeJS.Timeout | null;
 }
 
-const inboundConnection = reactive<Connection>({
+const remoteConnection = reactive<Connection>({
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
 });
 
-const outboundConnection = reactive<Connection>({
+const localConnection = reactive<Connection>({
   status: "disconnected",
 });
 
@@ -53,14 +53,13 @@ function setUpConnection(conn: DataConnection, emitLog: boolean = true) {
     });
 
     conn.on("data", (data) => {
-      if (outboundConnection.status !== "disconnected") {
+      if (localConnection.status !== "disconnected") {
         const msg = Buffer.from(
           data as ArrayBuffer,
           0,
           (data as ArrayBuffer).byteLength
         );
-        console.log(conn.peer, msg.length, msg);
-        ipcRenderer.invoke("udpSendOutbound", msg);
+        ipcRenderer.invoke("udpSendLocal", msg);
       }
     });
   };
@@ -90,62 +89,66 @@ const connectionSchema = computed(() =>
 
 function noResponseTimeout() {
   return setTimeout(() => {
-    inboundConnection.status = "no-response";
+    remoteConnection.status = "no-response";
   }, 10000);
 }
 
-function connectUdpInbound(args: any) {
+function connectUdpRemote(args: any) {
   ipcRenderer
-    // .invoke("udpConnectInbound", args.address, args.port)
-    .invoke("udpConnectInbound", "127.0.0.1", 7004)
+    .invoke("udpConnectRemote", args.address, args.port)
     .then(() => {
-      log.value.push({ type: "info", text: "Connecting to Axis Studio" });
-      inboundConnection.status = "connected";
-      inboundConnection.lastReceived = Date.now();
-      inboundConnection.responseTimeoutId = noResponseTimeout();
+      log.value.push({ type: "info", text: "Started sending data" });
+      remoteConnection.status = "connected";
+      remoteConnection.lastReceived = Date.now();
+      remoteConnection.responseTimeoutId = noResponseTimeout();
     })
     .catch(console.error);
 }
 
-function connectUdpOutbound(args: any) {
-  ipcRenderer.invoke("udpConnectOutbound", "127.0.0.1", 7000).then(() => {
-    log.value.push({ type: "info", text: "Starting to send data to unity" });
-    outboundConnection.status = "connected";
+function connectUdpLocal(args: any) {
+  console.log("Local Args", args);
+  ipcRenderer.invoke("udpConnectLocal", args.address, args.port).then(() => {
+    log.value.push({ type: "info", text: "Started receiving data" });
+    localConnection.status = "connected";
   });
 }
 
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
-  if (inboundConnection.status !== "disconnected") {
+  if (remoteConnection.status !== "disconnected") {
     participants.value.forEach((conn) => conn?.send(buffer));
-    if (outboundConnection.status !== "disconnected") {
-      console.log("Received local data", buffer);
-      ipcRenderer.invoke("udpSendOutbound", buffer);
+    if (localConnection.status !== "disconnected") {
+      ipcRenderer.invoke("udpSendLocal", buffer);
     }
-    inboundConnection.lastReceived = Date.now();
-    if (inboundConnection.responseTimeoutId != null) {
-      clearTimeout(inboundConnection.responseTimeoutId);
+    remoteConnection.lastReceived = Date.now();
+    if (remoteConnection.responseTimeoutId != null) {
+      clearTimeout(remoteConnection.responseTimeoutId);
     }
-    inboundConnection.responseTimeoutId = noResponseTimeout();
+    remoteConnection.responseTimeoutId = noResponseTimeout();
   }
 });
 
-function disconnectUdpInbound() {
-  if (inboundConnection.status !== "disconnected") {
-    inboundConnection.status = "disconnected";
-    ipcRenderer.invoke("udpDisconnectInbound").then(() => {
-      if (inboundConnection.responseTimeoutId != null) {
-        clearTimeout(inboundConnection.responseTimeoutId);
+function disconnectUdpRemote() {
+  if (remoteConnection.status !== "disconnected") {
+    remoteConnection.status = "disconnected";
+    ipcRenderer.invoke("udpDisconnectRemote").then(() => {
+      if (remoteConnection.responseTimeoutId != null) {
+        clearTimeout(remoteConnection.responseTimeoutId);
       }
-      inboundConnection.lastReceived = null;
-      inboundConnection.responseTimeoutId = null;
+      remoteConnection.lastReceived = null;
+      remoteConnection.responseTimeoutId = null;
+      log.value.push({ type: "info", text: "Stopped sending data" });
     });
   }
 }
 
-function disconnectUdpOutbound() {
-  if (outboundConnection.status !== "disconnected") {
-    outboundConnection.status = "disconnected";
-    ipcRenderer.invoke("udpDisconnectOutbound");
+function disconnectUdpLocal() {
+  if (localConnection.status !== "disconnected") {
+    localConnection.status = "disconnected";
+    ipcRenderer
+      .invoke("udpDisconnectLocal")
+      .then(() =>
+        log.value.push({ type: "info", text: "Stopped receiving data" })
+      );
   }
 }
 
@@ -156,8 +159,12 @@ function disconnectPeers() {
 }
 
 function disconnectAll() {
-  disconnectUdpInbound();
-  disconnectUdpOutbound();
+  if (store.clientType === "Sender" || store.clientType === "Both") {
+    disconnectUdpRemote();
+  }
+  if (store.clientType === "Receiver" || store.clientType === "Both") {
+    disconnectUdpLocal();
+  }
   disconnectPeers();
 }
 
@@ -246,39 +253,103 @@ store.identity?.on("connection", setUpConnection);
         Connect Axis Studio
       </button>
     </Form> -->
-    <div class="grid grid-cols-2 gap-2">
-      <button
-        v-if="inboundConnection.status === 'disconnected'"
-        @click="connectUdpInbound"
-        class="btn btn-block btn-primary my-4"
-      >
-        Connect Axis Studio
-      </button>
-      <div v-else>
-        <button
-          class="btn btn-block btn-primary my-4"
-          @click="disconnectUdpInbound"
+    <div :class="store.clientType === 'Both' ? 'grid grid-cols-2 gap-2' : ''">
+      <div v-if="store.clientType === 'Sender' || store.clientType === 'Both'">
+        <Form
+          v-if="remoteConnection.status === 'disconnected'"
+          class="w-full flex flex-col gap-2"
+          :validation-schema="connectionSchema"
+          :initial-values="{ address: '127.0.0.1', port: 7004 }"
+          @submit="connectUdpRemote"
         >
-          Disconnect Axis Studio
-        </button>
-        <span v-if="inboundConnection.status === 'connected'">Connected</span>
-        <span v-else>No response</span>
+          <button type="submit" class="btn btn-block btn-primary my-4">
+            Start Sending
+          </button>
+          <div
+            tabindex="0"
+            class="collapse collapse-arrow border border-slate-400"
+          >
+            <input type="checkbox" />
+            <div class="collapse-title text-md font-medium">
+              Connection Details
+            </div>
+            <div class="collapse-content">
+              <label>
+                <span>Address</span>
+                <Field
+                  class="input input-bordered w-full mb-2"
+                  name="address"
+                />
+              </label>
+              <ErrorMessage class="block text-error text-sm" name="address" />
+
+              <label>
+                <span>Port</span>
+                <Field class="input input-bordered w-full mb-2" name="port" />
+              </label>
+              <ErrorMessage class="block text-error text-sm" name="port" />
+            </div>
+          </div>
+        </Form>
+        <div v-else>
+          <button
+            class="btn btn-block btn-primary my-4"
+            @click="disconnectUdpRemote"
+          >
+            Stop Sending
+          </button>
+          <span v-if="remoteConnection.status === 'connected'">Connected</span>
+          <span v-else>No response</span>
+        </div>
       </div>
-      <button
-        v-if="outboundConnection.status === 'disconnected'"
-        @click="connectUdpOutbound"
-        class="btn btn-block btn-primary my-4"
+      <div
+        v-if="store.clientType === 'Receiver' || store.clientType === 'Both'"
       >
-        Connect Unity
-      </button>
-      <div v-else>
-        <button
-          class="btn btn-block btn-primary my-4"
-          @click="disconnectUdpOutbound"
+        <Form
+          v-if="localConnection.status === 'disconnected'"
+          class="w-full flex flex-col gap-2"
+          :validation-schema="connectionSchema"
+          :initial-values="{ address: '127.0.0.1', port: 7000 }"
+          @submit="connectUdpLocal"
         >
-          Disconnect Unity
-        </button>
-        <span>Connected</span>
+          <button class="btn btn-block btn-primary my-4">
+            Start Receiving
+          </button>
+          <div
+            tabindex="0"
+            class="collapse collapse-arrow border border-slate-400"
+          >
+            <input type="checkbox" />
+            <div class="collapse-title text-md font-medium">
+              Connection Details
+            </div>
+            <div class="collapse-content">
+              <label>
+                <span>Address</span>
+                <Field
+                  class="input input-bordered w-full mb-2"
+                  name="address"
+                />
+              </label>
+              <ErrorMessage class="block text-error text-sm" name="address" />
+
+              <label>
+                <span>Port</span>
+                <Field class="input input-bordered w-full mb-2" name="port" />
+              </label>
+              <ErrorMessage class="block text-error text-sm" name="port" />
+            </div>
+          </div>
+        </Form>
+        <div v-else>
+          <button
+            class="btn btn-block btn-primary my-4"
+            @click="disconnectUdpLocal"
+          >
+            Stop Receiving
+          </button>
+          <span>Connected</span>
+        </div>
       </div>
     </div>
   </Modal>

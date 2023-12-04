@@ -43,9 +43,9 @@ const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
 
-let inboundSocket: dgram.Socket | null = null;
+let remoteSocket: dgram.Socket | null = null;
 let subscription: Subscription | null = null;
-let outboundObserver: Observer<Buffer> | null;
+let localObserver: Observer<Buffer> | null;
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -82,42 +82,35 @@ async function createWindow() {
   });
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 
-  ipcMain.handle("udpConnectInbound", (_evt, address: string, port: number) => {
+  ipcMain.handle("udpConnectRemote", (_evt, address: string, port: number) => {
     console.log("connecting to", address, port);
-    inboundSocket = dgram.createSocket("udp4");
-    inboundSocket.bind(port, address);
-    const localBuffer = observableFromUdp(inboundSocket);
+    remoteSocket = dgram.createSocket("udp4");
+    remoteSocket.bind(port, address);
+    const localBuffer = observableFromUdp(remoteSocket);
     subscription = localBuffer.subscribe({
       next: (buffer) => win.webContents.send("udpDataReceived", buffer),
     });
   });
 
-  ipcMain.handle("udpDisconnectInbound", () => {
-    inboundSocket?.close();
+  ipcMain.handle("udpDisconnectRemote", () => {
+    remoteSocket?.close();
     subscription?.unsubscribe();
-    inboundSocket = null;
+    remoteSocket = null;
     subscription = null;
   });
 
-  ipcMain.handle(
-    "udpConnectOutbound",
-    (_evt, address: string, port: number) => {
-      console.log("starting to send to", address, port);
-      outboundObserver = observerToUdp(
-        address,
-        port,
-        dgram.createSocket("udp4")
-      );
-    }
-  );
-
-  ipcMain.handle("udpSendOutbound", (_evt, value: Buffer) => {
-    outboundObserver.next(value);
+  ipcMain.handle("udpConnectLocal", (_evt, address: string, port: number) => {
+    console.log("starting to send to", address, port);
+    localObserver = observerToUdp(address, port, dgram.createSocket("udp4"));
   });
 
-  ipcMain.handle("udpDisconnectOutbound", () => {
-    outboundObserver.complete();
-    outboundObserver = null;
+  ipcMain.handle("udpSendLocal", (_evt, value: Buffer) => {
+    localObserver.next(value);
+  });
+
+  ipcMain.handle("udpDisconnectLocal", () => {
+    localObserver.complete();
+    localObserver = null;
   });
 }
 
@@ -125,8 +118,8 @@ app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   win = null;
-  if (inboundSocket != null) {
-    inboundSocket.close();
+  if (remoteSocket != null) {
+    remoteSocket.close();
     subscription?.unsubscribe();
   }
   if (process.platform !== "darwin") app.quit();

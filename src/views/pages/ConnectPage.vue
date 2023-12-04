@@ -9,30 +9,35 @@ import * as yup from "yup";
 
 const router = useRouter();
 
-const connecting = ref(true);
+const connecting = ref(false);
 const connectError = ref<unknown>(null);
 
 const schema = computed(() =>
   yup.object({
     destinationId: yup.string().trim(),
+    clientType: yup.string().oneOf(["Sender", "Receiver", "Both"]),
   })
 );
-const myId = ref<string | null>(null);
-store.identity = new Peer();
-store.identity.on("open", (id) => {
-  connecting.value = false;
-  connectError.value = null;
-  myId.value = id;
-});
-store.identity.on("error", (err) => (connectError.value = err.message));
 
 const connectToDestination = async (args: any) => {
-  // connecting.value = true;
-  store.dataConn = store.identity?.connect(args.destinationId, {
-    reliable: false,
-  });
+  connecting.value = true;
 
-  router.push("/dashboard");
+  store.clientType = args.clientType;
+
+  store.identity = new Peer();
+  store.identity.on("open", (id) => {
+    connecting.value = false;
+    connectError.value = null;
+    store.dataConn = store.identity?.connect(args.destinationId, {
+      reliable: false,
+      metadata: { clientType: store.clientType },
+    });
+    router.push("/dashboard");
+  });
+  store.identity.on("error", (err) => {
+    connecting.value = false;
+    connectError.value = err.message;
+  });
 };
 </script>
 
@@ -40,16 +45,11 @@ const connectToDestination = async (args: any) => {
   <Modal :open="true">
     <h1 class="font-bold text-xl mb-6">Welcome to MocapStreamer</h1>
 
-    <div class="mb-4 flex flex-row gap-6">
-      <label>My ID</label>
-      <span class="input input-bordered px-2 h-fit">
-        {{ myId }}
-      </span>
-    </div>
     <div class="form-control">
       <Form
-        class="w-full"
+        class="w-full flex flex-col gap-2"
         :validation-schema="schema"
+        :initial-values="{ clientType: 'Both' }"
         @submit="connectToDestination"
       >
         <label>
@@ -60,6 +60,17 @@ const connectToDestination = async (args: any) => {
           />
         </label>
         <ErrorMessage class="block text-error text-sm" name="destinationId" />
+
+        <label class="flex flex-row justify-between">
+          <span class="h-fit self-center">Connect as a</span>
+
+          <Field class="select w-fit" name="clientType" as="select">
+            <option value="Both">Sender and Receiver</option>
+            <option value="Sender">Sender only</option>
+            <option value="Receiver">Receiver only</option>
+          </Field>
+        </label>
+        <ErrorMessage class="block text-error text-sm" name="clientType" />
 
         <span v-if="connectError != null" class="text-error">
           {{ connectError }}
