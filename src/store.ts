@@ -3,7 +3,10 @@ import { reactive } from "vue";
 
 export interface Store {
   identity?: Peer;
-  dataConn?: DataConnection;
+  connectedConfig?: {
+    dataConnections: DataConnection[];
+    roomName: string;
+  };
   clientType: "Sender" | "Receiver" | "Both";
 }
 

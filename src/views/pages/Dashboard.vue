@@ -15,7 +15,12 @@ interface LogMessage {
   text: string;
 }
 
-const participants = ref<DataConnection[]>([]);
+const { connectedConfig } = store;
+if (connectedConfig == null) {
+  throw new Error("No connected config found");
+}
+
+const { dataConnections, roomName } = connectedConfig;
 
 interface Connection {
   status: "connected" | "disconnected" | "no-response";
@@ -33,23 +38,20 @@ const localConnection = reactive<Connection>({
   status: "disconnected",
 });
 
-function setUpConnection(conn: DataConnection, emitLog: boolean = true) {
+function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
   const setUpListeners = (conn: DataConnection) => {
     console.log(conn);
-    if (emitLog) {
+    if (!alreadyAdded) {
+      dataConnections.push(conn);
       log.value.push({ type: "info", text: `${conn.peer} has connected.` });
     }
-    participants.value.push(conn);
     conn.on("close", () => {
-      if (emitLog) {
+      if (!alreadyAdded) {
         log.value.push({
           type: "info",
           text: `${conn.peer} has disconnected.`,
         });
       }
-      participants.value = participants.value.filter(
-        (other) => conn.connectionId !== other.connectionId
-      );
     });
 
     conn.on("data", (data) => {
@@ -70,9 +72,9 @@ function setUpConnection(conn: DataConnection, emitLog: boolean = true) {
   }
 }
 
-if (store.dataConn != null) {
-  setUpConnection(store.dataConn as DataConnection, false);
-}
+dataConnections.forEach((connection) =>
+  setUpConnection(connection as DataConnection, true)
+);
 
 const log = ref<LogMessage[]>([]);
 
@@ -115,7 +117,7 @@ function connectUdpLocal(args: any) {
 
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
   if (remoteConnection.status !== "disconnected") {
-    participants.value.forEach((conn) => conn?.send(buffer));
+    dataConnections.forEach((conn) => conn?.send(buffer));
     if (localConnection.status !== "disconnected") {
       ipcRenderer.invoke("udpSendLocal", buffer);
     }
@@ -152,10 +154,26 @@ function disconnectUdpLocal() {
   }
 }
 
-function disconnectPeers() {
-  store.dataConn?.close();
-  store.dataConn = undefined;
-  // participants.value.forEach((conn) => conn.close());
+setInterval(() => {
+  store.identity?.listAllPeers((peers: string[]) => {
+    for (const peer of peers.filter(
+      (peer) => dataConnections.find((conn) => peer === conn.peer) == null
+    )) {
+      setUpConnection(store.identity!.connect(peer, { reliable: false }));
+    }
+
+    for (const conn of dataConnections.filter(
+      (conn) => !peers.includes(conn.peer)
+    )) {
+      conn.close();
+    }
+  });
+}, 10000);
+
+function disconnectSelf() {
+  dataConnections.forEach((conn) => conn.close());
+  store.identity?.disconnect();
+  store.connectedConfig = undefined;
 }
 
 function disconnectAll() {
@@ -165,13 +183,13 @@ function disconnectAll() {
   if (store.clientType === "Receiver" || store.clientType === "Both") {
     disconnectUdpLocal();
   }
-  disconnectPeers();
+  disconnectSelf();
 }
 
 watch(
-  () => store.dataConn,
-  (room) => {
-    if (room == null) {
+  () => store.connectedConfig,
+  (connectedConfig) => {
+    if (connectedConfig == null) {
       router.push("/");
     }
   }
@@ -196,6 +214,8 @@ store.identity?.on("connection", setUpConnection);
       <h2>
         Connected as
         <span class="border-b border-slate-400" v-text="store.identity?.id" />
+        To room
+        <span class="border-b border-slate-400" v-text="roomName" />
       </h2>
     </nav>
     <div class="flex flex-row flex-nowrap justify-between mb-8">
@@ -220,8 +240,8 @@ store.identity?.on("connection", setUpConnection);
       <div class="border-l-2 border-slate-400 px-4 w-[70%]">
         <h3 class="py-2 border-b border-inherit">Connected Participants</h3>
         <ul>
-          <li v-for="participant in participants" :key="participant.peer">
-            {{ participant.peer }}
+          <li v-for="conn in dataConnections" :key="conn.peer">
+            {{ conn.peer }}
           </li>
         </ul>
       </div>

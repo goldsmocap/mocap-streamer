@@ -14,7 +14,11 @@ const connectError = ref<unknown>(null);
 
 const schema = computed(() =>
   yup.object({
-    destinationId: yup.string().trim(),
+    clientName: yup
+      .string()
+      .trim()
+      .required("You must provide a name for yourself"),
+    roomName: yup.string().trim().required("You must provide a room name"),
     clientType: yup.string().oneOf(["Sender", "Receiver", "Both"]),
   })
 );
@@ -22,19 +26,41 @@ const schema = computed(() =>
 const connectToDestination = async (args: any) => {
   connecting.value = true;
 
+  try {
+    await fetch(`http://localhost:8000/setup-room/${args.roomName}`, {
+      method: "POST",
+    });
+  } catch (err) {
+    connectError.value = `Something went wrong setting up the room: ${err}`;
+    connecting.value = false;
+    return;
+  }
+
   store.clientType = args.clientType;
 
-  store.identity = new Peer();
-  store.identity.on("open", (id) => {
-    connecting.value = false;
-    connectError.value = null;
-    store.dataConn = store.identity?.connect(args.destinationId, {
-      reliable: false,
-      metadata: { clientType: store.clientType },
-    });
-    router.push("/dashboard");
+  const peer = new Peer(args.clientName, {
+    host: "localhost",
+    port: 8000,
+    path: `/room/${args.roomName}`,
   });
-  store.identity.on("error", (err) => {
+
+  store.identity = peer;
+
+  peer.on("open", () =>
+    peer.listAllPeers((peers) => {
+      connecting.value = false;
+      connectError.value = null;
+
+      store.connectedConfig = {
+        dataConnections: peers.map((id) =>
+          peer.connect(id, { reliable: false })
+        ),
+        roomName: args.roomName,
+      };
+      router.push("/dashboard");
+    })
+  );
+  peer.on("error", (err) => {
     connecting.value = false;
     connectError.value = err.message;
   });
@@ -53,13 +79,16 @@ const connectToDestination = async (args: any) => {
         @submit="connectToDestination"
       >
         <label>
-          <span>Destination ID</span>
-          <Field
-            class="input input-bordered w-full mb-2"
-            name="destinationId"
-          />
+          <span>Participant Name</span>
+          <Field class="input input-bordered w-full mb-2" name="clientName" />
         </label>
-        <ErrorMessage class="block text-error text-sm" name="destinationId" />
+        <ErrorMessage class="block text-error text-sm" name="clientName" />
+
+        <label>
+          <span>Room Name</span>
+          <Field class="input input-bordered w-full mb-2" name="roomName" />
+        </label>
+        <ErrorMessage class="block text-error text-sm" name="roomName" />
 
         <label class="flex flex-row justify-between">
           <span class="h-fit self-center">Connect as a</span>
