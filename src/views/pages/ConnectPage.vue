@@ -23,11 +23,14 @@ const schema = computed(() =>
   })
 );
 
-const connectToDestination = async (args: any) => {
+const baseHost = "localhost";
+const basePort = 8000;
+
+const connectToRoom = async (args: any) => {
   connecting.value = true;
 
   try {
-    await fetch(`http://localhost:8000/setup-room/${args.roomName}`, {
+    await fetch(`http://${baseHost}:${basePort}/setup-room/${args.roomName}`, {
       method: "POST",
     });
   } catch (err) {
@@ -39,8 +42,8 @@ const connectToDestination = async (args: any) => {
   store.clientType = args.clientType;
 
   const peer = new Peer(args.clientName, {
-    host: "localhost",
-    port: 8000,
+    host: baseHost,
+    port: basePort,
     path: `/room/${args.roomName}`,
   });
 
@@ -76,7 +79,7 @@ const connectToDestination = async (args: any) => {
         class="w-full flex flex-col gap-2"
         :validation-schema="schema"
         :initial-values="{ clientType: 'Both' }"
-        @submit="connectToDestination"
+        @submit="connectToRoom"
       >
         <label>
           <span>Participant Name</span>
