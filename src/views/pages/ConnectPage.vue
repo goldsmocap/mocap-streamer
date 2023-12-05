@@ -20,19 +20,25 @@ const schema = computed(() =>
       .required("You must provide a name for yourself"),
     roomName: yup.string().trim().required("You must provide a room name"),
     clientType: yup.string().oneOf(["Sender", "Receiver", "Both"]),
+    host: yup.string().trim().required(),
+    port: yup
+      .number()
+      .integer()
+      .positive()
+      .lessThan(2 ** 16),
   })
 );
-
-const baseHost = "localhost";
-const basePort = 8000;
 
 const connectToRoom = async (args: any) => {
   connecting.value = true;
 
   try {
-    await fetch(`http://${baseHost}:${basePort}/setup-room/${args.roomName}`, {
-      method: "POST",
-    });
+    await fetch(
+      `https://${args.host}:${args.port}/setup-room/${args.roomName}`,
+      {
+        method: "POST",
+      }
+    );
   } catch (err) {
     connectError.value = `Something went wrong setting up the room: ${err}`;
     connecting.value = false;
@@ -42,8 +48,8 @@ const connectToRoom = async (args: any) => {
   store.clientType = args.clientType;
 
   const peer = new Peer(args.clientName, {
-    host: baseHost,
-    port: basePort,
+    host: args.host,
+    port: args.port,
     path: `/room/${args.roomName}`,
   });
 
@@ -78,7 +84,11 @@ const connectToRoom = async (args: any) => {
       <Form
         class="w-full flex flex-col gap-2"
         :validation-schema="schema"
-        :initial-values="{ clientType: 'Both' }"
+        :initial-values="{
+          clientType: 'Both',
+          host: 'mocap-server.onrender.com',
+          port: 443,
+        }"
         @submit="connectToRoom"
       >
         <label>
@@ -103,6 +113,29 @@ const connectToRoom = async (args: any) => {
           </Field>
         </label>
         <ErrorMessage class="block text-error text-sm" name="clientType" />
+
+        <div
+          tabindex="0"
+          class="collapse collapse-arrow border border-slate-400"
+        >
+          <input type="checkbox" />
+          <div class="collapse-title text-md font-medium">
+            Connection Server Details
+          </div>
+          <div class="collapse-content">
+            <label>
+              <span>Host</span>
+              <Field class="input input-bordered w-full mb-2" name="host" />
+            </label>
+            <ErrorMessage class="block text-error text-sm" name="host" />
+
+            <label>
+              <span>Port</span>
+              <Field class="input input-bordered w-full mb-2" name="port" />
+            </label>
+            <ErrorMessage class="block text-error text-sm" name="port" />
+          </div>
+        </div>
 
         <span v-if="connectError != null" class="text-error">
           {{ connectError }}

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import { DataConnection } from "peerjs";
 import { useRouter } from "vue-router";
 import { store } from "../../store";
 import Modal from "../components/Modal.vue";
-import { ErrorMessage, Field, Form } from "vee-validate";
-import * as yup from "yup";
 import { ipcRenderer } from "electron";
+import ConnectionDetailsForm, {
+  ConnectionDetails,
+} from "../components/ConnectionDetailsForm.vue";
 
 const router = useRouter();
 
@@ -20,21 +21,21 @@ if (connectedConfig == null) {
   throw new Error("No connected config found");
 }
 
-const { dataConnections, roomName } = connectedConfig;
+let { dataConnections, roomName } = connectedConfig;
 
-interface Connection {
+interface ConnectionStatus {
   status: "connected" | "disconnected" | "no-response";
   lastReceived?: number | null;
   responseTimeoutId?: NodeJS.Timeout | null;
 }
 
-const remoteConnection = reactive<Connection>({
+const remoteConnection = reactive<ConnectionStatus>({
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
 });
 
-const localConnection = reactive<Connection>({
+const localConnection = reactive<ConnectionStatus>({
   status: "disconnected",
 });
 
@@ -51,6 +52,9 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
           type: "info",
           text: `${conn.peer} has disconnected.`,
         });
+        dataConnections = dataConnections.filter(
+          (other) => other.peer !== conn.peer
+        );
       }
     });
 
@@ -78,26 +82,15 @@ dataConnections.forEach((connection) =>
 
 const log = ref<LogMessage[]>([]);
 
-const connectionSchema = computed(() =>
-  yup.object({
-    address: yup.string().trim().required(),
-    port: yup
-      .number()
-      .integer()
-      .positive()
-      .lessThan(2 ** 16),
-  })
-);
-
 function noResponseTimeout() {
   return setTimeout(() => {
     remoteConnection.status = "no-response";
   }, 10000);
 }
 
-function connectUdpRemote(args: any) {
+function connectUdpRemote({ address, port }: ConnectionDetails) {
   ipcRenderer
-    .invoke("udpConnectRemote", args.address, args.port)
+    .invoke("udpConnectRemote", address, port)
     .then(() => {
       log.value.push({ type: "info", text: "Started sending data" });
       remoteConnection.status = "connected";
@@ -107,9 +100,8 @@ function connectUdpRemote(args: any) {
     .catch(console.error);
 }
 
-function connectUdpLocal(args: any) {
-  console.log("Local Args", args);
-  ipcRenderer.invoke("udpConnectLocal", args.address, args.port).then(() => {
+function connectUdpLocal({ address, port }: ConnectionDetails) {
+  ipcRenderer.invoke("udpConnectLocal", address, port).then(() => {
     log.value.push({ type: "info", text: "Started receiving data" });
     localConnection.status = "connected";
   });
@@ -246,71 +238,14 @@ store.identity?.on("connection", setUpConnection);
         </ul>
       </div>
     </div>
-    <!-- <Form
-      v-if="localConnectionState.status === 'disconnected'"
-      class="w-full"
-      :validation-schema="connectionSchema"
-      :initial-values="localConnectionState.connection"
-      @submit="connectUdp"
-    >
-      <div class="collapse collapse-arrow border border-slate-400 rounded-md">
-        <input type="checkbox" class="min-h-0" />
-        <div class="collapse-title p-2 min-h-0">Advanced details</div>
-        <div class="collapse-content flex flex-row gap-4">
-          <label>
-            <span>Address</span>
-            <Field class="input input-bordered w-full mb-2" name="address" />
-          </label>
-          <ErrorMessage class="block text-error text-sm" name="address" />
-          <label>
-            <span>Port</span>
-            <Field class="input input-bordered w-full mb-2" name="port" />
-          </label>
-          <ErrorMessage class="block text-error text-sm" name="port" />
-        </div>
-      </div>
-      <button type="submit" class="btn btn-block btn-primary my-4">
-        Connect Axis Studio
-      </button>
-    </Form> -->
     <div :class="store.clientType === 'Both' ? 'grid grid-cols-2 gap-2' : ''">
       <div v-if="store.clientType === 'Sender' || store.clientType === 'Both'">
-        <Form
+        <ConnectionDetailsForm
           v-if="remoteConnection.status === 'disconnected'"
-          class="w-full flex flex-col gap-2"
-          :validation-schema="connectionSchema"
-          :initial-values="{ address: '127.0.0.1', port: 7004 }"
+          :initial="{ address: '127.0.0.1', port: 7004 }"
+          submit-label="Start Sending"
           @submit="connectUdpRemote"
-        >
-          <button type="submit" class="btn btn-block btn-primary my-4">
-            Start Sending
-          </button>
-          <div
-            tabindex="0"
-            class="collapse collapse-arrow border border-slate-400"
-          >
-            <input type="checkbox" />
-            <div class="collapse-title text-md font-medium">
-              Connection Details
-            </div>
-            <div class="collapse-content">
-              <label>
-                <span>Address</span>
-                <Field
-                  class="input input-bordered w-full mb-2"
-                  name="address"
-                />
-              </label>
-              <ErrorMessage class="block text-error text-sm" name="address" />
-
-              <label>
-                <span>Port</span>
-                <Field class="input input-bordered w-full mb-2" name="port" />
-              </label>
-              <ErrorMessage class="block text-error text-sm" name="port" />
-            </div>
-          </div>
-        </Form>
+        />
         <div v-else>
           <button
             class="btn btn-block btn-primary my-4"
@@ -325,42 +260,12 @@ store.identity?.on("connection", setUpConnection);
       <div
         v-if="store.clientType === 'Receiver' || store.clientType === 'Both'"
       >
-        <Form
+        <ConnectionDetailsForm
           v-if="localConnection.status === 'disconnected'"
-          class="w-full flex flex-col gap-2"
-          :validation-schema="connectionSchema"
-          :initial-values="{ address: '127.0.0.1', port: 7000 }"
+          :initial="{ address: '127.0.0.1', port: 7000 }"
+          submit-label="Start Receiving"
           @submit="connectUdpLocal"
-        >
-          <button class="btn btn-block btn-primary my-4">
-            Start Receiving
-          </button>
-          <div
-            tabindex="0"
-            class="collapse collapse-arrow border border-slate-400"
-          >
-            <input type="checkbox" />
-            <div class="collapse-title text-md font-medium">
-              Connection Details
-            </div>
-            <div class="collapse-content">
-              <label>
-                <span>Address</span>
-                <Field
-                  class="input input-bordered w-full mb-2"
-                  name="address"
-                />
-              </label>
-              <ErrorMessage class="block text-error text-sm" name="address" />
-
-              <label>
-                <span>Port</span>
-                <Field class="input input-bordered w-full mb-2" name="port" />
-              </label>
-              <ErrorMessage class="block text-error text-sm" name="port" />
-            </div>
-          </div>
-        </Form>
+        />
         <div v-else>
           <button
             class="btn btn-block btn-primary my-4"
