@@ -16,13 +16,6 @@ interface LogMessage {
   text: string;
 }
 
-const { connectedConfig } = store;
-if (connectedConfig == null) {
-  throw new Error("No connected config found");
-}
-
-let { dataConnections, roomName } = connectedConfig;
-
 interface ConnectionStatus {
   status: "connected" | "disconnected" | "no-response";
   lastReceived?: number | null;
@@ -42,17 +35,17 @@ const localConnection = reactive<ConnectionStatus>({
 function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
   const setUpListeners = (conn: DataConnection) => {
     console.log(conn);
-    if (!alreadyAdded) {
-      dataConnections.push(conn);
+    if (!alreadyAdded && store.dataConnections != null) {
+      store.dataConnections.push(conn);
       log.value.push({ type: "info", text: `${conn.peer} has connected.` });
     }
     conn.on("close", () => {
-      if (!alreadyAdded) {
+      if (!alreadyAdded && store.dataConnections != null) {
         log.value.push({
           type: "info",
           text: `${conn.peer} has disconnected.`,
         });
-        dataConnections = dataConnections.filter(
+        store.dataConnections = store.dataConnections.filter(
           (other) => other.peer !== conn.peer
         );
       }
@@ -76,7 +69,7 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
   }
 }
 
-dataConnections.forEach((connection) =>
+store.dataConnections?.forEach((connection) =>
   setUpConnection(connection as DataConnection, true)
 );
 
@@ -109,7 +102,7 @@ function connectUdpLocal({ address, port }: ConnectionDetails) {
 
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
   if (remoteConnection.status !== "disconnected") {
-    dataConnections.forEach((conn) => conn?.send(buffer));
+    store.dataConnections?.forEach((conn) => conn?.send(buffer));
     if (localConnection.status !== "disconnected") {
       ipcRenderer.invoke("udpSendLocal", buffer);
     }
@@ -146,26 +139,30 @@ function disconnectUdpLocal() {
   }
 }
 
-setInterval(() => {
+const peerInterval = setInterval(() => {
   store.identity?.listAllPeers((peers: string[]) => {
-    for (const peer of peers.filter(
-      (peer) => dataConnections.find((conn) => peer === conn.peer) == null
-    )) {
-      setUpConnection(store.identity!.connect(peer, { reliable: false }));
-    }
+    if (store.dataConnections != null) {
+      for (const peer of peers.filter(
+        (peer) =>
+          store.dataConnections!.find((conn) => peer === conn.peer) == null
+      )) {
+        setUpConnection(store.identity!.connect(peer, { reliable: false }));
+      }
 
-    for (const conn of dataConnections.filter(
-      (conn) => !peers.includes(conn.peer)
-    )) {
-      conn.close();
+      for (const conn of store.dataConnections.filter(
+        (conn) => !peers.includes(conn.peer)
+      )) {
+        conn.close();
+      }
     }
   });
 }, 10000);
 
 function disconnectSelf() {
-  dataConnections.forEach((conn) => conn.close());
+  clearInterval(peerInterval);
+  store.dataConnections?.forEach((conn) => conn.close());
   store.identity?.disconnect();
-  store.connectedConfig = undefined;
+  store.dataConnections = undefined;
 }
 
 function disconnectAll() {
@@ -179,9 +176,9 @@ function disconnectAll() {
 }
 
 watch(
-  () => store.connectedConfig,
-  (connectedConfig) => {
-    if (connectedConfig == null) {
+  () => store.dataConnections,
+  (dataConnections) => {
+    if (dataConnections == null) {
       router.push("/");
     }
   }
@@ -207,7 +204,7 @@ store.identity?.on("connection", setUpConnection);
         Connected as
         <span class="border-b border-slate-400" v-text="store.identity?.id" />
         To room
-        <span class="border-b border-slate-400" v-text="roomName" />
+        <span class="border-b border-slate-400" v-text="store.roomName" />
       </h2>
     </nav>
     <div class="flex flex-row flex-nowrap justify-between mb-8">
@@ -232,7 +229,7 @@ store.identity?.on("connection", setUpConnection);
       <div class="border-l-2 border-slate-400 px-4 w-[70%]">
         <h3 class="py-2 border-b border-inherit">Connected Participants</h3>
         <ul>
-          <li v-for="conn in dataConnections" :key="conn.peer">
+          <li v-for="conn in store.dataConnections" :key="conn.peer">
             {{ conn.peer }}
           </li>
         </ul>

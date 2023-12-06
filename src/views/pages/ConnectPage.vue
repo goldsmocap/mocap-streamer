@@ -20,6 +20,7 @@ const schema = computed(() =>
       .required("You must provide a name for yourself"),
     roomName: yup.string().trim().required("You must provide a room name"),
     clientType: yup.string().oneOf(["Sender", "Receiver", "Both"]),
+    https: yup.boolean(),
     host: yup.string().trim().required(),
     port: yup
       .number()
@@ -34,10 +35,10 @@ const connectToRoom = async (args: any) => {
 
   try {
     await fetch(
-      `https://${args.host}:${args.port}/setup-room/${args.roomName}`,
-      {
-        method: "POST",
-      }
+      `http${args.https ? "s" : ""}://${args.host}:${args.port}/setup-room/${
+        args.roomName
+      }`,
+      { method: "POST" }
     );
   } catch (err) {
     connectError.value = `Something went wrong setting up the room: ${err}`;
@@ -46,6 +47,9 @@ const connectToRoom = async (args: any) => {
   }
 
   store.clientType = args.clientType;
+  store.connectionServer.https = args.https;
+  store.connectionServer.host = args.host;
+  store.connectionServer.port = args.port;
 
   const peer = new Peer(args.clientName, {
     host: args.host,
@@ -60,12 +64,10 @@ const connectToRoom = async (args: any) => {
       connecting.value = false;
       connectError.value = null;
 
-      store.connectedConfig = {
-        dataConnections: peers.map((id) =>
-          peer.connect(id, { reliable: false })
-        ),
-        roomName: args.roomName,
-      };
+      store.dataConnections = peers.map((id) =>
+        peer.connect(id, { reliable: false })
+      );
+      store.roomName = args.roomName;
       router.push("/dashboard");
     })
   );
@@ -85,9 +87,11 @@ const connectToRoom = async (args: any) => {
         class="w-full flex flex-col gap-2"
         :validation-schema="schema"
         :initial-values="{
+          roomName: store.roomName ?? '',
           clientType: 'Both',
-          host: 'mocap-server.onrender.com',
-          port: 443,
+          https: store.connectionServer.https,
+          host: store.connectionServer.host,
+          port: store.connectionServer.port,
         }"
         @submit="connectToRoom"
       >
@@ -122,16 +126,25 @@ const connectToRoom = async (args: any) => {
           <div class="collapse-title text-md font-medium">
             Connection Server Details
           </div>
-          <div class="collapse-content">
+          <div class="collapse-content flex flex-col gap-4">
+            <label class="flex flex-row gap-4">
+              <input
+                name="https"
+                type="checkbox"
+                class="self-center w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              />
+              <span>Use https</span>
+            </label>
+
             <label>
               <span>Host</span>
-              <Field class="input input-bordered w-full mb-2" name="host" />
+              <Field class="input input-bordered w-full my-2" name="host" />
             </label>
             <ErrorMessage class="block text-error text-sm" name="host" />
 
             <label>
               <span>Port</span>
-              <Field class="input input-bordered w-full mb-2" name="port" />
+              <Field class="input input-bordered w-full my-2" name="port" />
             </label>
             <ErrorMessage class="block text-error text-sm" name="port" />
           </div>
