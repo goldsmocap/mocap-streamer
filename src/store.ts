@@ -17,7 +17,10 @@ export const store = reactive<Store>({
   clientType: "Both",
   connectionServer: {
     https: true,
-    host: "mocap-streamer-server-ovsrr.ondigitalocean.app",
-    port: 8080,
+    host: "mocap-server.onrender.com",
+    port: 443,
+    // https: false,
+    // host: "localhost",
+    // port: 8000,
   },
 });

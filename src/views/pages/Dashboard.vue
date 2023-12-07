@@ -189,9 +189,7 @@ store.identity?.on("connection", setUpConnection);
 
 <template>
   <Modal :open="true">
-    <nav
-      class="h-12 mb-10 flex flex-row flex-wrap content-center justify-between"
-    >
+    <nav class="mb-8 flex flex-row flex-wrap content-center justify-between">
       <div class="flex flex-row gap-2 text-white/50">
         <button
           class="bg-slate-500/75 hover:bg-slate-500 aspect-square rounded px-1.5 py-0.5"

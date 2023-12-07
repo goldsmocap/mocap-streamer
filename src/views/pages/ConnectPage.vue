@@ -155,7 +155,7 @@ const connectToRoom = async (args: any) => {
         </span>
         <button
           type="submit"
-          class="btn btn-block btn-primary my-4 col-span-2 disabled:bg-primary/50 disabled:text-inherit"
+          class="btn btn-block btn-primary mt-4 col-span-2 disabled:bg-primary/50 disabled:text-inherit"
           :disabled="connecting"
         >
           <span v-if="connecting">
