@@ -32,6 +32,11 @@ const localConnection = reactive<ConnectionStatus>({
   status: "disconnected",
 });
 
+function prepareConnectionMessage(peerName: string, msg: Buffer): Buffer {
+  const prefix = `${peerName}:`;
+  return Buffer.concat([Buffer.from(prefix, "utf-8"), msg]);
+}
+
 function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
   const setUpListeners = (conn: DataConnection) => {
     console.log(conn);
@@ -51,14 +56,17 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
       }
     });
 
-    conn.on("data", (data) => {
+    conn.on("data", (data): void => {
       if (localConnection.status !== "disconnected") {
         const msg = Buffer.from(
           data as ArrayBuffer,
           0,
           (data as ArrayBuffer).byteLength
         );
-        ipcRenderer.invoke("udpSendLocal", msg);
+        ipcRenderer.invoke(
+          "udpSendLocal",
+          prepareConnectionMessage(conn.peer, msg)
+        );
       }
     });
   };
@@ -103,8 +111,11 @@ function connectUdpLocal({ address, port }: ConnectionDetails) {
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
   if (remoteConnection.status !== "disconnected") {
     store.dataConnections?.forEach((conn) => conn?.send(buffer));
-    if (localConnection.status !== "disconnected") {
-      ipcRenderer.invoke("udpSendLocal", buffer);
+    if (localConnection.status !== "disconnected" && store.identity != null) {
+      ipcRenderer.invoke(
+        "udpSendLocal",
+        prepareConnectionMessage(store.identity.id, buffer)
+      );
     }
     remoteConnection.lastReceived = Date.now();
     if (remoteConnection.responseTimeoutId != null) {

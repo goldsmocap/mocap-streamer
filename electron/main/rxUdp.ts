@@ -1,50 +1,40 @@
 import * as dgram from "dgram";
 import * as Rx from "rxjs";
 
-export function observableFromUdp(socket: dgram.Socket): Rx.Observable<Buffer> {
+export function observableFromUdp(
+  socket: dgram.Socket,
+  fps = 90
+): Rx.Observable<Buffer> {
   return new Rx.Observable<Buffer>((observer) => {
-    // let buf = Buffer.alloc(0);
-
+    let toSend: { id: string; buf: Buffer }[] = [];
     socket.on("message", (msg: Buffer) => {
-      // This is very specific to Axis-Neuron!
-      observer.next(msg);
-      // if the message starts with a magic number 56831 then it's the start
-      // of a new message so release the previous message and start a new one.
-      // const header = msg.readUInt16LE(0);
-      // console.log(header);
-      // if (header === 56831) {
-      //   // release the previous buffer if it's not empty and reset it
-      //   if (buf.length > 0) {
-      //     observer.next(buf);
-      //     buf = Buffer.alloc(0);
-      //   }
-      // }
-
-      // concatenate the message to the end of the buffer
-      // buf = Buffer.concat([buf, msg]);
+      let id = "";
+      for (let i = 0; i < msg.length; i++) {
+        if (msg.at(i) === 32) break;
+        id += String.fromCharCode(msg.at(i));
+      }
+      if (toSend[0]?.id === id) {
+        observer.next(
+          Buffer.concat(
+            toSend.sort((a, b) => (a.id > b.id ? 1 : -1)).map(({ buf }) => buf)
+          )
+        );
+        toSend = [];
+      }
+      toSend.push({ id, buf: msg });
     });
     socket.on("error", (err) => observer.error(err));
     socket.on("close", () => observer.complete());
-  });
+  }).pipe(Rx.throttleTime(1000 / fps));
 }
 
 export function observerToUdp(
   address: string,
   port: number,
-  socket: dgram.Socket,
-  sender?: string,
-  debug?: boolean
+  socket: dgram.Socket
 ): Rx.Observer<Buffer> {
   return {
-    next: (msg) => {
-      // console.log(msg);
-
-      // const buf = Buffer.from(base64, "base64");
-
-      if (debug)
-        console.log(`Sending to ${address}:${port}, data ${msg.byteLength}`);
-      socket.send(msg, 0, msg.byteLength, port, address);
-    },
+    next: (msg) => socket.send(msg, 0, msg.byteLength, port, address),
     error: (_err) => socket.close(),
     complete: () => socket.close(),
   };
