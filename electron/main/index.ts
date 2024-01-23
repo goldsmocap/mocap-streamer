@@ -5,7 +5,7 @@ import * as dgram from "dgram";
 import { observableFromUdp, observerToUdp } from "./rxUdp";
 import { Subscription } from "rxjs";
 import { LocalState, RemoteState } from "./types";
-import { bufferToBvh, bvhToOsc } from "../../shared/conversion";
+import { bvhToBuffer, oscToBvh } from "../../shared/conversion";
 
 // The built directory structure
 //
@@ -113,14 +113,17 @@ async function createWindow() {
     }
   );
 
-  ipcMain.handle("udpSendLocal", (_evt, value: Buffer) => {
+  ipcMain.handle("udpSendLocal", (_evt, oscData: Uint8Array) => {
     if (localState != null) {
       if (localState.useOsc) {
-        bvhToOsc(bufferToBvh(value), true).forEach((osc) =>
-          localState.observer.next(Buffer.from(osc))
-        );
+        localState.observer.next(Buffer.from(oscData));
       } else {
-        localState.observer.next(value);
+        const { addressPrefix, data } = oscToBvh(oscData);
+        localState.observer.next(
+          bvhToBuffer(
+            (addressPrefix != null ? addressPrefix + ":" : "") + data.join("")
+          )
+        );
       }
     }
   });

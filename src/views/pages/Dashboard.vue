@@ -8,12 +8,7 @@ import { ipcRenderer } from "electron";
 import ConnectionDetailsForm, {
   ConnectionDetails,
 } from "../components/ConnectionDetailsForm.vue";
-import {
-  bufferToBvh,
-  bvhToBuffer,
-  bvhToOsc,
-  oscToBvh,
-} from "../../../shared/conversion";
+import { bufferToBvh, bvhToOsc } from "../../../shared/conversion";
 
 const router = useRouter();
 
@@ -38,11 +33,6 @@ const localConnection = reactive<ConnectionStatus>({
   status: "disconnected",
 });
 
-function prepareConnectionMessage(peerName: string, msg: Buffer): Buffer {
-  const prefix = `${peerName}:`;
-  return Buffer.concat([Buffer.from(prefix, "utf-8"), msg]);
-}
-
 function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
   const setUpListeners = (conn: DataConnection) => {
     console.log(conn);
@@ -62,14 +52,12 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
       }
     });
 
-    conn.on("data", (data): void => {
+    conn.on("data", (oscBuffer): void => {
       if (localConnection.status !== "disconnected") {
         ipcRenderer.invoke(
           "udpSendLocal",
-          prepareConnectionMessage(
-            conn.peer,
-            bvhToBuffer(oscToBvh(new Uint8Array(data as ArrayBuffer)))
-          )
+          conn.peer,
+          new Uint8Array(oscBuffer as ArrayBuffer)
         );
       }
     });
@@ -116,14 +104,12 @@ function connectUdpLocal({ address, port, useOsc }: ConnectionDetails) {
 
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
   if (remoteConnection.status !== "disconnected") {
-    store.dataConnections?.forEach((conn) =>
-      conn?.send(bvhToOsc(bufferToBvh(buffer)))
-    );
-    if (localConnection.status !== "disconnected" && store.identity != null) {
-      ipcRenderer.invoke(
-        "udpSendLocal",
-        prepareConnectionMessage(store.identity.id, buffer)
-      );
+    const oscData = bvhToOsc(bufferToBvh(buffer), {
+      addressPrefix: store.identity?.id ?? "anonymous",
+    });
+    store.dataConnections?.forEach((conn) => conn?.send(oscData));
+    if (localConnection.status !== "disconnected") {
+      ipcRenderer.invoke("udpSendLocal", oscData);
     }
     remoteConnection.lastReceived = Date.now();
     if (remoteConnection.responseTimeoutId != null) {
@@ -205,7 +191,6 @@ watch(
 
 store.identity?.on("connection", setUpConnection);
 </script>
-
 <template>
   <Modal :open="true">
     <nav class="mb-8 flex flex-row flex-wrap content-center justify-between">
