@@ -3,8 +3,9 @@ import { release } from "node:os";
 import { join } from "node:path";
 import * as dgram from "dgram";
 import { observableFromUdp, observerToUdp } from "./rxUdp";
-import { Subscription, Observer } from "rxjs";
-import { RemoteState } from "./types";
+import { Subscription } from "rxjs";
+import { LocalState, RemoteState } from "./types";
+import { bufferToBvh, bvhToOsc } from "../../shared/conversion";
 
 // The built directory structure
 //
@@ -46,7 +47,7 @@ const indexHtml = join(process.env.DIST, "index.html");
 
 let remoteState: RemoteState | null = null;
 let subscription: Subscription | null = null;
-let localObserver: Observer<Buffer> | null;
+let localState: LocalState | null = null;
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -100,18 +101,33 @@ async function createWindow() {
     subscription = null;
   });
 
-  ipcMain.handle("udpConnectLocal", (_evt, address: string, port: number) => {
-    console.log("starting to send to", address, port);
-    localObserver = observerToUdp(address, port, dgram.createSocket("udp4"));
-  });
+  ipcMain.handle(
+    "udpConnectLocal",
+    (_evt, address: string, port: number, useOsc: boolean) => {
+      console.log("starting to send to", address, port, "with use osc", useOsc);
+      localState = {
+        type: "Unity",
+        observer: observerToUdp(address, port, dgram.createSocket("udp4")),
+        useOsc,
+      };
+    }
+  );
 
   ipcMain.handle("udpSendLocal", (_evt, value: Buffer) => {
-    localObserver.next(value);
+    if (localState != null) {
+      if (localState.useOsc) {
+        bvhToOsc(bufferToBvh(value), true).forEach((osc) =>
+          localState.observer.next(Buffer.from(osc))
+        );
+      } else {
+        localState.observer.next(value);
+      }
+    }
   });
 
   ipcMain.handle("udpDisconnectLocal", () => {
-    localObserver.complete();
-    localObserver = null;
+    localState?.observer.complete();
+    localState = null;
   });
 }
 

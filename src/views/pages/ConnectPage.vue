@@ -20,7 +20,7 @@ const schema = computed(() =>
       .required("You must provide a name for yourself"),
     roomName: yup.string().trim().required("You must provide a room name"),
     clientType: yup.string().oneOf(["Sender", "Receiver", "Both"]),
-    https: yup.boolean(),
+    https: yup.bool(),
     host: yup.string().trim().required(),
     port: yup
       .number()
@@ -128,10 +128,12 @@ const connectToRoom = async (args: any) => {
           </div>
           <div class="collapse-content flex flex-col gap-4">
             <label class="flex flex-row gap-4">
-              <input
+              <Field
                 name="https"
                 type="checkbox"
                 class="self-center w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                :value="true"
+                :unchecked-value="false"
               />
               <span>Use https</span>
             </label>

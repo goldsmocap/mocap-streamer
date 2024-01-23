@@ -105,11 +105,13 @@ function connectUdpRemote({ address, port }: ConnectionDetails) {
     .catch(console.error);
 }
 
-function connectUdpLocal({ address, port }: ConnectionDetails) {
-  ipcRenderer.invoke("udpConnectLocal", address, port).then(() => {
-    log.value.push({ type: "info", text: "Started receiving data" });
-    localConnection.status = "connected";
-  });
+function connectUdpLocal({ address, port, useOsc }: ConnectionDetails) {
+  ipcRenderer
+    .invoke("udpConnectLocal", address, port, useOsc ?? false)
+    .then(() => {
+      log.value.push({ type: "info", text: "Started receiving data" });
+      localConnection.status = "connected";
+    });
 }
 
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
@@ -277,6 +279,7 @@ store.identity?.on("connection", setUpConnection);
           :initial="{ address: '127.0.0.1', port: 7000 }"
           submit-label="Start Receiving"
           @submit="connectUdpLocal"
+          :can-use-osc="true"
         />
         <div v-else>
           <button
