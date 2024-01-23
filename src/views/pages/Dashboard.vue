@@ -8,6 +8,12 @@ import { ipcRenderer } from "electron";
 import ConnectionDetailsForm, {
   ConnectionDetails,
 } from "../components/ConnectionDetailsForm.vue";
+import {
+  bufferToBvh,
+  bvhToBuffer,
+  bvhToOsc,
+  oscToBvh,
+} from "../../../shared/conversion";
 
 const router = useRouter();
 
@@ -58,14 +64,12 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
 
     conn.on("data", (data): void => {
       if (localConnection.status !== "disconnected") {
-        const msg = Buffer.from(
-          data as ArrayBuffer,
-          0,
-          (data as ArrayBuffer).byteLength
-        );
         ipcRenderer.invoke(
           "udpSendLocal",
-          prepareConnectionMessage(conn.peer, msg)
+          prepareConnectionMessage(
+            conn.peer,
+            bvhToBuffer(oscToBvh(new Uint8Array(data as ArrayBuffer)))
+          )
         );
       }
     });
@@ -110,7 +114,9 @@ function connectUdpLocal({ address, port }: ConnectionDetails) {
 
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
   if (remoteConnection.status !== "disconnected") {
-    store.dataConnections?.forEach((conn) => conn?.send(buffer));
+    store.dataConnections?.forEach((conn) =>
+      conn?.send(bvhToOsc(bufferToBvh(buffer)))
+    );
     if (localConnection.status !== "disconnected" && store.identity != null) {
       ipcRenderer.invoke(
         "udpSendLocal",

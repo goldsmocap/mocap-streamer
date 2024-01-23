@@ -4,6 +4,7 @@ import { join } from "node:path";
 import * as dgram from "dgram";
 import { observableFromUdp, observerToUdp } from "./rxUdp";
 import { Subscription, Observer } from "rxjs";
+import { RemoteState } from "./types";
 
 // The built directory structure
 //
@@ -43,7 +44,7 @@ const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
 
-let remoteSocket: dgram.Socket | null = null;
+let remoteState: RemoteState | null = null;
 let subscription: Subscription | null = null;
 let localObserver: Observer<Buffer> | null;
 
@@ -84,18 +85,18 @@ async function createWindow() {
 
   ipcMain.handle("udpConnectRemote", (_evt, address: string, port: number) => {
     console.log("connecting to", address, port);
-    remoteSocket = dgram.createSocket("udp4");
-    remoteSocket.bind(port, address);
-    const localBuffer = observableFromUdp(remoteSocket);
+    remoteState = { type: "AxisStudio", socket: dgram.createSocket("udp4") };
+    remoteState.socket.bind(port, address);
+    const localBuffer = observableFromUdp(remoteState.socket);
     subscription = localBuffer.subscribe({
       next: (buffer) => win.webContents.send("udpDataReceived", buffer),
     });
   });
 
   ipcMain.handle("udpDisconnectRemote", () => {
-    remoteSocket?.close();
+    remoteState?.socket.close();
     subscription?.unsubscribe();
-    remoteSocket = null;
+    remoteState = null;
     subscription = null;
   });
 
@@ -118,8 +119,8 @@ app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   win = null;
-  if (remoteSocket != null) {
-    remoteSocket.close();
+  if (remoteState != null) {
+    remoteState.socket.close();
     subscription?.unsubscribe();
   }
   if (process.platform !== "darwin") app.quit();
