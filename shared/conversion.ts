@@ -20,7 +20,7 @@ export function bvhToOsc(
 ): Uint8Array;
 export function bvhToOsc(
   bvhString: string,
-  options?: ConversionOptions
+  options: ConversionOptions = {}
 ): Uint8Array | Uint8Array[] {
   const characters = bvhString
     .split(" ||")

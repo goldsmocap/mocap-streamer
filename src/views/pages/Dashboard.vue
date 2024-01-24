@@ -56,7 +56,6 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
       if (localConnection.status !== "disconnected") {
         ipcRenderer.invoke(
           "udpSendLocal",
-          conn.peer,
           new Uint8Array(oscBuffer as ArrayBuffer)
         );
       }
