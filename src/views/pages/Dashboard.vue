@@ -8,7 +8,7 @@ import { ipcRenderer } from "electron";
 import ConnectionDetailsForm, {
   ConnectionDetails,
 } from "../components/ConnectionDetailsForm.vue";
-import { bufferToBvh, bvhToOsc } from "../../../shared/conversion";
+import { bufferToBvh, bvhToOsc } from "../../conversion";
 
 const router = useRouter();
 

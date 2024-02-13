@@ -5,7 +5,7 @@ import * as dgram from "dgram";
 import { observableFromUdp, observerToUdp } from "./rxUdp";
 import { Subscription } from "rxjs";
 import { LocalState, RemoteState } from "./types";
-import { bvhToBuffer, oscToBvh } from "../../shared/conversion";
+import { bvhToBuffer, oscToBvh } from "./conversion";
 
 // The built directory structure
 //

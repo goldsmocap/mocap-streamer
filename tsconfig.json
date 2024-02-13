@@ -13,6 +13,6 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "electron/main/rxUdp.ts", "shared"],
+  "include": ["src/*", "electron/*", "@types"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
