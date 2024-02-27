@@ -23,13 +23,13 @@ interface ConnectionStatus {
   responseTimeoutId?: NodeJS.Timeout | null;
 }
 
-const remoteConnection = reactive<ConnectionStatus>({
+const producerConnection = reactive<ConnectionStatus>({
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
 });
 
-const localConnection = reactive<ConnectionStatus>({
+const consumerConnection = reactive<ConnectionStatus>({
   status: "disconnected",
 });
 
@@ -53,9 +53,9 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
     });
 
     conn.on("data", (oscBuffer): void => {
-      if (localConnection.status !== "disconnected") {
+      if (consumerConnection.status !== "disconnected") {
         ipcRenderer.invoke(
-          "udpSendLocal",
+          "udpSendConsumer",
           new Uint8Array(oscBuffer as ArrayBuffer)
         );
       }
@@ -76,67 +76,67 @@ const log = ref<LogMessage[]>([]);
 
 function noResponseTimeout() {
   return setTimeout(() => {
-    remoteConnection.status = "no-response";
+    producerConnection.status = "no-response";
   }, 10000);
 }
 
-function connectUdpRemote({ address, port }: ConnectionDetails) {
+function connectUdpProducer({ address, port }: ConnectionDetails) {
   ipcRenderer
-    .invoke("udpConnectRemote", address, port)
+    .invoke("udpConnectProducer", "AxisStudio", address, port)
     .then(() => {
       log.value.push({ type: "info", text: "Started sending data" });
-      remoteConnection.status = "connected";
-      remoteConnection.lastReceived = Date.now();
-      remoteConnection.responseTimeoutId = noResponseTimeout();
+      producerConnection.status = "connected";
+      producerConnection.lastReceived = Date.now();
+      producerConnection.responseTimeoutId = noResponseTimeout();
     })
     .catch(console.error);
 }
 
-function connectUdpLocal({ address, port, useOsc }: ConnectionDetails) {
+function connectUdpConsumer({ address, port, useOsc }: ConnectionDetails) {
   ipcRenderer
-    .invoke("udpConnectLocal", address, port, useOsc ?? false)
+    .invoke("udpConnectConsumer", address, port, useOsc ?? false)
     .then(() => {
       log.value.push({ type: "info", text: "Started receiving data" });
-      localConnection.status = "connected";
+      consumerConnection.status = "connected";
     });
 }
 
 ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
-  if (remoteConnection.status !== "disconnected") {
+  if (producerConnection.status !== "disconnected") {
     const oscData = bvhToOsc(bufferToBvh(buffer), {
       addressPrefix: store.identity?.id ?? "anonymous",
     });
     store.dataConnections?.forEach((conn) => conn?.send(oscData));
-    if (localConnection.status !== "disconnected") {
-      ipcRenderer.invoke("udpSendLocal", oscData);
+    if (consumerConnection.status !== "disconnected") {
+      ipcRenderer.invoke("udpSendConsumer", oscData);
     }
-    remoteConnection.lastReceived = Date.now();
-    if (remoteConnection.responseTimeoutId != null) {
-      clearTimeout(remoteConnection.responseTimeoutId);
+    producerConnection.lastReceived = Date.now();
+    if (producerConnection.responseTimeoutId != null) {
+      clearTimeout(producerConnection.responseTimeoutId);
     }
-    remoteConnection.responseTimeoutId = noResponseTimeout();
+    producerConnection.responseTimeoutId = noResponseTimeout();
   }
 });
 
-function disconnectUdpRemote() {
-  if (remoteConnection.status !== "disconnected") {
-    remoteConnection.status = "disconnected";
-    ipcRenderer.invoke("udpDisconnectRemote").then(() => {
-      if (remoteConnection.responseTimeoutId != null) {
-        clearTimeout(remoteConnection.responseTimeoutId);
+function disconnectUdpProducer() {
+  if (producerConnection.status !== "disconnected") {
+    producerConnection.status = "disconnected";
+    ipcRenderer.invoke("udpDisconnectProducer").then(() => {
+      if (producerConnection.responseTimeoutId != null) {
+        clearTimeout(producerConnection.responseTimeoutId);
       }
-      remoteConnection.lastReceived = null;
-      remoteConnection.responseTimeoutId = null;
+      producerConnection.lastReceived = null;
+      producerConnection.responseTimeoutId = null;
       log.value.push({ type: "info", text: "Stopped sending data" });
     });
   }
 }
 
-function disconnectUdpLocal() {
-  if (localConnection.status !== "disconnected") {
-    localConnection.status = "disconnected";
+function disconnectUdpConsumer() {
+  if (consumerConnection.status !== "disconnected") {
+    consumerConnection.status = "disconnected";
     ipcRenderer
-      .invoke("udpDisconnectLocal")
+      .invoke("udpDisconnectConsumer")
       .then(() =>
         log.value.push({ type: "info", text: "Stopped receiving data" })
       );
@@ -171,10 +171,10 @@ function disconnectSelf() {
 
 function disconnectAll() {
   if (store.clientType === "Sender" || store.clientType === "Both") {
-    disconnectUdpRemote();
+    disconnectUdpProducer();
   }
   if (store.clientType === "Receiver" || store.clientType === "Both") {
-    disconnectUdpLocal();
+    disconnectUdpConsumer();
   }
   disconnectSelf();
 }
@@ -239,19 +239,21 @@ store.identity?.on("connection", setUpConnection);
     <div :class="store.clientType === 'Both' ? 'grid grid-cols-2 gap-2' : ''">
       <div v-if="store.clientType === 'Sender' || store.clientType === 'Both'">
         <ConnectionDetailsForm
-          v-if="remoteConnection.status === 'disconnected'"
+          v-if="producerConnection.status === 'disconnected'"
           :initial="{ address: '127.0.0.1', port: 7004 }"
           submit-label="Start Sending"
-          @submit="connectUdpRemote"
+          @submit="connectUdpProducer"
         />
         <div v-else>
           <button
             class="btn btn-block btn-primary my-4"
-            @click="disconnectUdpRemote"
+            @click="disconnectUdpProducer"
           >
             Stop Sending
           </button>
-          <span v-if="remoteConnection.status === 'connected'">Connected</span>
+          <span v-if="producerConnection.status === 'connected'"
+            >Connected</span
+          >
           <span v-else>No response</span>
         </div>
       </div>
@@ -259,16 +261,16 @@ store.identity?.on("connection", setUpConnection);
         v-if="store.clientType === 'Receiver' || store.clientType === 'Both'"
       >
         <ConnectionDetailsForm
-          v-if="localConnection.status === 'disconnected'"
+          v-if="consumerConnection.status === 'disconnected'"
           :initial="{ address: '127.0.0.1', port: 7000 }"
           submit-label="Start Receiving"
-          @submit="connectUdpLocal"
+          @submit="connectUdpConsumer"
           :can-use-osc="true"
         />
         <div v-else>
           <button
             class="btn btn-block btn-primary my-4"
-            @click="disconnectUdpLocal"
+            @click="disconnectUdpConsumer"
           >
             Stop Receiving
           </button>

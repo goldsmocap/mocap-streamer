@@ -3,8 +3,7 @@ import { release } from "node:os";
 import { join } from "node:path";
 import * as dgram from "dgram";
 import { observableFromUdp, observerToUdp } from "./rxUdp";
-import { Subscription } from "rxjs";
-import { LocalState, RemoteState } from "./types";
+import { ConsumerState, ProducerState } from "./types";
 import { bvhToBuffer, oscToBvh } from "./conversion";
 
 // The built directory structure
@@ -45,9 +44,23 @@ const preload = join(__dirname, "../preload/index.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
 
-let remoteState: RemoteState | null = null;
-let subscription: Subscription | null = null;
-let localState: LocalState | null = null;
+let producerState: ProducerState | null = null;
+let consumerState: ConsumerState | null = null;
+
+function disconnectProducer() {
+  switch (producerState?.type) {
+    case "AxisStudio": {
+      producerState.socket.close();
+      producerState.subscription.unsubscribe();
+      break;
+    }
+    case "Vicon": {
+      producerState.socket.close();
+      break;
+    }
+  }
+  producerState = null;
+}
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -84,28 +97,29 @@ async function createWindow() {
   });
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 
-  ipcMain.handle("udpConnectRemote", (_evt, address: string, port: number) => {
-    console.log("connecting to", address, port);
-    remoteState = { type: "AxisStudio", socket: dgram.createSocket("udp4") };
-    remoteState.socket.bind(port, address);
-    const localBuffer = observableFromUdp(remoteState.socket);
-    subscription = localBuffer.subscribe({
-      next: (buffer) => win.webContents.send("udpDataReceived", buffer),
-    });
-  });
+  ipcMain.handle(
+    "udpConnectProducer",
+    (_evt, type: ProducerState["type"], address: string, port: number) => {
+      console.log("connecting to", address, port);
+      const socket = dgram.createSocket("udp4");
+      socket.bind(port, address);
+      producerState = {
+        type,
+        socket,
+        subscription: observableFromUdp(socket).subscribe({
+          next: (buffer) => win.webContents.send("udpDataReceived", buffer),
+        }),
+      };
+    }
+  );
 
-  ipcMain.handle("udpDisconnectRemote", () => {
-    remoteState?.socket.close();
-    subscription?.unsubscribe();
-    remoteState = null;
-    subscription = null;
-  });
+  ipcMain.handle("udpDisconnectProducer", disconnectProducer);
 
   ipcMain.handle(
-    "udpConnectLocal",
+    "udpConnectConsumer",
     (_evt, address: string, port: number, useOsc: boolean) => {
       console.log("starting to send to", address, port, "with use osc", useOsc);
-      localState = {
+      consumerState = {
         type: "Unity",
         observer: observerToUdp(address, port, dgram.createSocket("udp4")),
         useOsc,
@@ -113,13 +127,13 @@ async function createWindow() {
     }
   );
 
-  ipcMain.handle("udpSendLocal", (_evt, oscData: Uint8Array) => {
-    if (localState != null) {
-      if (localState.useOsc) {
-        localState.observer.next(Buffer.from(oscData));
+  ipcMain.handle("udpSendConsumer", (_evt, oscData: Uint8Array) => {
+    if (consumerState != null) {
+      if (consumerState.useOsc) {
+        consumerState.observer.next(Buffer.from(oscData));
       } else {
         const { addressPrefix, data } = oscToBvh(oscData);
-        localState.observer.next(
+        consumerState.observer.next(
           bvhToBuffer(
             (addressPrefix != null ? addressPrefix + ":" : "") + data.join("")
           )
@@ -128,9 +142,9 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle("udpDisconnectLocal", () => {
-    localState?.observer.complete();
-    localState = null;
+  ipcMain.handle("udpDisconnectConsumer", () => {
+    consumerState?.observer.complete();
+    consumerState = null;
   });
 }
 
@@ -138,9 +152,8 @@ app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   win = null;
-  if (remoteState != null) {
-    remoteState.socket.close();
-    subscription?.unsubscribe();
+  if (producerState != null) {
+    disconnectProducer();
   }
   if (process.platform !== "darwin") app.quit();
 });
