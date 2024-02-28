@@ -5,6 +5,10 @@ import * as dgram from "dgram";
 import { observableFromUdp, observerToUdp } from "./rxUdp";
 import { ConsumerState, ProducerState } from "./types";
 import { bvhToBuffer, oscToBvh } from "./conversion";
+import * as vicon from "./vicon";
+
+vicon.connect("localhost:801");
+console.log(vicon.getData());
 
 // The built directory structure
 //

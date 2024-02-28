@@ -1218,6 +1218,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bit-buffer@npm:^0.2.5":
+  version: 0.2.5
+  resolution: "bit-buffer@npm:0.2.5"
+  checksum: 71b2bc241234f114b3ccfd7bf6f0c3b4c94e42d0c91d5038cb06be2b9da0ebc747f574bc15082b5abc8fe98398584951e6a1462629b72ef96413904815fcfc22
+  languageName: node
+  linkType: hard
+
 "bluebird-lst@npm:^1.0.9":
   version: 1.0.9
   resolution: "bluebird-lst@npm:1.0.9"
@@ -1907,9 +1914,11 @@ __metadata:
     "@vitejs/plugin-vue": ^4.3.3
     "@vueuse/head": ^2.0.0
     autoprefixer: ^10.4.16
+    bit-buffer: ^0.2.5
     daisyui: ^3.9.4
     electron: ^26.0.0
     electron-builder: ^24.6.3
+    koffi: ^2.8.0
     oh-vue-icons: ^1.0.0-rc3
     osc: ^2.4.4
     peerjs: ^1.5.1
@@ -2862,6 +2871,13 @@ __metadata:
   dependencies:
     json-buffer: 3.0.1
   checksum: 3ffb4d5b72b6b4b4af443bbb75ca2526b23c750fccb5ac4c267c6116888b4b65681015c2833cb20d26cf3e6e32dac6b988c77f7f022e1a571b7d90f1442257da
+  languageName: node
+  linkType: hard
+
+"koffi@npm:^2.8.0":
+  version: 2.8.0
+  resolution: "koffi@npm:2.8.0"
+  checksum: ac187a6a2bd09e1cf9920071f07df830255e7597b69c414da0d05fff551856e676e8dcc6f061e71954ec2ee217dbaa00b041d074a8ffc6ca62803c3d60de49c3
   languageName: node
   linkType: hard
 
