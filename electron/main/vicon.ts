@@ -197,7 +197,8 @@ export function connect(host: string) {
 function bufToString(buf: Buffer): string {
   return Array.from(buf.values())
     .map((c) => String.fromCharCode(c))
-    .join("");
+    .join("")
+    .replace(/\x00*$/, "");
 }
 
 function callAsUnpackedOutputStruct<R = any>(
@@ -221,7 +222,17 @@ function swapBits(arr: Float64Array): Float64Array {
   return result;
 }
 
-export function getData() {
+interface SegmentData {
+  name: string;
+  translation: Float64Array;
+  rotation: Float64Array;
+}
+interface SubjectData {
+  name: string;
+  segments: SegmentData[];
+}
+
+export function getData(): SubjectData[] | null {
   if (
     isConnected() &&
     clientIsSegmentDataEnabled(client) === TsBoolTypeMapping.True &&
@@ -237,6 +248,7 @@ export function getData() {
       CGetSubjectCountOutputType,
       (result) => clientGetSubjectCount(client, result)
     );
+    let result: SubjectData[] = [];
     for (let subjectIndex = 0; subjectIndex < subjectCount; subjectIndex++) {
       const subjectNameBuffer = Buffer.allocUnsafe(128);
       clientGetSubjectName(
@@ -251,6 +263,8 @@ export function getData() {
         (result) => clientGetSegmentCount(client, subjectName, result)
       );
       console.log(subjectName, segmentCount);
+
+      const segments: SegmentData[] = [];
 
       for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
         const segmentNameBuffer = Buffer.allocUnsafe(128);
@@ -282,14 +296,16 @@ export function getData() {
               result
             )
         );
-        translation.buffer;
-        console.log(
-          `${segmentName} translation: [${swapBits(translation).join(
-            ", "
-          )}] rotation: [${swapBits(rotation).join(", ")}]`
-        );
+        segments.push({
+          name: segmentName,
+          translation: swapBits(translation),
+          rotation: swapBits(rotation),
+        });
       }
+
+      result.push({ name: subjectName, segments });
     }
+    return result;
   }
   return null;
 }

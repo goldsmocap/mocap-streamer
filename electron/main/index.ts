@@ -8,7 +8,7 @@ import { bvhToBuffer, oscToBvh } from "./conversion";
 import * as vicon from "./vicon";
 
 vicon.connect("localhost:801");
-console.log(vicon.getData());
+console.log(vicon.getData()?.flatMap((v) => v.segments));
 
 // The built directory structure
 //
