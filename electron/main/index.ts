@@ -7,9 +7,6 @@ import { ConsumerState, ProducerState } from "./types";
 import { bvhToBuffer, oscToBvh } from "./conversion";
 import * as vicon from "./vicon";
 
-vicon.connect("localhost:801");
-console.log(vicon.getData()?.flatMap((v) => v.segments));
-
 // The built directory structure
 //
 // ├─┬ dist-electron
@@ -59,7 +56,8 @@ function disconnectProducer() {
       break;
     }
     case "Vicon": {
-      producerState.socket.close();
+      vicon.disconnect();
+      producerState.subscription.unsubscribe();
       break;
     }
   }
@@ -102,25 +100,41 @@ async function createWindow() {
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 
   ipcMain.handle(
-    "udpConnectProducer",
+    "connectProducer",
     (_evt, type: ProducerState["type"], address: string, port: number) => {
-      console.log("connecting to", address, port);
-      const socket = dgram.createSocket("udp4");
-      socket.bind(port, address);
-      producerState = {
-        type,
-        socket,
-        subscription: observableFromUdp(socket).subscribe({
-          next: (buffer) => win.webContents.send("udpDataReceived", buffer),
-        }),
-      };
+      console.log("connecting to", type, "at", address, port);
+      switch (type) {
+        case "AxisStudio": {
+          const socket = dgram.createSocket("udp4");
+          socket.bind(port, address);
+          producerState = {
+            type,
+            socket,
+            subscription: observableFromUdp(socket).subscribe({
+              next: (buffer) =>
+                win.webContents.send("producerDataReceived", buffer),
+            }),
+          };
+          break;
+        }
+        case "Vicon": {
+          vicon.connect(`${address}:${port}`);
+          producerState = {
+            type,
+            subscription: vicon.viconObserver().subscribe({
+              next: (buffer) =>
+                win.webContents.send("producerDataReceived", buffer),
+            }),
+          };
+        }
+      }
     }
   );
 
-  ipcMain.handle("udpDisconnectProducer", disconnectProducer);
+  ipcMain.handle("disconnectProducer", disconnectProducer);
 
   ipcMain.handle(
-    "udpConnectConsumer",
+    "connectConsumer",
     (_evt, address: string, port: number, useOsc: boolean) => {
       console.log("starting to send to", address, port, "with use osc", useOsc);
       consumerState = {
@@ -131,7 +145,7 @@ async function createWindow() {
     }
   );
 
-  ipcMain.handle("udpSendConsumer", (_evt, oscData: Uint8Array) => {
+  ipcMain.handle("sendConsumer", (_evt, oscData: Uint8Array) => {
     if (consumerState != null) {
       if (consumerState.useOsc) {
         consumerState.observer.next(Buffer.from(oscData));
@@ -146,7 +160,7 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle("udpDisconnectConsumer", () => {
+  ipcMain.handle("disconnectConsumer", () => {
     consumerState?.observer.complete();
     consumerState = null;
   });

@@ -1,6 +1,12 @@
 import osc from "osc";
+import {
+  SubjectData,
+  dataOrder,
+  transformOrder,
+  viconTransformMap,
+} from "./types";
 
-const BVH_DATA_NUMBER_COUNT = 59 * 6;
+const BVH_DATA_NUMBER_COUNT = transformOrder.length * 6;
 const BVH_PRECISION = 2;
 const PREFIX_SEPARATOR = ":";
 const CHAR_ID_SEPARATOR = "&";
@@ -88,6 +94,18 @@ export function oscToBvh(oscMessage: Uint8Array): BvhData {
           .join(" ")} ||`
     ),
   };
+}
+
+export function subjectDataToBvh(subjectData: SubjectData): string | null {
+  const data = transformOrder
+    .flatMap((transformName) =>
+      dataOrder.map(
+        (dataName) =>
+          subjectData.segments[viconTransformMap[transformName]][dataName]
+      )
+    )
+    .map((n) => n.toFixed(BVH_PRECISION));
+  return `0 ${subjectData.name} ${data.join(" ")} ||`;
 }
 
 export function bufferToBvh(buffer: Buffer): string {

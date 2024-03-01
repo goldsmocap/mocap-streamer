@@ -1,5 +1,8 @@
 import { BitStream } from "bit-buffer";
 import koffi, { TypeSpecWithAlignment } from "koffi";
+import * as Rx from "rxjs";
+import { SegmentData, SubjectData } from "./types";
+import { subjectDataToBvh } from "./conversion";
 
 const lib = koffi.load(
   "C:\\Program Files\\Vicon\\DataStream SDK\\Win64\\C\\ViconDataStreamSDK_C"
@@ -46,8 +49,8 @@ const CGetSegmentCountOutputType = createViconOutputStruct(
   "SegmentCount",
   CUnsignedIntType
 );
-const CGetSegmentLocalTranslationOutputType = createViconOutputStruct(
-  "COutput_GetSegmentLocalTranslation",
+const CGetSegmentGlobalTranslationOutputType = createViconOutputStruct(
+  "COutput_GetSegmentGlobalTranslation",
   "Translation",
   koffi.array("double", 3),
   { Occluded: CBoolType }
@@ -143,14 +146,14 @@ const clientGetSegmentName = lib.func("Client_GetSegmentName", CEnumType, [
   CIntType,
   KoffiOutParam("char*"),
 ]);
-const clientGetSegmentLocalTranslation = lib.func(
-  "Client_GetSegmentLocalTranslation",
+const clientGetSegmentGlobalTranslation = lib.func(
+  "Client_GetSegmentGlobalTranslation",
   CVoidType,
   [
     CClientType,
     CStringType,
     CStringType,
-    CGetSegmentLocalTranslationOutputType.outParamName,
+    CGetSegmentGlobalTranslationOutputType.outParamName,
   ]
 );
 const clientGetSegmentLocalRotationEuler = lib.func(
@@ -187,7 +190,6 @@ export function disconnect(): boolean {
 export function connect(host: string) {
   disconnect();
   client = clientCreate();
-  console.log("Connecting to", host);
   clientSetBufferSize(client, 5);
   return [clientConnect(client, host), clientEnableSegmentData(client)].every(
     (result) => result === TsResultTypeMapping.Success
@@ -211,25 +213,14 @@ function callAsUnpackedOutputStruct<R = any>(
   if (log) console.log(result);
   return result[createdEnum.attr];
 }
-
-function swapBits(arr: Float64Array): Float64Array {
-  let result = new Float64Array(arr.length);
-  for (let i = 0; i < arr.length; i++) {
-    const stream = new BitStream(arr.subarray(i, i + 1).buffer);
-    stream.bigEndian = false;
-    result[i] = stream.readFloat64();
-  }
-  return result;
+function swapBits(n: number): number {
+  const stream = new BitStream(Buffer.from(new Float64Array([n]).buffer));
+  stream.bigEndian = false;
+  return stream.readFloat64();
 }
 
-interface SegmentData {
-  name: string;
-  translation: Float64Array;
-  rotation: Float64Array;
-}
-interface SubjectData {
-  name: string;
-  segments: SegmentData[];
+function posMod(a: number, b: number): number {
+  return ((a % b) + b) % b;
 }
 
 export function getData(): SubjectData[] | null {
@@ -238,12 +229,12 @@ export function getData(): SubjectData[] | null {
     clientIsSegmentDataEnabled(client) === TsBoolTypeMapping.True &&
     clientGetFrame(client) === TsResultTypeMapping.Success
   ) {
-    console.log(
-      clientGetFrame(client),
-      callAsUnpackedOutputStruct(CGetFrameNumberOutputType, (result) =>
-        clientGetFrameNumber(client, result)
-      )
+    // Pull frame - these lines are necessary to retrieve data!
+    clientGetFrame(client);
+    callAsUnpackedOutputStruct(CGetFrameNumberOutputType, (result) =>
+      clientGetFrameNumber(client, result)
     );
+
     const subjectCount = callAsUnpackedOutputStruct(
       CGetSubjectCountOutputType,
       (result) => clientGetSubjectCount(client, result)
@@ -262,9 +253,8 @@ export function getData(): SubjectData[] | null {
         CGetSegmentCountOutputType,
         (result) => clientGetSegmentCount(client, subjectName, result)
       );
-      console.log(subjectName, segmentCount);
 
-      const segments: SegmentData[] = [];
+      const segments: Record<string, SegmentData> = {};
 
       for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
         const segmentNameBuffer = Buffer.allocUnsafe(128);
@@ -277,9 +267,9 @@ export function getData(): SubjectData[] | null {
         );
         const segmentName = bufToString(segmentNameBuffer);
         const translation = callAsUnpackedOutputStruct<Float64Array>(
-          CGetSegmentLocalTranslationOutputType,
+          CGetSegmentGlobalTranslationOutputType,
           (result) =>
-            clientGetSegmentLocalTranslation(
+            clientGetSegmentGlobalTranslation(
               client,
               subjectName,
               segmentName,
@@ -296,11 +286,22 @@ export function getData(): SubjectData[] | null {
               result
             )
         );
-        segments.push({
-          name: segmentName,
-          translation: swapBits(translation),
-          rotation: swapBits(rotation),
-        });
+
+        const processTranslation = (n: number) => swapBits(n) / 100;
+        const processRotation = (n: number, offset: number = 0) =>
+          posMod((swapBits(n) / Math.PI) * 180 + offset + 180, 360) - 180;
+        segments[segmentName] = {
+          posx: processTranslation(translation.at(1)),
+          posy: processTranslation(translation.at(0)),
+          posz: processTranslation(translation.at(2)),
+          // Good hips:
+          // rotx: processRotation(rotation.at(1)),
+          // roty: processRotation(rotation.at(0)),
+          // rotz: processRotation(-rotation.at(2), 90),
+          rotx: processRotation(rotation.at(0)),
+          roty: processRotation(-rotation.at(1)),
+          rotz: processRotation(-rotation.at(2)),
+        };
       }
 
       result.push({ name: subjectName, segments });
@@ -308,4 +309,36 @@ export function getData(): SubjectData[] | null {
     return result;
   }
   return null;
+}
+
+export function isEqual<T>(a: T, b: T): boolean {
+  return (
+    a === b ||
+    (a != null &&
+      b != null &&
+      typeof a === "object" &&
+      typeof b === "object" &&
+      (Array.isArray(a)
+        ? Array.isArray(b) &&
+          a.length === b.length &&
+          a.every((v, i) => isEqual(v, b[i]))
+        : Object.keys(a).length === Object.keys(b).length &&
+          Object.entries(a).every(
+            ([k, v]) => k in b && isEqual(v, (b as Record<string, unknown>)[k])
+          )))
+  );
+}
+
+export function viconObserver(fps = 90): Rx.Observable<Buffer> {
+  return new Rx.Observable<Buffer>((observer) => {
+    let lastData: SubjectData[] | null = null;
+    setInterval(() => {
+      const data = getData();
+      if (data != null && !isEqual(data, lastData)) {
+        observer.next(
+          Buffer.from(data.map(subjectDataToBvh).join(""), "utf-8")
+        );
+      }
+    }, 1000 / fps);
+  });
 }

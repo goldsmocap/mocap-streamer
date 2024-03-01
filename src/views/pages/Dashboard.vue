@@ -5,9 +5,12 @@ import { useRouter } from "vue-router";
 import { store } from "../../store";
 import Modal from "../components/Modal.vue";
 import { ipcRenderer } from "electron";
-import ConnectionDetailsForm, {
-  ConnectionDetails,
-} from "../components/ConnectionDetailsForm.vue";
+import ConsumerConnectionDetailsForm, {
+  ConsumerConnectionDetails,
+} from "../components/ConsumerConnectionDetailsForm.vue";
+import ProducerConnectionDetailsForm, {
+  ProducerConnectionDetails,
+} from "../components/ProducerConnectionDetailsForm.vue";
 import { bufferToBvh, bvhToOsc } from "../../conversion";
 
 const router = useRouter();
@@ -55,7 +58,7 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
     conn.on("data", (oscBuffer): void => {
       if (consumerConnection.status !== "disconnected") {
         ipcRenderer.invoke(
-          "udpSendConsumer",
+          "sendConsumer",
           new Uint8Array(oscBuffer as ArrayBuffer)
         );
       }
@@ -80,9 +83,13 @@ function noResponseTimeout() {
   }, 10000);
 }
 
-function connectUdpProducer({ address, port }: ConnectionDetails) {
+function connectUdpProducer({
+  type,
+  address,
+  port,
+}: ProducerConnectionDetails) {
   ipcRenderer
-    .invoke("udpConnectProducer", "AxisStudio", address, port)
+    .invoke("connectProducer", type, address, port)
     .then(() => {
       log.value.push({ type: "info", text: "Started sending data" });
       producerConnection.status = "connected";
@@ -92,23 +99,25 @@ function connectUdpProducer({ address, port }: ConnectionDetails) {
     .catch(console.error);
 }
 
-function connectUdpConsumer({ address, port, useOsc }: ConnectionDetails) {
-  ipcRenderer
-    .invoke("udpConnectConsumer", address, port, useOsc ?? false)
-    .then(() => {
-      log.value.push({ type: "info", text: "Started receiving data" });
-      consumerConnection.status = "connected";
-    });
+function connectUdpConsumer({
+  address,
+  port,
+  useOsc,
+}: ConsumerConnectionDetails) {
+  ipcRenderer.invoke("connectConsumer", address, port, useOsc).then(() => {
+    log.value.push({ type: "info", text: "Started receiving data" });
+    consumerConnection.status = "connected";
+  });
 }
 
-ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
+ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
   if (producerConnection.status !== "disconnected") {
     const oscData = bvhToOsc(bufferToBvh(buffer), {
       addressPrefix: store.identity?.id ?? "anonymous",
     });
     store.dataConnections?.forEach((conn) => conn?.send(oscData));
     if (consumerConnection.status !== "disconnected") {
-      ipcRenderer.invoke("udpSendConsumer", oscData);
+      ipcRenderer.invoke("sendConsumer", oscData);
     }
     producerConnection.lastReceived = Date.now();
     if (producerConnection.responseTimeoutId != null) {
@@ -121,7 +130,7 @@ ipcRenderer.on("udpDataReceived", (_evt, buffer: Buffer) => {
 function disconnectUdpProducer() {
   if (producerConnection.status !== "disconnected") {
     producerConnection.status = "disconnected";
-    ipcRenderer.invoke("udpDisconnectProducer").then(() => {
+    ipcRenderer.invoke("disconnectProducer").then(() => {
       if (producerConnection.responseTimeoutId != null) {
         clearTimeout(producerConnection.responseTimeoutId);
       }
@@ -136,7 +145,7 @@ function disconnectUdpConsumer() {
   if (consumerConnection.status !== "disconnected") {
     consumerConnection.status = "disconnected";
     ipcRenderer
-      .invoke("udpDisconnectConsumer")
+      .invoke("disconnectConsumer")
       .then(() =>
         log.value.push({ type: "info", text: "Stopped receiving data" })
       );
@@ -238,10 +247,10 @@ store.identity?.on("connection", setUpConnection);
     </div>
     <div :class="store.clientType === 'Both' ? 'grid grid-cols-2 gap-2' : ''">
       <div v-if="store.clientType === 'Sender' || store.clientType === 'Both'">
-        <ConnectionDetailsForm
+        <!-- :initial="{ address: '127.0.0.1', port: 7004, type: 'AxisStudio' }" -->
+        <ProducerConnectionDetailsForm
           v-if="producerConnection.status === 'disconnected'"
-          :initial="{ address: '127.0.0.1', port: 7004 }"
-          submit-label="Start Sending"
+          :initial="{ address: '127.0.0.1', port: 801, type: 'Vicon' }"
           @submit="connectUdpProducer"
         />
         <div v-else>
@@ -260,12 +269,10 @@ store.identity?.on("connection", setUpConnection);
       <div
         v-if="store.clientType === 'Receiver' || store.clientType === 'Both'"
       >
-        <ConnectionDetailsForm
+        <ConsumerConnectionDetailsForm
           v-if="consumerConnection.status === 'disconnected'"
-          :initial="{ address: '127.0.0.1', port: 7000 }"
-          submit-label="Start Receiving"
+          :initial="{ address: '127.0.0.1', port: 7000, useOsc: true }"
           @submit="connectUdpConsumer"
-          :can-use-osc="true"
         />
         <div v-else>
           <button
