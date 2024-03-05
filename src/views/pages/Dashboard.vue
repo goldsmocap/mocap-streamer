@@ -33,7 +33,8 @@ const producerConnection = reactive<
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
-  initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
+  // initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
+  initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
 });
 
 const consumerConnection = reactive<
@@ -248,7 +249,6 @@ store.identity?.on("connection", setUpConnection);
     </div>
     <div :class="store.clientType === 'Both' ? 'grid grid-cols-2 gap-2' : ''">
       <div v-if="store.clientType === 'Sender' || store.clientType === 'Both'">
-        <!-- :initial="{ address: '127.0.0.1', port: 7004, type: 'AxisStudio' }" -->
         <ProducerConnectionDetailsForm
           v-if="producerConnection.status === 'disconnected'"
           :initial="producerConnection.initial"

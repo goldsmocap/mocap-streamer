@@ -59,8 +59,8 @@ const CGetSegmentLocalRotationEulerOutputType = createViconOutputStruct(
   koffi.array("double", 3),
   { Occluded: CBoolType }
 );
-const CGetSegmentGlobalTranslationOutputType = createViconOutputStruct(
-  "COutput_GetSegmentGlobalTranslation",
+const CGetSegmentStaticTranslationOutputType = createViconOutputStruct(
+  "COutput_GetSegmentStaticTranslation",
   "Translation",
   koffi.array("double", 3),
   { Occluded: CBoolType }
@@ -176,14 +176,14 @@ const clientGetSegmentLocalRotationEuler = lib.func(
     CGetSegmentLocalRotationEulerOutputType.outParamName,
   ]
 );
-const clientGetSegmentGlobalTranslation = lib.func(
-  "Client_GetSegmentGlobalTranslation",
+const clientGetSegmentStaticTranslation = lib.func(
+  "Client_GetSegmentStaticTranslation",
   CVoidType,
   [
     CClientType,
     CStringType,
     CStringType,
-    CGetSegmentGlobalTranslationOutputType.outParamName,
+    CGetSegmentStaticTranslationOutputType.outParamName,
   ]
 );
 const clientGetSegmentStaticRotationEuler = lib.func(
@@ -220,7 +220,7 @@ export function disconnect(): boolean {
 export function connect(host: string) {
   disconnect();
   client = clientCreate();
-  clientSetBufferSize(client, 5);
+  clientSetBufferSize(client, 1);
   return [clientConnect(client, host), clientEnableSegmentData(client)].every(
     (result) => result === TsResultTypeMapping.Success
   );
@@ -296,19 +296,43 @@ export function getData(): SubjectData[] | null {
           segmentNameBuffer
         );
         const segmentName = bufToString(segmentNameBuffer);
-        let translation: Float64Array, rotation: Float64Array;
+        const processTranslation = (n: number) => swapBits(n) / 10;
+        const processRotation = (n: number, offset: number = 0) =>
+          posMod((swapBits(n) / Math.PI) * 180 + offset + 180, 360) - 180;
+
+        const localTranslation = callAsUnpackedOutputStruct<Float64Array>(
+          CGetSegmentLocalTranslationOutputType,
+          (result) =>
+            clientGetSegmentLocalTranslation(
+              client,
+              subjectName,
+              segmentName,
+              result
+            )
+        ).map(processTranslation);
+        const localRotation = callAsUnpackedOutputStruct<Float64Array>(
+          CGetSegmentLocalRotationEulerOutputType,
+          (result) =>
+            clientGetSegmentLocalRotationEuler(
+              client,
+              subjectName,
+              segmentName,
+              result
+            )
+        ).map(processRotation);
+
         if (segmentIndex === 0) {
-          translation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentGlobalTranslationOutputType,
+          const staticTranslation = callAsUnpackedOutputStruct<Float64Array>(
+            CGetSegmentStaticTranslationOutputType,
             (result) =>
-              clientGetSegmentGlobalTranslation(
+              clientGetSegmentStaticTranslation(
                 client,
                 subjectName,
                 segmentName,
                 result
               )
-          );
-          rotation = callAsUnpackedOutputStruct<Float64Array>(
+          ).map(processTranslation);
+          const staticRotation = callAsUnpackedOutputStruct<Float64Array>(
             CGetSegmentStaticRotationEulerOutputType,
             (result) =>
               clientGetSegmentStaticRotationEuler(
@@ -317,45 +341,31 @@ export function getData(): SubjectData[] | null {
                 segmentName,
                 result
               )
-          );
-        } else {
-          translation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentLocalTranslationOutputType,
-            (result) =>
-              clientGetSegmentLocalTranslation(
-                client,
-                subjectName,
-                segmentName,
-                result
-              )
-          );
-          rotation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentLocalRotationEulerOutputType,
-            (result) =>
-              clientGetSegmentLocalRotationEuler(
-                client,
-                subjectName,
-                segmentName,
-                result
-              )
-          );
-        }
+          ).map(processRotation);
 
-        const processTranslation = (n: number) => swapBits(n) / 10;
-        const processRotation = (n: number, offset: number = 0) =>
-          posMod((swapBits(n) / Math.PI) * 180 + offset + 180, 360) - 180;
-        segments[segmentName] = {
-          posx: processTranslation(translation.at(0)),
-          posy: processTranslation(translation.at(1)),
-          posz: processTranslation(translation.at(2)),
-          // Everything but hips rot/translation good
-          // rotx: processRotation(rotation.at(0)),
-          // roty: processRotation(rotation.at(2)),
-          // rotz: processRotation(rotation.at(1)),
-          rotx: processRotation(rotation.at(0)),
-          roty: processRotation(rotation.at(1)),
-          rotz: processRotation(rotation.at(2)),
-        };
+          const translation = localTranslation.map(
+            (n, i) => n - staticTranslation[i]
+          );
+          const rotation = localRotation.map((n, i) => n - staticRotation[i]);
+
+          segments[segmentName] = {
+            posx: translation.at(0),
+            posy: translation.at(1),
+            posz: translation.at(2),
+            rotx: rotation.at(0),
+            roty: rotation.at(1),
+            rotz: rotation.at(2),
+          };
+        } else {
+          segments[segmentName] = {
+            posx: localTranslation.at(0),
+            posy: localTranslation.at(1),
+            posz: localTranslation.at(2),
+            rotx: localRotation.at(0),
+            roty: localRotation.at(1),
+            rotz: localRotation.at(2),
+          };
+        }
       }
 
       result.push({ name: subjectName, segments });
