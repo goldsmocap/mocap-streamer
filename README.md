@@ -1,80 +1,39 @@
-# electron-vite-vue
+# Mocap Streamer Client
 
-🥳 Really simple `Electron` + `Vue` + `Vite` boilerplate.
+This is the mocap streamer client application. The way it works is you will connect to a streaming room, where others can join the same one (based on the room name).
+On the home screen, each person can set themselves up as a:
 
-<!-- [![awesome-vite](https://awesome.re/mentioned-badge.svg)](https://github.com/vitejs/awesome-vite) -->
-<!-- [![Netlify Status](https://api.netlify.com/api/v1/badges/ae3863e3-1aec-4eb1-8f9f-1890af56929d/deploy-status)](https://app.netlify.com/sites/electron-vite/deploys) -->
-<!-- [![GitHub license](https://img.shields.io/github/license/caoxiemeihao/electron-vite-vue)](https://github.com/electron-vite/electron-vite-vue/blob/main/LICENSE) -->
-<!-- [![GitHub stars](https://img.shields.io/github/stars/caoxiemeihao/electron-vite-vue?color=fa6470)](https://github.com/electron-vite/electron-vite-vue) -->
-<!-- [![GitHub forks](https://img.shields.io/github/forks/caoxiemeihao/electron-vite-vue)](https://github.com/electron-vite/electron-vite-vue) -->
+- Sender: this is a data producer, where they will be feeding their own data from a supported motion capture software, into the room
+- Receiver: this is a data consumer, where they will pipe the room data into a supported software
+- Both a sender and receiver: meaning they can both feed data into the room as well as pipe it out
 
-[![GitHub Build](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml/badge.svg)](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml)
-[![GitHub Discord](https://img.shields.io/badge/chat-discord-blue?logo=discord)](https://discord.gg/sRqjYpEAUK)
+You can also configure the connection server details as well. This option exists if you would like to have a separate set of rooms from the default server, as you can host your own [mocap streamer server](https://github.com/ohuu/mocap-streamer-server). Only use this option if you know what you are doing! For most cases, the default connection server should be enough.
 
-## Features
+Once you have connected to a room, you can configure the connection details of whichever software you're trying to use and then start sending/receiving data.
 
-📦 Out of the box  
-🎯 Based on the official [template-vue-ts](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-vue-ts), less invasive  
-🌱 Extensible, really simple directory structure  
-💪 Support using Node.js API in Electron-Renderer  
-🔩 Support C/C++ native addons  
-🖥 It's easy to implement multiple windows
-
-## Quick Setup
+## Commands
 
 ```sh
-# clone the project
-git clone https://github.com/electron-vite/electron-vite-vue.git
+# install dependencies
+yarn
 
-# enter the project directory
-cd electron-vite-vue
+# development mode (includes hot-reloading)
+yarn dev
 
-# install dependency
-npm install
-
-# develop
-npm run dev
+# building/releasing the project
+yarn build
 ```
 
-## Debug
+## Development
 
-![electron-vite-react-debug.gif](https://github.com/electron-vite/electron-vite-react/blob/main/electron-vite-react-debug.gif?raw=true)
+We use PeerJS for sending all of the motion capture data, but a simple http(s) request for setting a room up. Under the hood, PeerJS uses a web socket using WebRTC for peer to peer communication.
 
-## Directory
+Terminology:
 
-```diff
-+ ├─┬ electron
-+ │ ├─┬ main
-+ │ │ └── index.ts    entry of Electron-Main
-+ │ └─┬ preload
-+ │   └── index.ts    entry of Preload-Scripts
-  ├─┬ src
-  │ └── main.ts       entry of Electron-Renderer
-  ├── index.html
-  ├── package.json
-  └── vite.config.ts
-```
+- Data producers are senders in the UI
+- Data consumers are receivers in the UI
 
-<!--
-## Be aware
+Points of interest:
 
-🚨 By default, this template integrates Node.js in the Renderer process. If you don't need it, you just remove the option below. [Because it will modify the default config of Vite](https://github.com/electron-vite/vite-plugin-electron-renderer#config-presets-opinionated).
-
-```diff
-# vite.config.ts
-
-export default {
-  plugins: [
--   // Use Node.js API in the Renderer-process
--   renderer({
--     nodeIntegration: true,
--   }),
-  ],
-}
-```
--->
-
-## FAQ
-
-- [C/C++ addons, Node.js modules - Pre-Bundling](https://github.com/electron-vite/vite-plugin-electron-renderer#dependency-pre-bundling)
-- [dependencies vs devDependencies](https://github.com/electron-vite/vite-plugin-electron-renderer#dependencies-vs-devdependencies)
+- `electron/main/index.ts` is the entry point for the backend for the electron app
+- `src/main.ts` is the entry point for the front end. This starts with the `src/views/pages/ConnectPage.vue` component.
