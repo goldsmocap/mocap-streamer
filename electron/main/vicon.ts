@@ -49,14 +49,26 @@ const CGetSegmentCountOutputType = createViconOutputStruct(
   "SegmentCount",
   CUnsignedIntType
 );
-const CGetSegmentGlobalTranslationOutputType = createViconOutputStruct(
-  "COutput_GetSegmentGlobalTranslation",
+const CGetSegmentLocalTranslationOutputType = createViconOutputStruct(
+  "COutput_GetSegmentLocalTranslation",
   "Translation",
   koffi.array("double", 3),
   { Occluded: CBoolType }
 );
 const CGetSegmentLocalRotationEulerOutputType = createViconOutputStruct(
   "COutput_GetSegmentLocalRotationEulerXYZ",
+  "Rotation",
+  koffi.array("double", 3),
+  { Occluded: CBoolType }
+);
+const CGetSegmentGlobalTranslationOutputType = createViconOutputStruct(
+  "COutput_GetSegmentGlobalTranslation",
+  "Translation",
+  koffi.array("double", 3),
+  { Occluded: CBoolType }
+);
+const CGetSegmentStaticRotationEulerOutputType = createViconOutputStruct(
+  "COutput_GetSegmentStaticRotationEulerXYZ",
   "Rotation",
   koffi.array("double", 3),
   { Occluded: CBoolType }
@@ -146,14 +158,14 @@ const clientGetSegmentName = lib.func("Client_GetSegmentName", CEnumType, [
   CIntType,
   KoffiOutParam("char*"),
 ]);
-const clientGetSegmentGlobalTranslation = lib.func(
-  "Client_GetSegmentGlobalTranslation",
+const clientGetSegmentLocalTranslation = lib.func(
+  "Client_GetSegmentLocalTranslation",
   CVoidType,
   [
     CClientType,
     CStringType,
     CStringType,
-    CGetSegmentGlobalTranslationOutputType.outParamName,
+    CGetSegmentLocalTranslationOutputType.outParamName,
   ]
 );
 const clientGetSegmentLocalRotationEuler = lib.func(
@@ -164,6 +176,26 @@ const clientGetSegmentLocalRotationEuler = lib.func(
     CStringType,
     CStringType,
     CGetSegmentLocalRotationEulerOutputType.outParamName,
+  ]
+);
+const clientGetSegmentGlobalTranslation = lib.func(
+  "Client_GetSegmentGlobalTranslation",
+  CVoidType,
+  [
+    CClientType,
+    CStringType,
+    CStringType,
+    CGetSegmentGlobalTranslationOutputType.outParamName,
+  ]
+);
+const clientGetSegmentStaticRotationEuler = lib.func(
+  "Client_GetSegmentStaticRotationEulerXYZ",
+  CVoidType,
+  [
+    CClientType,
+    CStringType,
+    CStringType,
+    CGetSegmentStaticRotationEulerOutputType.outParamName,
   ]
 );
 const clientSetBufferSize = lib.func("Client_SetBufferSize", CVoidType, [
@@ -266,41 +298,65 @@ export function getData(): SubjectData[] | null {
           segmentNameBuffer
         );
         const segmentName = bufToString(segmentNameBuffer);
-        const translation = callAsUnpackedOutputStruct<Float64Array>(
-          CGetSegmentGlobalTranslationOutputType,
-          (result) =>
-            clientGetSegmentGlobalTranslation(
-              client,
-              subjectName,
-              segmentName,
-              result
-            )
-        );
-        const rotation = callAsUnpackedOutputStruct<Float64Array>(
-          CGetSegmentLocalRotationEulerOutputType,
-          (result) =>
-            clientGetSegmentLocalRotationEuler(
-              client,
-              subjectName,
-              segmentName,
-              result
-            )
-        );
+        let translation: Float64Array, rotation: Float64Array;
+        if (segmentIndex === 0) {
+          translation = callAsUnpackedOutputStruct<Float64Array>(
+            CGetSegmentGlobalTranslationOutputType,
+            (result) =>
+              clientGetSegmentGlobalTranslation(
+                client,
+                subjectName,
+                segmentName,
+                result
+              )
+          );
+          rotation = callAsUnpackedOutputStruct<Float64Array>(
+            CGetSegmentStaticRotationEulerOutputType,
+            (result) =>
+              clientGetSegmentStaticRotationEuler(
+                client,
+                subjectName,
+                segmentName,
+                result
+              )
+          );
+        } else {
+          translation = callAsUnpackedOutputStruct<Float64Array>(
+            CGetSegmentLocalTranslationOutputType,
+            (result) =>
+              clientGetSegmentLocalTranslation(
+                client,
+                subjectName,
+                segmentName,
+                result
+              )
+          );
+          rotation = callAsUnpackedOutputStruct<Float64Array>(
+            CGetSegmentLocalRotationEulerOutputType,
+            (result) =>
+              clientGetSegmentLocalRotationEuler(
+                client,
+                subjectName,
+                segmentName,
+                result
+              )
+          );
+        }
 
-        const processTranslation = (n: number) => swapBits(n) / 100;
+        const processTranslation = (n: number) => swapBits(n) / 10;
         const processRotation = (n: number, offset: number = 0) =>
           posMod((swapBits(n) / Math.PI) * 180 + offset + 180, 360) - 180;
         segments[segmentName] = {
-          posx: processTranslation(translation.at(1)),
-          posy: processTranslation(translation.at(0)),
+          posx: processTranslation(translation.at(0)),
+          posy: processTranslation(translation.at(1)),
           posz: processTranslation(translation.at(2)),
-          // Good hips:
-          // rotx: processRotation(rotation.at(1)),
-          // roty: processRotation(rotation.at(0)),
-          // rotz: processRotation(-rotation.at(2), 90),
+          // Everything but hips rot/translation good
+          // rotx: processRotation(rotation.at(0)),
+          // roty: processRotation(rotation.at(2)),
+          // rotz: processRotation(rotation.at(1)),
           rotx: processRotation(rotation.at(0)),
-          roty: processRotation(-rotation.at(1)),
-          rotz: processRotation(-rotation.at(2)),
+          roty: processRotation(rotation.at(1)),
+          rotz: processRotation(rotation.at(2)),
         };
       }
 
@@ -329,16 +385,21 @@ export function isEqual<T>(a: T, b: T): boolean {
   );
 }
 
-export function viconObserver(fps = 90): Rx.Observable<Buffer> {
+export function viconObserver(
+  setIntervalTimeout: (timeout: NodeJS.Timeout) => void,
+  fps = 90
+): Rx.Observable<Buffer> {
   return new Rx.Observable<Buffer>((observer) => {
     let lastData: SubjectData[] | null = null;
-    setInterval(() => {
-      const data = getData();
-      if (data != null && !isEqual(data, lastData)) {
-        observer.next(
-          Buffer.from(data.map(subjectDataToBvh).join(""), "utf-8")
-        );
-      }
-    }, 1000 / fps);
+    setIntervalTimeout(
+      setInterval(() => {
+        const data = getData();
+        if (data != null && !isEqual(data, lastData)) {
+          observer.next(
+            Buffer.from(data.map(subjectDataToBvh).join(""), "utf-8")
+          );
+        }
+      }, 1000 / fps)
+    );
   });
 }

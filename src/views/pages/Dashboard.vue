@@ -20,20 +20,27 @@ interface LogMessage {
   text: string;
 }
 
-interface ConnectionStatus {
+interface ConnectionStatus<I> {
   status: "connected" | "disconnected" | "no-response";
   lastReceived?: number | null;
   responseTimeoutId?: NodeJS.Timeout | null;
+  initial: I;
 }
 
-const producerConnection = reactive<ConnectionStatus>({
+const producerConnection = reactive<
+  ConnectionStatus<ProducerConnectionDetails>
+>({
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
+  initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
 });
 
-const consumerConnection = reactive<ConnectionStatus>({
+const consumerConnection = reactive<
+  ConnectionStatus<ConsumerConnectionDetails>
+>({
   status: "disconnected",
+  initial: { address: "127.0.0.1", port: 7000, useOsc: true },
 });
 
 function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
@@ -83,11 +90,8 @@ function noResponseTimeout() {
   }, 10000);
 }
 
-function connectUdpProducer({
-  type,
-  address,
-  port,
-}: ProducerConnectionDetails) {
+function connectProducer(details: ProducerConnectionDetails) {
+  const { type, address, port } = (producerConnection.initial = details);
   ipcRenderer
     .invoke("connectProducer", type, address, port)
     .then(() => {
@@ -99,11 +103,8 @@ function connectUdpProducer({
     .catch(console.error);
 }
 
-function connectUdpConsumer({
-  address,
-  port,
-  useOsc,
-}: ConsumerConnectionDetails) {
+function connectConsumer(details: ConsumerConnectionDetails) {
+  const { address, port, useOsc } = (consumerConnection.initial = details);
   ipcRenderer.invoke("connectConsumer", address, port, useOsc).then(() => {
     log.value.push({ type: "info", text: "Started receiving data" });
     consumerConnection.status = "connected";
@@ -127,7 +128,7 @@ ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
   }
 });
 
-function disconnectUdpProducer() {
+function disconnectProducer() {
   if (producerConnection.status !== "disconnected") {
     producerConnection.status = "disconnected";
     ipcRenderer.invoke("disconnectProducer").then(() => {
@@ -141,7 +142,7 @@ function disconnectUdpProducer() {
   }
 }
 
-function disconnectUdpConsumer() {
+function disconnectConsumer() {
   if (consumerConnection.status !== "disconnected") {
     consumerConnection.status = "disconnected";
     ipcRenderer
@@ -180,10 +181,10 @@ function disconnectSelf() {
 
 function disconnectAll() {
   if (store.clientType === "Sender" || store.clientType === "Both") {
-    disconnectUdpProducer();
+    disconnectProducer();
   }
   if (store.clientType === "Receiver" || store.clientType === "Both") {
-    disconnectUdpConsumer();
+    disconnectConsumer();
   }
   disconnectSelf();
 }
@@ -250,13 +251,13 @@ store.identity?.on("connection", setUpConnection);
         <!-- :initial="{ address: '127.0.0.1', port: 7004, type: 'AxisStudio' }" -->
         <ProducerConnectionDetailsForm
           v-if="producerConnection.status === 'disconnected'"
-          :initial="{ address: '127.0.0.1', port: 801, type: 'Vicon' }"
-          @submit="connectUdpProducer"
+          :initial="producerConnection.initial"
+          @submit="connectProducer"
         />
         <div v-else>
           <button
             class="btn btn-block btn-primary my-4"
-            @click="disconnectUdpProducer"
+            @click="disconnectProducer"
           >
             Stop Sending
           </button>
@@ -271,13 +272,13 @@ store.identity?.on("connection", setUpConnection);
       >
         <ConsumerConnectionDetailsForm
           v-if="consumerConnection.status === 'disconnected'"
-          :initial="{ address: '127.0.0.1', port: 7000, useOsc: true }"
-          @submit="connectUdpConsumer"
+          :initial="consumerConnection.initial"
+          @submit="connectConsumer"
         />
         <div v-else>
           <button
             class="btn btn-block btn-primary my-4"
-            @click="disconnectUdpConsumer"
+            @click="disconnectConsumer"
           >
             Stop Receiving
           </button>

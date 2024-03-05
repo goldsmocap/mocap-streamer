@@ -46,6 +46,11 @@ const url = process.env.VITE_DEV_SERVER_URL;
 const indexHtml = join(process.env.DIST, "index.html");
 
 let producerState: ProducerState | null = null;
+const setProducerState = (
+  setter: (state: ProducerState | null) => ProducerState | null
+) => {
+  producerState = setter(producerState);
+};
 let consumerState: ConsumerState | null = null;
 
 function disconnectProducer() {
@@ -56,8 +61,13 @@ function disconnectProducer() {
       break;
     }
     case "Vicon": {
+      if (producerState.timeout != null) {
+        clearInterval(producerState.timeout);
+      }
+      if (producerState.subscription != null) {
+        producerState.subscription.unsubscribe();
+      }
       vicon.disconnect();
-      producerState.subscription.unsubscribe();
       break;
     }
   }
@@ -102,7 +112,7 @@ async function createWindow() {
   ipcMain.handle(
     "connectProducer",
     (_evt, type: ProducerState["type"], address: string, port: number) => {
-      console.log("connecting to", type, "at", address, port);
+      console.log(`connecting to ${type} at ${address}:${port}`);
       switch (type) {
         case "AxisStudio": {
           const socket = dgram.createSocket("udp4");
@@ -119,13 +129,23 @@ async function createWindow() {
         }
         case "Vicon": {
           vicon.connect(`${address}:${port}`);
-          producerState = {
-            type,
-            subscription: vicon.viconObserver().subscribe({
+          const subscription = vicon
+            .viconObserver((timeout) => {
+              setProducerState((state) => ({
+                ...(state ?? {}),
+                type: "Vicon",
+                timeout,
+              }));
+            })
+            .subscribe({
               next: (buffer) =>
                 win.webContents.send("producerDataReceived", buffer),
-            }),
-          };
+            });
+          setProducerState((state) => ({
+            ...(state ?? {}),
+            type: "Vicon",
+            subscription,
+          }));
         }
       }
     }
