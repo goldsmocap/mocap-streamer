@@ -4,9 +4,7 @@ import * as Rx from "rxjs";
 import { SegmentData, SubjectData } from "./types";
 import { subjectDataToBvh } from "./conversion";
 
-const lib = koffi.load(
-  "C:\\Program Files\\Vicon\\DataStream SDK\\Win64\\C\\ViconDataStreamSDK_C"
-);
+const lib = koffi.load(".\\C\\ViconDataStreamSDK_C");
 
 const KoffiOutParam = (inType: string) => `_Out_ ${inType}`;
 const CPointerType = (inType: string) => `${inType}*`;
