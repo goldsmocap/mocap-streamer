@@ -59,8 +59,8 @@ const CGetSegmentLocalRotationEulerOutputType = createViconOutputStruct(
   koffi.array("double", 3),
   { Occluded: CBoolType }
 );
-const CGetSegmentStaticTranslationOutputType = createViconOutputStruct(
-  "COutput_GetSegmentStaticTranslation",
+const CGetSegmentGlobalTranslationOutputType = createViconOutputStruct(
+  "COutput_GetSegmentGlobalTranslation",
   "Translation",
   koffi.array("double", 3),
   { Occluded: CBoolType }
@@ -176,14 +176,14 @@ const clientGetSegmentLocalRotationEuler = lib.func(
     CGetSegmentLocalRotationEulerOutputType.outParamName,
   ]
 );
-const clientGetSegmentStaticTranslation = lib.func(
-  "Client_GetSegmentStaticTranslation",
+const clientGetSegmentGlobalTranslation = lib.func(
+  "Client_GetSegmentGlobalTranslation",
   CVoidType,
   [
     CClientType,
     CStringType,
     CStringType,
-    CGetSegmentStaticTranslationOutputType.outParamName,
+    CGetSegmentGlobalTranslationOutputType.outParamName,
   ]
 );
 const clientGetSegmentStaticRotationEuler = lib.func(
@@ -235,12 +235,10 @@ function bufToString(buf: Buffer): string {
 
 function callAsUnpackedOutputStruct<R = any>(
   createdEnum: ReturnType<typeof createViconOutputStruct>,
-  callback: (result: any) => void,
-  log = false
+  callback: (result: any) => void
 ): R {
   const result: any = {};
   callback(result);
-  if (log) console.log(result);
   return result[createdEnum.attr];
 }
 function swapBits(n: number): number {
@@ -322,16 +320,16 @@ export function getData(): SubjectData[] | null {
         ).map(processRotation);
 
         if (segmentIndex === 0) {
-          const staticTranslation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentStaticTranslationOutputType,
+          const globalTranslation = callAsUnpackedOutputStruct<Float64Array>(
+            CGetSegmentGlobalTranslationOutputType,
             (result) =>
-              clientGetSegmentStaticTranslation(
+              clientGetSegmentGlobalTranslation(
                 client,
                 subjectName,
                 segmentName,
                 result
               )
-          ).map(processTranslation);
+          );
           const staticRotation = callAsUnpackedOutputStruct<Float64Array>(
             CGetSegmentStaticRotationEulerOutputType,
             (result) =>
@@ -341,20 +339,24 @@ export function getData(): SubjectData[] | null {
                 segmentName,
                 result
               )
-          ).map(processRotation);
-
-          const translation = localTranslation.map(
-            (n, i) => n - staticTranslation[i]
           );
-          const rotation = localRotation.map((n, i) => n - staticRotation[i]);
 
           segments[segmentName] = {
-            posx: translation.at(0),
-            posy: translation.at(1),
-            posz: translation.at(2),
-            rotx: rotation.at(0),
-            roty: rotation.at(1),
-            rotz: rotation.at(2),
+            posx: -processTranslation(globalTranslation.at(1)),
+            posy: processTranslation(globalTranslation.at(2)),
+            posz: processTranslation(globalTranslation.at(0)),
+            rotx: processRotation(staticRotation.at(0), -90),
+            roty: processRotation(staticRotation.at(1)),
+            rotz: processRotation(staticRotation.at(2)),
+
+            // SUPER CLOSE
+            // rotx: -processRotation(globalRotation.at(1)),
+            // roty: processRotation(globalRotation.at(2)),
+            // rotz: processRotation(globalRotation.at(0)),
+
+            // rotx: processRotation(globalRotation.at(1)),
+            // roty: processRotation(globalRotation.at(2)),
+            // rotz: processRotation(globalRotation.at(0)),
           };
         } else {
           segments[segmentName] = {
