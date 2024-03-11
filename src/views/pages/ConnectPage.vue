@@ -45,6 +45,7 @@ const connectToRoom = async (args: any) => {
 
   store.clientType = args.clientType;
   store.roomName = args.roomName;
+  store.dataConnections = [];
   store.connectionServer.https = args.https;
   store.connectionServer.host = args.host;
   store.connectionServer.port = args.port;
@@ -57,9 +58,9 @@ const connectToRoom = async (args: any) => {
     },
   });
 
-  const iceServers = (await response.json()).v.iceServers;
+  const iceServers = await response.json();
 
-  const peer = new Peer(args.clientName, {
+  store.identity = new Peer(args.clientName, {
     host: args.host,
     port: args.port,
     path: `/room/${args.roomName}`,
@@ -70,15 +71,13 @@ const connectToRoom = async (args: any) => {
     debug: 3,
   });
 
-  store.identity = peer;
-
-  peer.on("open", () => {
+  store.identity?.on("open", () => {
     connecting.value = false;
     connectError.value = null;
 
     router.push("/dashboard");
   });
-  peer.on("error", (err) => {
+  store.identity?.on("error", (err) => {
     connecting.value = false;
     connectError.value = err.message;
   });

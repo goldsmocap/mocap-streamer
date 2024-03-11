@@ -161,8 +161,10 @@ function syncConnections() {
       if (store.dataConnections != null && Array.isArray(connections)) {
         for (const connection of connections.filter(
           (connection: string) =>
-            store.dataConnections!.find((conn) => connection === conn.peer) ==
-            null
+            store.dataConnections!.find(
+              (conn) =>
+                connection === conn.peer || connection === store.identity?.id
+            ) == null
         )) {
           setUpConnection(
             store.identity!.connect(connection, { reliable: false })
