@@ -21,3 +21,9 @@ export const store = reactive<Store>({
     port: 443,
   },
 });
+
+export function connectionServerBaseUrl(): string {
+  return `http${store.connectionServer.https ? "s" : ""}://${
+    store.connectionServer.host
+  }:${store.connectionServer.port}`;
+}

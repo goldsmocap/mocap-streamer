@@ -1442,7 +1442,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cbor-x@npm:^1.5.3":
+"cbor-x@npm:1.5.4":
   version: 1.5.4
   resolution: "cbor-x@npm:1.5.4"
   dependencies:
@@ -1921,7 +1921,7 @@ __metadata:
     koffi: ^2.8.0
     oh-vue-icons: ^1.0.0-rc3
     osc: ^2.4.4
-    peerjs: ^1.5.1
+    peerjs: ^1.5.2
     postcss: ^8.4.30
     rxjs: ^7.8.1
     tailwindcss: ^3.3.3
@@ -3438,23 +3438,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"peerjs-js-binarypack@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "peerjs-js-binarypack@npm:2.0.0"
-  checksum: cf4987fbd4ab321cf67a7de72d4bd410d367037cb1732664c1f47400c80baef09a7c90d8d52b6a55d47c62de8f65eec0e49a98c5c5413cc975227f38beffbe98
+"peerjs-js-binarypack@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "peerjs-js-binarypack@npm:2.1.0"
+  checksum: 84cd28314b4376e668d10ee38316d89a6fb35f04f61c57766e254ac748ccd21fea46f0d62461d40b9bb6cfc6cc12a88d6900aab57bf4dae823354779dbf11e9e
   languageName: node
   linkType: hard
 
-"peerjs@npm:^1.5.1":
-  version: 1.5.1
-  resolution: "peerjs@npm:1.5.1"
+"peerjs@npm:^1.5.2":
+  version: 1.5.2
+  resolution: "peerjs@npm:1.5.2"
   dependencies:
     "@msgpack/msgpack": ^2.8.0
-    cbor-x: ^1.5.3
+    cbor-x: 1.5.4
     eventemitter3: ^4.0.7
-    peerjs-js-binarypack: ^2.0.0
+    peerjs-js-binarypack: ^2.1.0
     webrtc-adapter: ^8.0.0
-  checksum: f0a6fd18d4a8ed1b66a691cca024bf03c0ff73104dc38f725f0c37a19c8c2f02075f2f6821d0e4532b00234d99ba41095d90aa4864b2e234275ee672c9dc54b1
+  checksum: 5436b80a62bf9a5e2ec644cc33cf44601eecc258fb2bec964ef4e8087c431e2d6edc55e71e39e2d40c260c25e8bbd37935f392ef4992de89a47ec82355f9b13a
   languageName: node
   linkType: hard
 

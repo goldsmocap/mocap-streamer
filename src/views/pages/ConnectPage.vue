@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Peer from "peerjs";
 import { computed, ref } from "vue";
-import { store } from "../../store";
+import { connectionServerBaseUrl, store } from "../../store";
 import { useRouter } from "vue-router";
 import Modal from "../components/Modal.vue";
 import { ErrorMessage, Field, Form } from "vee-validate";
@@ -34,12 +34,9 @@ const connectToRoom = async (args: any) => {
   connecting.value = true;
 
   try {
-    await fetch(
-      `http${args.https ? "s" : ""}://${args.host}:${args.port}/setup-room/${
-        args.roomName
-      }`,
-      { method: "POST" }
-    );
+    await fetch(`${connectionServerBaseUrl()}/setup-room/${args.roomName}`, {
+      method: "POST",
+    });
   } catch (err) {
     connectError.value = `Something went wrong setting up the room: ${err}`;
     connecting.value = false;
@@ -47,30 +44,40 @@ const connectToRoom = async (args: any) => {
   }
 
   store.clientType = args.clientType;
+  store.roomName = args.roomName;
   store.connectionServer.https = args.https;
   store.connectionServer.host = args.host;
   store.connectionServer.port = args.port;
+
+  const response = await fetch("https://global.xirsys.net/_turn/MyFirstApp", {
+    method: "PUT",
+    body: { format: "urls" },
+    headers: {
+      Authorization: `Basic ${btoa()}`,
+    },
+  });
+
+  const iceServers = (await response.json()).v.iceServers;
 
   const peer = new Peer(args.clientName, {
     host: args.host,
     port: args.port,
     path: `/room/${args.roomName}`,
+    secure: args.https,
+    config: {
+      iceServers,
+    },
+    debug: 3,
   });
 
   store.identity = peer;
 
-  peer.on("open", () =>
-    peer.listAllPeers((peers) => {
-      connecting.value = false;
-      connectError.value = null;
+  peer.on("open", () => {
+    connecting.value = false;
+    connectError.value = null;
 
-      store.dataConnections = peers.map((id) =>
-        peer.connect(id, { reliable: false })
-      );
-      store.roomName = args.roomName;
-      router.push("/dashboard");
-    })
-  );
+    router.push("/dashboard");
+  });
   peer.on("error", (err) => {
     connecting.value = false;
     connectError.value = err.message;

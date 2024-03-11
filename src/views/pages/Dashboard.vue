@@ -2,7 +2,7 @@
 import { reactive, ref, watch } from "vue";
 import { DataConnection } from "peerjs";
 import { useRouter } from "vue-router";
-import { store } from "../../store";
+import { connectionServerBaseUrl, store } from "../../store";
 import Modal from "../components/Modal.vue";
 import { ipcRenderer } from "electron";
 import ConsumerConnectionDetailsForm, {
@@ -154,24 +154,36 @@ function disconnectConsumer() {
   }
 }
 
-const peerInterval = setInterval(() => {
-  store.identity?.listAllPeers((peers: string[]) => {
-    if (store.dataConnections != null) {
-      for (const peer of peers.filter(
-        (peer) =>
-          store.dataConnections!.find((conn) => peer === conn.peer) == null
-      )) {
-        setUpConnection(store.identity!.connect(peer, { reliable: false }));
-      }
+function syncConnections() {
+  fetch(`${connectionServerBaseUrl()}/room/connections/${store.roomName}`)
+    .then((res) => res.json())
+    .then((connections) => {
+      if (store.dataConnections != null) {
+        for (const connection of connections.filter(
+          (connection: string) =>
+            store.dataConnections!.find((conn) => connection === conn.peer) ==
+            null
+        )) {
+          setUpConnection(
+            store.identity!.connect(connection, { reliable: false })
+          );
+        }
 
-      for (const conn of store.dataConnections.filter(
-        (conn) => !peers.includes(conn.peer)
-      )) {
-        conn.close();
+        for (const conn of store.dataConnections.filter(
+          (conn) => !connections.includes(conn.peer)
+        )) {
+          conn.close();
+        }
       }
-    }
-  });
-}, 10000);
+    });
+}
+
+let peerInterval: NodeJS.Timeout;
+
+setTimeout(() => {
+  syncConnections();
+  peerInterval = setInterval(syncConnections, 10000);
+}, 1000);
 
 function disconnectSelf() {
   clearInterval(peerInterval);

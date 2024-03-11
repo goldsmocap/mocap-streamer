@@ -48,7 +48,7 @@
     "koffi": "^2.8.0",
     "oh-vue-icons": "^1.0.0-rc3",
     "osc": "^2.4.4",
-    "peerjs": "^1.5.1",
+    "peerjs": "^1.5.2",
     "rxjs": "^7.8.1",
     "vee-validate": "^4.11.8",
     "vue-router": "^4.2.5",
