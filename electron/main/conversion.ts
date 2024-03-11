@@ -99,10 +99,12 @@ export function oscToBvh(oscMessage: Uint8Array): BvhData {
 export function subjectDataToBvh(subjectData: SubjectData): string | null {
   const data = transformOrder
     .flatMap((transformName) =>
-      dataOrder.map(
-        (dataName) =>
-          subjectData.segments[viconTransformMap[transformName]][dataName]
-      )
+      dataOrder
+        .map(
+          (dataName) =>
+            subjectData.segments[viconTransformMap[transformName]][dataName]
+        )
+        .map((n) => (isNaN(n) ? 0 : n))
     )
     .map((n) => n.toFixed(BVH_PRECISION));
   return `0 ${subjectData.name} ${data.join(" ")} ||`;
