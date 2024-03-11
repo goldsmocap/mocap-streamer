@@ -161,20 +161,21 @@ function syncConnections() {
       if (store.dataConnections != null && Array.isArray(connections)) {
         for (const connection of connections.filter(
           (connection: string) =>
-            store.dataConnections!.find(
-              (conn) =>
-                connection === conn.peer || connection === store.identity?.id
-            ) == null
+            connection !== store.identity?.id &&
+            store.dataConnections!.find((conn) => connection === conn.peer) ==
+              null
         )) {
+          console.log(`Setting up ${connection}`);
           setUpConnection(
             store.identity!.connect(connection, { reliable: false })
           );
         }
 
-        for (const conn of store.dataConnections.filter(
-          (conn) => !connections.includes(conn.peer)
+        for (const connection of store.dataConnections.filter(
+          (connection) => !connections.includes(connection.peer)
         )) {
-          conn.close();
+          console.log(`Closing ${connection.id}`);
+          connection.close();
         }
       }
     });
