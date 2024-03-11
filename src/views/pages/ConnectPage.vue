@@ -68,7 +68,6 @@ const connectToRoom = async (args: any) => {
     config: {
       iceServers,
     },
-    debug: 3,
   });
 
   store.identity?.on("open", () => {
