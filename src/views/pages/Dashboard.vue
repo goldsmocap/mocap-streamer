@@ -158,7 +158,7 @@ function syncConnections() {
   fetch(`${connectionServerBaseUrl()}/room/connections/${store.roomName}`)
     .then((res) => res.json())
     .then((connections) => {
-      if (store.dataConnections != null) {
+      if (store.dataConnections != null && Array.isArray(connections)) {
         for (const connection of connections.filter(
           (connection: string) =>
             store.dataConnections!.find((conn) => connection === conn.peer) ==
