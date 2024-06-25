@@ -13,11 +13,14 @@ export declare type ClientState = {
     clients: Client[];
     clientMap: ClientMap;
 };
+export declare type Context = {
+    port: number | undefined;
+};
 export declare type ClientSummary = {
     name: string;
     role: ClientRole;
 };
-export declare type ClientSummaryMap = [ClientSummary, ClientSummary][];
+export declare type ClientSummaryMap = [ClientSummary, ClientSummary, Context?][];
 export declare type ClientSummaryState = {
     clients: ClientSummary[];
     clientMap: ClientSummaryMap;
