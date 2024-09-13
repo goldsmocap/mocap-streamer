@@ -17,7 +17,7 @@ export const store = reactive<Store>({
   clientType: "Both",
   connectionServer: {
     https: true,
-    host: "mocap-streamer-server-ljd7v.ondigitalocean.app",
+    host: "seashell-app-u7jay.ondigitalocean.app",
     port: 443,
   },
 });

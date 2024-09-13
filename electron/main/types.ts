@@ -167,4 +167,13 @@ export interface ViconProducerState {
   timeout?: NodeJS.Timeout;
 }
 
-export type ProducerState = AxisStudioProducerState | ViconProducerState;
+export interface DevelopmentProducerState {
+  type: "Development";
+  subscription?: Subscription;
+  timeout?: NodeJS.Timeout;
+}
+
+export type ProducerState =
+  | AxisStudioProducerState
+  | ViconProducerState
+  | DevelopmentProducerState;

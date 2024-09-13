@@ -174,7 +174,7 @@ function syncConnections() {
         for (const connection of store.dataConnections.filter(
           (connection) => !connections.includes(connection.peer)
         )) {
-          console.log(`Closing ${connection.id}`);
+          console.log(`Closing ${connection.peer}`);
           connection.close();
         }
       }

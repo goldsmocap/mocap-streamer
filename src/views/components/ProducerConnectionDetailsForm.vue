@@ -13,6 +13,7 @@ function option<const S extends string>(label: string, value: S): Option<S> {
 const producerOptionTypes = [
   option("Axis Studio", "AxisStudio"),
   option("Vicon", "Vicon"),
+  option("Development", "Development"),
 ];
 
 export interface ProducerConnectionDetails {

@@ -36,6 +36,7 @@ const connectToRoom = async (args: any) => {
   try {
     await fetch(`${connectionServerBaseUrl()}/setup-room/${args.roomName}`, {
       method: "POST",
+      mode: "no-cors",
     });
   } catch (err) {
     connectError.value = `Something went wrong setting up the room: ${err}`;
@@ -52,22 +53,24 @@ const connectToRoom = async (args: any) => {
 
   const response = await fetch("https://global.xirsys.net/_turn/MyFirstApp", {
     method: "PUT",
-    body: { format: "urls" },
     headers: {
-      Authorization: `Basic ${btoa()}`,
+      Authorization:
+        "Basic " + btoa("danstrutt:f861c654-dfa1-11ee-9c12-0242ac130003"),
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ format: "urls" }),
   });
 
-  const iceServers = await response.json();
+  const {
+    v: { iceServers },
+  } = await response.json();
 
   store.identity = new Peer(args.clientName, {
     host: args.host,
     port: args.port,
     path: `/room/${args.roomName}`,
     secure: args.https,
-    config: {
-      iceServers,
-    },
+    config: { iceServers: [iceServers] },
   });
 
   store.identity?.on("open", () => {
