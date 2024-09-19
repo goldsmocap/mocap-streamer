@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
 body {
-    @apply w-screen h-screen bg-gradient-to-tr from-purple-400 to-pink-500;
+  @apply w-screen h-screen;
+}
+
+body {
+  @apply bg-gradient-to-tr from-purple-400 to-pink-500;
 }

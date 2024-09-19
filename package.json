@@ -27,31 +27,32 @@
     "findissues": "yarn typecheck && yarn lint"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.3.3",
-    "autoprefixer": "^10.4.16",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "autoprefixer": "^10.4.20",
     "daisyui": "^3.9.4",
-    "electron": "^26.0.0",
-    "electron-builder": "^24.6.3",
-    "postcss": "^8.4.30",
-    "tailwindcss": "^3.3.3",
-    "typescript": "^5.1.6",
-    "vite": "^4.4.9",
-    "vite-plugin-electron": "^0.14.0",
+    "electron": "^32.1.1",
+    "electron-builder": "^25.1.3",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.12",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.6",
+    "vite-plugin-electron": "^0.28.8",
     "vite-plugin-electron-renderer": "^0.14.5",
-    "vue": "^3.3.4",
-    "vue-tsc": "^1.8.8"
+    "vue": "^3.5.6",
+    "vue-tsc": "^2.1.6"
   },
   "packageManager": "yarn@3.6.3",
   "dependencies": {
     "@vueuse/head": "^2.0.0",
     "bit-buffer": "^0.2.5",
-    "koffi": "^2.8.0",
+    "koffi": "^2.9.0",
     "oh-vue-icons": "^1.0.0-rc3",
-    "osc": "^2.4.4",
-    "peerjs": "^1.5.2",
+    "osc": "^2.4.5",
+    "peerjs": "^1.5.4",
     "rxjs": "^7.8.1",
-    "vee-validate": "^4.11.8",
-    "vue-router": "^4.2.5",
-    "yup": "^1.3.2"
+    "three": "^0.168.0",
+    "vee-validate": "^4.13.2",
+    "vue-router": "^4.4.5",
+    "yup": "^1.4.0"
   }
 }

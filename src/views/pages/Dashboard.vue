@@ -87,6 +87,7 @@ const log = ref<LogMessage[]>([]);
 
 function noResponseTimeout() {
   return setTimeout(() => {
+    console.log("No response from producer ...");
     producerConnection.status = "no-response";
   }, 10000);
 }
