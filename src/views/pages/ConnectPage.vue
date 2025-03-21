@@ -4,7 +4,7 @@ import { computed, ref } from "vue";
 import { connectionServerBaseUrl, store } from "../../store";
 import { useRouter } from "vue-router";
 import Modal from "../components/Modal.vue";
-import { ErrorMessage, Field, Form } from "vee-validate";
+import { ErrorMessage, Field, Form, SubmissionHandler } from "vee-validate";
 import * as yup from "yup";
 
 const router = useRouter();
@@ -18,21 +18,59 @@ const schema = computed(() =>
       .string()
       .trim()
       .required("You must provide a name for yourself"),
-    roomName: yup.string().trim().required("You must provide a room name"),
-    clientType: yup.string().oneOf(["Sender", "Receiver", "Both"]),
+    roomName: yup
+      .string()
+      .trim()
+      .when("clientType", ([clientType], schema) => {
+        return clientType !== "Offline"
+          ? schema.required("You must provide a room name")
+          : schema;
+      }),
+    clientType: yup
+      .string()
+      .oneOf(["Sender", "Receiver", "Both", "Offline"] as const)
+      .required(),
     https: yup.bool(),
-    host: yup.string().trim().required(),
+    host: yup
+      .string()
+      .trim()
+      .when("clientType", ([clientType], schema) => {
+        return clientType !== "Offline"
+          ? schema.required("You must provide a room name")
+          : schema;
+      }),
     port: yup
       .number()
       .integer()
       .positive()
-      .lessThan(2 ** 16),
+      .lessThan(2 ** 16)
+      .when("clientType", ([clientType], schema) => {
+        return clientType !== "Offline"
+          ? schema.required("You must provide a room name")
+          : schema;
+      }),
   })
 );
 
-const connectToRoom = async (args: any) => {
-  connecting.value = true;
+type SchemaToType<S extends yup.AnySchema<unknown>> = S extends yup.AnySchema<
+  infer T
+>
+  ? T
+  : never;
 
+const onSubmit = async (args: SchemaToType<typeof schema.value>) => {
+  store.clientType = args.clientType;
+  store.clientName = args.clientName;
+
+  if (store.clientType === "Offline") {
+    router.push("/dashboard");
+  } else {
+    connectToRoom(args);
+  }
+};
+
+const connectToRoom = async (args: SchemaToType<typeof schema.value>) => {
+  connecting.value = true;
   try {
     await fetch(`${connectionServerBaseUrl()}/setup-room/${args.roomName}`, {
       method: "POST",
@@ -44,12 +82,11 @@ const connectToRoom = async (args: any) => {
     return;
   }
 
-  store.clientType = args.clientType;
   store.roomName = args.roomName;
   store.dataConnections = [];
-  store.connectionServer.https = args.https;
-  store.connectionServer.host = args.host;
-  store.connectionServer.port = args.port;
+  store.connectionServer.https = args.https ?? false;
+  store.connectionServer.host = args.host ?? store.connectionServer.host;
+  store.connectionServer.port = args.port ?? store.connectionServer.port;
 
   const response = await fetch("https://global.xirsys.net/_turn/MyFirstApp", {
     method: "PUT",
@@ -96,12 +133,13 @@ const connectToRoom = async (args: any) => {
         :validation-schema="schema"
         :initial-values="{
           roomName: store.roomName ?? '',
-          clientType: 'Both',
+          clientType: store.clientType,
+          clientName: store.clientName,
           https: store.connectionServer.https,
           host: store.connectionServer.host,
           port: store.connectionServer.port,
         }"
-        @submit="connectToRoom"
+        @submit="onSubmit as unknown as SubmissionHandler"
       >
         <label>
           <span>Participant Name</span>
@@ -122,6 +160,7 @@ const connectToRoom = async (args: any) => {
             <option value="Both">Sender and Receiver</option>
             <option value="Sender">Sender only</option>
             <option value="Receiver">Receiver only</option>
+            <option value="Offline">Offline</option>
           </Field>
         </label>
         <ErrorMessage class="block text-error text-sm" name="clientType" />
@@ -172,6 +211,7 @@ const connectToRoom = async (args: any) => {
             Connecting
             <v-icon name="fa-spinner" animation="spin" />
           </span>
+          <span v-else-if="store.clientType === 'Offline'">Start Offline</span>
           <span v-else>Connect</span>
         </button>
       </Form>

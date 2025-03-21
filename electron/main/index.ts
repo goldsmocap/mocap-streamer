@@ -6,6 +6,7 @@ import { observableFromUdp, observerToUdp } from "./rxUdp";
 import { ConsumerState, ProducerState } from "./types";
 import { bvhToBuffer, oscToBvh } from "./conversion";
 import * as vicon from "./vicon";
+import * as optitrack from "./optitrack";
 import * as development from "./development";
 
 // The built directory structure
@@ -72,6 +73,14 @@ function disconnectProducer() {
         producerState.subscription.unsubscribe();
       }
       vicon.disconnect();
+      break;
+    }
+    case "Optitrack": {
+      try {
+        producerState.socket.dropMembership(producerState.address);
+      } catch (err) {}
+      producerState.socket.close();
+      producerState.subscription.unsubscribe();
       break;
     }
     case "Development": {
@@ -159,6 +168,27 @@ async function createWindow() {
             type: "Vicon",
             subscription,
             timeout: undefined,
+          });
+          break;
+        }
+
+        case "Optitrack": {
+          const socket = dgram.createSocket("udp4");
+          socket.bind(port, address, console.log);
+          // socket.bind(port, () => {
+          //   socket.setBroadcast(true);
+          //   socket.setMulticastTTL(128);
+          //   socket.addMembership(address);
+          // });
+
+          setProducerState({
+            type,
+            address,
+            socket,
+            subscription: observableFromUdp(socket).subscribe({
+              next: (buffer) =>
+                win.webContents.send("producerDataReceived", buffer),
+            }),
           });
           break;
         }

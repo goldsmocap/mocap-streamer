@@ -155,6 +155,13 @@ export interface UnityConsumerState {
 
 export type ConsumerState = UnityConsumerState;
 
+export interface OptitrackProducerState {
+  type: "Optitrack";
+  address: string;
+  socket: dgram.Socket;
+  subscription?: Subscription;
+}
+
 export interface AxisStudioProducerState {
   type: "AxisStudio";
   socket: dgram.Socket;
@@ -175,5 +182,6 @@ export interface DevelopmentProducerState {
 
 export type ProducerState =
   | AxisStudioProducerState
+  | OptitrackProducerState
   | ViconProducerState
   | DevelopmentProducerState;

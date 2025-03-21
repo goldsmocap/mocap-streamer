@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { DataConnection } from "peerjs";
 import { useRouter } from "vue-router";
 import { connectionServerBaseUrl, store } from "../../store";
@@ -14,6 +14,18 @@ import ProducerConnectionDetailsForm, {
 import { bufferToBvh, bvhToOsc } from "../../conversion";
 
 const router = useRouter();
+
+const canProduce = computed(() =>
+  new Set<typeof store.clientType>(["Both", "Sender", "Offline"]).has(
+    store.clientType
+  )
+);
+const canConsume = computed(() =>
+  new Set<typeof store.clientType>(["Both", "Sender", "Offline"]).has(
+    store.clientType
+  )
+);
+const isOnline = computed(() => store.clientType !== "Offline");
 
 interface LogMessage {
   type?: "info" | "error" | "warn";
@@ -34,7 +46,8 @@ const producerConnection = reactive<
   lastReceived: null,
   responseTimeoutId: null,
   // initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
-  initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
+  // initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
+  initial: { address: "10.1.190.181", port: 1510, type: "Optitrack" },
 });
 
 const consumerConnection = reactive<
@@ -79,9 +92,11 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
   }
 }
 
-store.dataConnections?.forEach((connection) =>
-  setUpConnection(connection as DataConnection, true)
-);
+if (isOnline) {
+  store.dataConnections?.forEach((connection) =>
+    setUpConnection(connection as DataConnection, true)
+  );
+}
 
 const log = ref<LogMessage[]>([]);
 
@@ -116,9 +131,11 @@ function connectConsumer(details: ConsumerConnectionDetails) {
 ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
   if (producerConnection.status !== "disconnected") {
     const oscData = bvhToOsc(bufferToBvh(buffer), {
-      addressPrefix: store.identity?.id ?? "anonymous",
+      addressPrefix: store.clientName,
     });
-    store.dataConnections?.forEach((conn) => conn?.send(oscData));
+    if (isOnline) {
+      store.dataConnections?.forEach((conn) => conn?.send(oscData));
+    }
     if (consumerConnection.status !== "disconnected") {
       ipcRenderer.invoke("sendConsumer", oscData);
     }
@@ -182,40 +199,44 @@ function syncConnections() {
     });
 }
 
-let peerInterval: NodeJS.Timeout;
+let disconnectSelf: (() => void) | null = null;
 
-setTimeout(() => {
-  syncConnections();
-  peerInterval = setInterval(syncConnections, 10000);
-}, 1000);
+if (isOnline) {
+  let peerInterval: NodeJS.Timeout;
 
-function disconnectSelf() {
-  clearInterval(peerInterval);
-  store.dataConnections?.forEach((conn) => conn.close());
-  store.identity?.disconnect();
-  store.dataConnections = undefined;
+  setTimeout(() => {
+    syncConnections();
+    peerInterval = setInterval(syncConnections, 10000);
+  }, 1000);
+
+  disconnectSelf = () => {
+    clearInterval(peerInterval);
+    store.dataConnections?.forEach((conn) => conn.close());
+    store.identity?.disconnect();
+    store.dataConnections = undefined;
+  };
+
+  watch(
+    () => store.dataConnections,
+    (dataConnections) => {
+      if (dataConnections == null) {
+        router.push("/");
+      }
+    }
+  );
+  store.identity?.on("connection", setUpConnection);
 }
 
 function disconnectAll() {
-  if (store.clientType === "Sender" || store.clientType === "Both") {
-    disconnectProducer();
+  if (canProduce.value) disconnectProducer();
+  if (canConsume.value) disconnectConsumer();
+
+  if (isOnline.value) {
+    disconnectSelf?.();
+  } else {
+    router.push("/");
   }
-  if (store.clientType === "Receiver" || store.clientType === "Both") {
-    disconnectConsumer();
-  }
-  disconnectSelf();
 }
-
-watch(
-  () => store.dataConnections,
-  (dataConnections) => {
-    if (dataConnections == null) {
-      router.push("/");
-    }
-  }
-);
-
-store.identity?.on("connection", setUpConnection);
 </script>
 <template>
   <Modal :open="true">
@@ -228,11 +249,15 @@ store.identity?.on("connection", setUpConnection);
           <v-icon name="hi-arrow-left" />
         </button>
       </div>
-      <h2>
+      <h2 v-if="isOnline">
         Connected as
         <span class="border-b border-slate-400" v-text="store.identity?.id" />
         To room
         <span class="border-b border-slate-400" v-text="store.roomName" />
+      </h2>
+      <h2 v-else>
+        Offline mode as
+        <span class="border-b border-slate-400" v-text="store.clientName" />
       </h2>
     </nav>
     <div class="flex flex-row flex-nowrap justify-between mb-8">
@@ -254,7 +279,7 @@ store.identity?.on("connection", setUpConnection);
           </li>
         </ul>
       </div>
-      <div class="border-l-2 border-slate-400 px-4 w-[70%]">
+      <div v-if="isOnline" class="border-l-2 border-slate-400 px-4 w-[70%]">
         <h3 class="py-2 border-b border-inherit">Connected Participants</h3>
         <ul>
           <li v-for="conn in store.dataConnections" :key="conn.peer">
@@ -263,8 +288,8 @@ store.identity?.on("connection", setUpConnection);
         </ul>
       </div>
     </div>
-    <div :class="store.clientType === 'Both' ? 'grid grid-cols-2 gap-2' : ''">
-      <div v-if="store.clientType === 'Sender' || store.clientType === 'Both'">
+    <div :class="canProduce && canConsume ? 'grid grid-cols-2 gap-2' : ''">
+      <div v-if="canProduce">
         <ProducerConnectionDetailsForm
           v-if="producerConnection.status === 'disconnected'"
           :initial="producerConnection.initial"
@@ -283,9 +308,7 @@ store.identity?.on("connection", setUpConnection);
           <span v-else>No response</span>
         </div>
       </div>
-      <div
-        v-if="store.clientType === 'Receiver' || store.clientType === 'Both'"
-      >
+      <div v-if="canConsume">
         <ConsumerConnectionDetailsForm
           v-if="consumerConnection.status === 'disconnected'"
           :initial="consumerConnection.initial"

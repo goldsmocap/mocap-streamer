@@ -5,7 +5,8 @@ export interface Store {
   identity?: Peer;
   roomName?: string;
   dataConnections?: DataConnection[];
-  clientType: "Sender" | "Receiver" | "Both";
+  clientType: "Sender" | "Receiver" | "Both" | "Offline";
+  clientName: string;
   connectionServer: {
     https: boolean;
     host: string;
@@ -14,7 +15,8 @@ export interface Store {
 }
 
 export const store = reactive<Store>({
-  clientType: "Both",
+  clientType: "Offline",
+  clientName: "",
   connectionServer: {
     https: true,
     host: "seashell-app-u7jay.ondigitalocean.app",
