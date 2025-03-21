@@ -11,7 +11,7 @@ import ConsumerConnectionDetailsForm, {
 import ProducerConnectionDetailsForm, {
   ProducerConnectionDetails,
 } from "../components/ProducerConnectionDetailsForm.vue";
-import { bufferToBvh, bvhToOsc } from "../../conversion";
+import { bufferToBvh, bvhToOsc } from "../../../electron/main/conversion";
 
 const router = useRouter();
 
@@ -21,7 +21,7 @@ const canProduce = computed(() =>
   )
 );
 const canConsume = computed(() =>
-  new Set<typeof store.clientType>(["Both", "Sender", "Offline"]).has(
+  new Set<typeof store.clientType>(["Both", "Receiver", "Offline"]).has(
     store.clientType
   )
 );
@@ -54,7 +54,7 @@ const consumerConnection = reactive<
   ConnectionStatus<ConsumerConnectionDetails>
 >({
   status: "disconnected",
-  initial: { address: "127.0.0.1", port: 7000, useOsc: true },
+  initial: { address: "127.0.0.1", port: 7000 },
 });
 
 function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
@@ -121,8 +121,8 @@ function connectProducer(details: ProducerConnectionDetails) {
 }
 
 function connectConsumer(details: ConsumerConnectionDetails) {
-  const { address, port, useOsc } = (consumerConnection.initial = details);
-  ipcRenderer.invoke("connectConsumer", address, port, useOsc).then(() => {
+  const { address, port } = (consumerConnection.initial = details);
+  ipcRenderer.invoke("connectConsumer", address, port).then(() => {
     log.value.push({ type: "info", text: "Started receiving data" });
     consumerConnection.status = "connected";
   });

@@ -150,7 +150,6 @@ export interface SubjectData {
 export interface UnityConsumerState {
   type: "Unity";
   observer: Observer<Buffer>;
-  useOsc: boolean;
 }
 
 export type ConsumerState = UnityConsumerState;

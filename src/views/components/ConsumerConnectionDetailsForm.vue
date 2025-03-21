@@ -6,7 +6,6 @@ import { ErrorMessage, Field, Form } from "vee-validate";
 export interface ConsumerConnectionDetails {
   address: string;
   port: number;
-  useOsc: boolean;
 }
 
 const consumerConnectionDetailsSchema = computed(() =>
@@ -17,7 +16,6 @@ const consumerConnectionDetailsSchema = computed(() =>
       .integer()
       .positive()
       .lessThan(2 ** 16),
-    useOsc: yup.bool(),
   })
 );
 
@@ -51,17 +49,6 @@ const { initial, onSubmit } = defineProps<{
           <Field class="input input-bordered w-full mb-2" name="port" />
         </label>
         <ErrorMessage class="block text-error text-sm" name="port" />
-
-        <label class="flex flex-row gap-4">
-          <Field
-            name="useOsc"
-            type="checkbox"
-            class="self-center w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-            :value="true"
-            :unchecked-value="false"
-          />
-          Use Osc
-        </label>
       </div>
     </div>
   </Form>

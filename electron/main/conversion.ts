@@ -6,7 +6,7 @@ import {
   viconTransformMap,
 } from "./types";
 
-const BVH_DATA_NUMBER_COUNT = transformOrder.length * 6;
+const BVH_DATA_NUMBER_COUNT = transformOrder.length * dataOrder.length;
 const BVH_PRECISION = 2;
 const PREFIX_SEPARATOR = ":";
 const CHAR_ID_SEPARATOR = "&";

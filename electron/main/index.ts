@@ -1,13 +1,11 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import * as dgram from "dgram";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
-import * as dgram from "dgram";
+import * as development from "./development";
 import { observableFromUdp, observerToUdp } from "./rxUdp";
 import { ConsumerState, ProducerState } from "./types";
-import { bvhToBuffer, oscToBvh } from "./conversion";
 import * as vicon from "./vicon";
-import * as optitrack from "./optitrack";
-import * as development from "./development";
 
 // The built directory structure
 //
@@ -219,30 +217,17 @@ async function createWindow() {
 
   ipcMain.handle("disconnectProducer", disconnectProducer);
 
-  ipcMain.handle(
-    "connectConsumer",
-    (_evt, address: string, port: number, useOsc: boolean) => {
-      console.log("Starting to send to", address, port, "with use osc", useOsc);
-      consumerState = {
-        type: "Unity",
-        observer: observerToUdp(address, port, dgram.createSocket("udp4")),
-        useOsc,
-      };
-    }
-  );
+  ipcMain.handle("connectConsumer", (_evt, address: string, port: number) => {
+    console.log(`Sending to at ${address}:${port}`);
+    consumerState = {
+      type: "Unity",
+      observer: observerToUdp(address, port, dgram.createSocket("udp4")),
+    };
+  });
 
   ipcMain.handle("sendConsumer", (_evt, oscData: Uint8Array) => {
     if (consumerState != null) {
-      if (consumerState.useOsc) {
-        consumerState.observer.next(Buffer.from(oscData));
-      } else {
-        const { addressPrefix, data } = oscToBvh(oscData);
-        consumerState.observer.next(
-          bvhToBuffer(
-            (addressPrefix != null ? addressPrefix + ":" : "") + data.join("")
-          )
-        );
-      }
+      consumerState.observer.next(Buffer.from(oscData));
     }
   });
 
