@@ -1,29 +1,29 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
-import { DataConnection } from "peerjs";
-import { useRouter } from "vue-router";
-import { connectionServerBaseUrl, store } from "../../store";
-import Modal from "../components/Modal.vue";
 import { ipcRenderer } from "electron";
+import { DataConnection } from "peerjs";
+import { computed, reactive, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import {
+  bufferToString,
+  bvhToOsc,
+  dataToOsc,
+} from "../../../electron/main/conversion";
+import { ClientType, connectionServerBaseUrl, store } from "../../store";
 import ConsumerConnectionDetailsForm, {
   ConsumerConnectionDetails,
 } from "../components/ConsumerConnectionDetailsForm.vue";
+import Modal from "../components/Modal.vue";
 import ProducerConnectionDetailsForm, {
   ProducerConnectionDetails,
 } from "../components/ProducerConnectionDetailsForm.vue";
-import { bufferToBvh, bvhToOsc } from "../../../electron/main/conversion";
 
 const router = useRouter();
 
 const canProduce = computed(() =>
-  new Set<typeof store.clientType>(["Both", "Sender", "Offline"]).has(
-    store.clientType
-  )
+  new Set<ClientType>(["Both", "Sender", "Offline"]).has(store.clientType)
 );
 const canConsume = computed(() =>
-  new Set<typeof store.clientType>(["Both", "Receiver", "Offline"]).has(
-    store.clientType
-  )
+  new Set<ClientType>(["Both", "Receiver", "Offline"]).has(store.clientType)
 );
 const isOnline = computed(() => store.clientType !== "Offline");
 
@@ -33,26 +33,38 @@ interface LogMessage {
 }
 
 interface ConnectionStatus<I> {
+  type: string;
   status: "connected" | "disconnected" | "no-response";
   lastReceived?: number | null;
   responseTimeoutId?: NodeJS.Timeout | null;
   initial: I;
 }
 
+const incomingDataConnection = reactive<ConnectionStatus<null>>({
+  type: "Incoming Data",
+  status: "disconnected",
+  initial: null,
+});
+ipcRenderer.invoke("connectIncomingData", store.incomingDataPort).then(() => {
+  incomingDataConnection.status = "connected";
+});
+
 const producerConnection = reactive<
   ConnectionStatus<ProducerConnectionDetails>
 >({
+  type: "Producer",
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
   // initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
-  // initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
-  initial: { address: "10.1.190.181", port: 1510, type: "Optitrack" },
+  initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
+  // initial: { address: "10.1.190.181", port: 1510, type: "Optitrack" },
 });
 
 const consumerConnection = reactive<
   ConnectionStatus<ConsumerConnectionDetails>
 >({
+  type: "Consumer",
   status: "disconnected",
   initial: { address: "127.0.0.1", port: 7000 },
 });
@@ -92,7 +104,7 @@ function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
   }
 }
 
-if (isOnline) {
+if (isOnline.value) {
   store.dataConnections?.forEach((connection) =>
     setUpConnection(connection as DataConnection, true)
   );
@@ -100,10 +112,10 @@ if (isOnline) {
 
 const log = ref<LogMessage[]>([]);
 
-function noResponseTimeout() {
+function noResponseTimeout(connection: ConnectionStatus<unknown>) {
   return setTimeout(() => {
-    console.log("No response from producer ...");
-    producerConnection.status = "no-response";
+    console.log(`No response from ${connection.type} ...`);
+    connection.status = "no-response";
   }, 10000);
 }
 
@@ -115,7 +127,8 @@ function connectProducer(details: ProducerConnectionDetails) {
       log.value.push({ type: "info", text: "Started sending data" });
       producerConnection.status = "connected";
       producerConnection.lastReceived = Date.now();
-      producerConnection.responseTimeoutId = noResponseTimeout();
+      producerConnection.responseTimeoutId =
+        noResponseTimeout(producerConnection);
     })
     .catch(console.error);
 }
@@ -128,12 +141,28 @@ function connectConsumer(details: ConsumerConnectionDetails) {
   });
 }
 
+ipcRenderer.on("incomingDataReceived", (_evt, buffer: Buffer) => {
+  if (incomingDataConnection.status !== "disconnected") {
+    const oscData = dataToOsc({
+      address: store.clientName,
+      args: bufferToString(buffer),
+      mode: "arbitrary",
+    });
+    if (isOnline.value) {
+      store.dataConnections?.forEach((conn) => conn?.send(oscData));
+    }
+    if (consumerConnection.status !== "disconnected") {
+      ipcRenderer.invoke("sendConsumer", oscData);
+    }
+  }
+});
+
 ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
   if (producerConnection.status !== "disconnected") {
-    const oscData = bvhToOsc(bufferToBvh(buffer), {
+    const oscData = bvhToOsc(bufferToString(buffer), {
       addressPrefix: store.clientName,
     });
-    if (isOnline) {
+    if (isOnline.value) {
       store.dataConnections?.forEach((conn) => conn?.send(oscData));
     }
     if (consumerConnection.status !== "disconnected") {
@@ -143,7 +172,8 @@ ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
     if (producerConnection.responseTimeoutId != null) {
       clearTimeout(producerConnection.responseTimeoutId);
     }
-    producerConnection.responseTimeoutId = noResponseTimeout();
+    producerConnection.responseTimeoutId =
+      noResponseTimeout(producerConnection);
   }
 });
 
@@ -158,17 +188,6 @@ function disconnectProducer() {
       producerConnection.responseTimeoutId = null;
       log.value.push({ type: "info", text: "Stopped sending data" });
     });
-  }
-}
-
-function disconnectConsumer() {
-  if (consumerConnection.status !== "disconnected") {
-    consumerConnection.status = "disconnected";
-    ipcRenderer
-      .invoke("disconnectConsumer")
-      .then(() =>
-        log.value.push({ type: "info", text: "Stopped receiving data" })
-      );
   }
 }
 
@@ -199,9 +218,27 @@ function syncConnections() {
     });
 }
 
+function disconnectConsumer() {
+  if (consumerConnection.status !== "disconnected") {
+    consumerConnection.status = "disconnected";
+    ipcRenderer
+      .invoke("disconnectConsumer")
+      .then(() =>
+        log.value.push({ type: "info", text: "Stopped receiving data" })
+      );
+  }
+}
+
+function disconnectIncomingData() {
+  if (incomingDataConnection.status !== "disconnected") {
+    incomingDataConnection.status = "disconnected";
+    ipcRenderer.invoke("disconnectIncomingData");
+  }
+}
+
 let disconnectSelf: (() => void) | null = null;
 
-if (isOnline) {
+if (isOnline.value) {
   let peerInterval: NodeJS.Timeout;
 
   setTimeout(() => {
@@ -228,14 +265,12 @@ if (isOnline) {
 }
 
 function disconnectAll() {
+  disconnectIncomingData();
   if (canProduce.value) disconnectProducer();
   if (canConsume.value) disconnectConsumer();
 
-  if (isOnline.value) {
-    disconnectSelf?.();
-  } else {
-    router.push("/");
-  }
+  if (isOnline.value) disconnectSelf?.();
+  else router.push("/");
 }
 </script>
 <template>

@@ -184,3 +184,10 @@ export type ProducerState =
   | OptitrackProducerState
   | ViconProducerState
   | DevelopmentProducerState;
+
+export interface IncomingDataState {
+  socket: dgram.Socket;
+  subscription: Subscription;
+}
+
+export type MessageMode = "arbitrary" | "mocap";

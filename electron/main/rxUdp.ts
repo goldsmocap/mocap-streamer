@@ -10,8 +10,9 @@ export function observableFromUdp(
     socket.on("message", (msg: Buffer) => {
       let id = "";
       for (let i = 0; i < msg.length; i++) {
-        if (msg.at(i) === 32) break;
-        id += String.fromCharCode(msg.at(i));
+        const char = String.fromCharCode(msg.at(i));
+        if (char === " ") break;
+        id += char;
       }
       if (toSend[0]?.id === id) {
         observer.next(
@@ -26,6 +27,16 @@ export function observableFromUdp(
     socket.on("error", (err) => observer.error(err));
     socket.on("close", () => observer.complete());
   }).pipe(Rx.throttleTime(1000 / fps));
+}
+
+export function observableFromArbitraryUdp(
+  socket: dgram.Socket
+): Rx.Observable<Buffer> {
+  return new Rx.Observable<Buffer>((observer) => {
+    socket.on("message", (msg: Buffer) => observer.next(msg));
+    socket.on("error", (err) => observer.error(err));
+    socket.on("close", () => observer.complete());
+  });
 }
 
 export function observerToUdp(

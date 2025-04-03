@@ -3,8 +3,12 @@ import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
 import * as development from "./development";
-import { observableFromUdp, observerToUdp } from "./rxUdp";
-import { ConsumerState, ProducerState } from "./types";
+import {
+  observableFromArbitraryUdp,
+  observableFromUdp,
+  observerToUdp,
+} from "./rxUdp";
+import { ConsumerState, IncomingDataState, ProducerState } from "./types";
 import * as vicon from "./vicon";
 
 // The built directory structure
@@ -55,6 +59,95 @@ const setProducerState = (
   producerState = typeof value === "function" ? value(producerState) : value;
 };
 let consumerState: ConsumerState | null = null;
+
+let incomingDataState: IncomingDataState | null = null;
+
+function connectProducer(
+  type: ProducerState["type"],
+  address: string,
+  port: number
+) {
+  console.log(`Connecting to ${type} at ${address}:${port}`);
+  switch (type) {
+    case "AxisStudio": {
+      const socket = dgram.createSocket("udp4");
+      socket.bind(port, address);
+      setProducerState({
+        type,
+        socket,
+        subscription: observableFromUdp(socket).subscribe({
+          next: (buffer) =>
+            win.webContents.send("producerDataReceived", buffer),
+        }),
+      });
+      break;
+    }
+
+    case "Vicon": {
+      vicon.connect(`${address}:${port}`);
+      const subscription = vicon
+        .viconObserver((timeout) => {
+          setProducerState((state) => ({
+            ...(state ?? {}),
+            type: "Vicon",
+            timeout,
+          }));
+        })
+        .subscribe({
+          next: (buffer) =>
+            win.webContents.send("producerDataReceived", buffer),
+        });
+      setProducerState({
+        type: "Vicon",
+        subscription,
+        timeout: undefined,
+      });
+      break;
+    }
+
+    case "Optitrack": {
+      const socket = dgram.createSocket("udp4");
+      socket.bind(port, address, console.log);
+      // socket.bind(port, () => {
+      //   socket.setBroadcast(true);
+      //   socket.setMulticastTTL(128);
+      //   socket.addMembership(address);
+      // });
+
+      setProducerState({
+        type,
+        address,
+        socket,
+        subscription: observableFromUdp(socket).subscribe({
+          next: (buffer) =>
+            win.webContents.send("producerDataReceived", buffer),
+        }),
+      });
+      break;
+    }
+
+    case "Development": {
+      const subscription = development
+        .developmentObserver((timeout) => {
+          setProducerState((state) => ({
+            ...(state ?? {}),
+            type: "Development",
+            timeout,
+          }));
+        })
+        .subscribe({
+          next: (buffer) =>
+            win.webContents.send("producerDataReceived", buffer),
+        });
+      setProducerState({
+        type: "Development",
+        timeout: undefined,
+        subscription,
+      });
+      break;
+    }
+  }
+}
 
 function disconnectProducer() {
   switch (producerState?.type) {
@@ -132,86 +225,7 @@ async function createWindow() {
   ipcMain.handle(
     "connectProducer",
     (_evt, type: ProducerState["type"], address: string, port: number) => {
-      console.log(`Connecting to ${type} at ${address}:${port}`);
-      switch (type) {
-        case "AxisStudio": {
-          const socket = dgram.createSocket("udp4");
-          socket.bind(port, address);
-          setProducerState({
-            type,
-            socket,
-            subscription: observableFromUdp(socket).subscribe({
-              next: (buffer) =>
-                win.webContents.send("producerDataReceived", buffer),
-            }),
-          });
-          break;
-        }
-
-        case "Vicon": {
-          vicon.connect(`${address}:${port}`);
-          const subscription = vicon
-            .viconObserver((timeout) => {
-              setProducerState((state) => ({
-                ...(state ?? {}),
-                type: "Vicon",
-                timeout,
-              }));
-            })
-            .subscribe({
-              next: (buffer) =>
-                win.webContents.send("producerDataReceived", buffer),
-            });
-          setProducerState({
-            type: "Vicon",
-            subscription,
-            timeout: undefined,
-          });
-          break;
-        }
-
-        case "Optitrack": {
-          const socket = dgram.createSocket("udp4");
-          socket.bind(port, address, console.log);
-          // socket.bind(port, () => {
-          //   socket.setBroadcast(true);
-          //   socket.setMulticastTTL(128);
-          //   socket.addMembership(address);
-          // });
-
-          setProducerState({
-            type,
-            address,
-            socket,
-            subscription: observableFromUdp(socket).subscribe({
-              next: (buffer) =>
-                win.webContents.send("producerDataReceived", buffer),
-            }),
-          });
-          break;
-        }
-
-        case "Development": {
-          const subscription = development
-            .developmentObserver((timeout) => {
-              setProducerState((state) => ({
-                ...(state ?? {}),
-                type: "Development",
-                timeout,
-              }));
-            })
-            .subscribe({
-              next: (buffer) =>
-                win.webContents.send("producerDataReceived", buffer),
-            });
-          setProducerState({
-            type: "Development",
-            timeout: undefined,
-            subscription,
-          });
-          break;
-        }
-      }
+      connectProducer(type, address, port);
     }
   );
 
@@ -234,6 +248,24 @@ async function createWindow() {
   ipcMain.handle("disconnectConsumer", () => {
     consumerState?.observer.complete();
     consumerState = null;
+  });
+
+  ipcMain.handle("connectIncomingData", (_evt, port: number) => {
+    const socket = dgram.createSocket("udp4");
+    socket.bind(port, "localhost");
+    incomingDataState = {
+      socket,
+      subscription: observableFromArbitraryUdp(socket).subscribe({
+        next: (buffer) => win.webContents.send("incomingDataReceived", buffer),
+      }),
+    };
+  });
+
+  ipcMain.handle("disconnectIncomingData", () => {
+    if (incomingDataState != null) {
+      incomingDataState.socket.close();
+      incomingDataState.subscription.unsubscribe();
+    }
   });
 }
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import Peer from "peerjs";
 import { computed, ref } from "vue";
-import { connectionServerBaseUrl, store } from "../../store";
+import { clientTypes, connectionServerBaseUrl, store } from "../../store";
 import { useRouter } from "vue-router";
 import Modal from "../components/Modal.vue";
 import { ErrorMessage, Field, Form, SubmissionHandler } from "vee-validate";
 import * as yup from "yup";
+import { ipcRenderer } from "electron";
 
 const router = useRouter();
 
@@ -26,10 +27,13 @@ const schema = computed(() =>
           ? schema.required("You must provide a room name")
           : schema;
       }),
-    clientType: yup
-      .string()
-      .oneOf(["Sender", "Receiver", "Both", "Offline"] as const)
+    incomingDataPort: yup
+      .number()
+      .integer()
+      .positive()
+      .lessThan(2 ** 16)
       .required(),
+    clientType: yup.string().oneOf(clientTypes).required(),
     https: yup.bool(),
     host: yup
       .string()
@@ -82,6 +86,7 @@ const connectToRoom = async (args: SchemaToType<typeof schema.value>) => {
     return;
   }
 
+  store.incomingDataPort = args.incomingDataPort;
   store.roomName = args.roomName;
   store.dataConnections = [];
   store.connectionServer.https = args.https ?? false;
@@ -135,6 +140,7 @@ const connectToRoom = async (args: SchemaToType<typeof schema.value>) => {
           roomName: store.roomName ?? '',
           clientType: store.clientType,
           clientName: store.clientName,
+          incomingDataPort: store.incomingDataPort,
           https: store.connectionServer.https,
           host: store.connectionServer.host,
           port: store.connectionServer.port,
@@ -152,6 +158,18 @@ const connectToRoom = async (args: SchemaToType<typeof schema.value>) => {
           <Field class="input input-bordered w-full mb-2" name="roomName" />
         </label>
         <ErrorMessage class="block text-error text-sm" name="roomName" />
+
+        <label>
+          <span>Incoming Data Port</span>
+          <Field
+            class="input input-bordered w-full mb-2"
+            name="incomingDataPort"
+          />
+        </label>
+        <ErrorMessage
+          class="block text-error text-sm"
+          name="incomingDataPort"
+        />
 
         <label class="flex flex-row justify-between">
           <span class="h-fit self-center">Connect as a</span>

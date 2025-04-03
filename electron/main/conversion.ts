@@ -1,5 +1,6 @@
 import osc from "osc";
 import {
+  MessageMode,
   SubjectData,
   dataOrder,
   transformOrder,
@@ -12,7 +13,7 @@ const PREFIX_SEPARATOR = ":";
 const CHAR_ID_SEPARATOR = "&";
 
 interface ConversionOptions {
-  addressPrefix?: string;
+  addressPrefix: string;
   outputMultiple?: boolean;
 }
 
@@ -22,26 +23,24 @@ export function bvhToOsc(
 ): Uint8Array[];
 export function bvhToOsc(
   bvhString: string,
-  options?: ConversionOptions & { outputMultiple?: false }
+  options: ConversionOptions & { outputMultiple?: false }
 ): Uint8Array;
 export function bvhToOsc(
   bvhString: string,
-  options: ConversionOptions = {}
+  options: ConversionOptions
 ): Uint8Array | Uint8Array[] {
   const characters = bvhString
     .split(" ||")
     .slice(0, -1)
     .map((str) => str.split(" "));
   const toAddress = (charIds: string[]) =>
-    "/" +
     (options.addressPrefix != null
       ? encodeURIComponent(options.addressPrefix) + PREFIX_SEPARATOR
-      : "") +
-    charIds.map(encodeURIComponent).join(CHAR_ID_SEPARATOR);
+      : "") + charIds.map(encodeURIComponent).join(CHAR_ID_SEPARATOR);
   if (options.outputMultiple) {
     return characters.map(
       (character): Uint8Array =>
-        osc.writeMessage({
+        dataToOsc({
           address: toAddress([
             character
               .slice(0, character.length - BVH_DATA_NUMBER_COUNT)
@@ -50,10 +49,11 @@ export function bvhToOsc(
           args: character
             .slice(character.length - BVH_DATA_NUMBER_COUNT)
             .map(Number),
+          mode: "mocap",
         })
     );
   } else {
-    return osc.writeMessage({
+    return dataToOsc({
       address: toAddress(
         characters.map((character) =>
           character.slice(0, character.length - BVH_DATA_NUMBER_COUNT).join(" ")
@@ -62,24 +62,46 @@ export function bvhToOsc(
       args: characters.flatMap((character) =>
         character.slice(character.length - BVH_DATA_NUMBER_COUNT).map(Number)
       ),
+      mode: "mocap",
     });
   }
 }
 
-interface BvhData {
-  addressPrefix?: string;
-  data: string[];
+interface OscData<T = unknown> {
+  address: string;
+  args: T;
+  mode: MessageMode;
+}
+
+export function dataToOsc({ address, args, mode }: OscData): Uint8Array {
+  return osc.writeMessage({
+    address: "/" + mode + PREFIX_SEPARATOR + address,
+    args,
+  });
+}
+
+export function oscToData(message: Uint8Array): OscData {
+  const { address: fullAddress, args }: Omit<OscData, "mode"> =
+    osc.readMessage(message);
+  // Ignore the first "/"
+  const combinedAddress = fullAddress.slice(1);
+  const prefixIdx = combinedAddress.indexOf(PREFIX_SEPARATOR);
+  const mode = combinedAddress.slice(0, prefixIdx) as MessageMode;
+  const address = combinedAddress.slice(prefixIdx + 1);
+  return { args, mode, address };
 }
 
 interface InternalOSCMessage {
   address: string;
   args: number[];
 }
+interface BvhData {
+  addressPrefix?: string;
+  data: string[];
+}
 
-export function oscToBvh(oscMessage: Uint8Array): BvhData {
-  const decoded: InternalOSCMessage = osc.readMessage(oscMessage);
-  const [charIds, prefix] = decoded.address
-    // Ignore the first "/"
+export function oscToBvh({ address, args }: OscData<number[]>): BvhData {
+  const [charIds, prefix] = address
     .slice(1)
     .split(PREFIX_SEPARATOR)
     // Reversed so the charId variable always contains the character Id
@@ -88,7 +110,7 @@ export function oscToBvh(oscMessage: Uint8Array): BvhData {
     addressPrefix: decodeURIComponent(prefix),
     data: charIds.split(CHAR_ID_SEPARATOR).map(
       (charId, i) =>
-        `${decodeURIComponent(charId)} ${decoded.args
+        `${decodeURIComponent(charId)} ${args
           .slice(i * BVH_DATA_NUMBER_COUNT, (i + 1) * BVH_DATA_NUMBER_COUNT)
           .map((n) => n.toFixed(BVH_PRECISION))
           .join(" ")} ||`
@@ -110,10 +132,10 @@ export function subjectDataToBvh(subjectData: SubjectData): string | null {
   return `0 ${subjectData.name} ${data.join(" ")} ||`;
 }
 
-export function bufferToBvh(buffer: Buffer): string {
+export function bufferToString(buffer: Buffer): string {
   return buffer.reduce((str, value) => str + String.fromCharCode(value), "");
 }
 
-export function bvhToBuffer(bvh: string): Buffer {
+export function stringToBuffer(bvh: string): Buffer {
   return Buffer.from(bvh, "utf-8");
 }

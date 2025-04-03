@@ -7,14 +7,17 @@ interface Option<S extends string> {
   label: string;
   value: S;
 }
-function option<const S extends string>(label: string, value: S): Option<S> {
+function option<const S extends string>(
+  value: S,
+  label: string = value
+): Option<S> {
   return { label, value };
 }
 const producerOptionTypes = [
-  option("Axis Studio", "AxisStudio"),
-  option("Vicon", "Vicon"),
-  option("Optitrack", "Optitrack"),
-  option("Development", "Development"),
+  option("AxisStudio", "Axis Studio"),
+  option("Vicon"),
+  option("Optitrack"),
+  option("Development"),
 ];
 
 export interface ProducerConnectionDetails {
