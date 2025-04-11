@@ -932,13 +932,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitejs/plugin-vue@npm:^5.1.4":
-  version: 5.1.4
-  resolution: "@vitejs/plugin-vue@npm:5.1.4"
+"@vitejs/plugin-vue@npm:^5.2.3":
+  version: 5.2.3
+  resolution: "@vitejs/plugin-vue@npm:5.2.3"
   peerDependencies:
-    vite: ^5.0.0
+    vite: ^5.0.0 || ^6.0.0
     vue: ^3.2.25
-  checksum: 80ee2d749c84fc8c495647f7704b143b8670464e6ddc894171d7a28547073cce6055e47fb6ce596a2ae525ae1059a08499d0336cc5a27997c21368d4db2bb6be
+  checksum: 9fc78d8c75974f92f8a3a4f0909371d23b91e67fa0cb70363e31cc44f676b4f48d6532f7331de1058bce76a5db4ee960bae5112f94855306d113979a9438ae5f
   languageName: node
   linkType: hard
 
@@ -2120,7 +2120,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "electron-vue-vite@workspace:."
   dependencies:
-    "@vitejs/plugin-vue": ^5.1.4
+    "@vitejs/plugin-vue": ^5.2.3
     "@vueuse/head": ^2.0.0
     autoprefixer: ^10.4.20
     bit-buffer: ^0.2.5
