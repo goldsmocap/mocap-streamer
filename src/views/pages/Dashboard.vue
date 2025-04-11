@@ -135,10 +135,16 @@ function connectProducer(details: ProducerConnectionDetails) {
 
 function connectConsumer(details: ConsumerConnectionDetails) {
   const { address, port } = (consumerConnection.initial = details);
-  ipcRenderer.invoke("connectConsumer", address, port).then(() => {
-    log.value.push({ type: "info", text: "Started receiving data" });
-    consumerConnection.status = "connected";
-  });
+  ipcRenderer
+    .invoke("connectConsumer", address, port)
+    .then(() => {
+      log.value.push({ type: "info", text: "Started receiving data" });
+      consumerConnection.status = "connected";
+      consumerConnection.lastReceived = Date.now();
+      consumerConnection.responseTimeoutId =
+        noResponseTimeout(consumerConnection);
+    })
+    .catch(console.error);
 }
 
 ipcRenderer.on("incomingDataReceived", (_evt, buffer: Buffer) => {
@@ -146,7 +152,7 @@ ipcRenderer.on("incomingDataReceived", (_evt, buffer: Buffer) => {
     const oscData = dataToOsc({
       address: store.clientName,
       args: bufferToString(buffer),
-      mode: "arbitrary",
+      mode: "data",
     });
     if (isOnline.value) {
       store.dataConnections?.forEach((conn) => conn?.send(oscData));
@@ -177,20 +183,6 @@ ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
   }
 });
 
-function disconnectProducer() {
-  if (producerConnection.status !== "disconnected") {
-    producerConnection.status = "disconnected";
-    ipcRenderer.invoke("disconnectProducer").then(() => {
-      if (producerConnection.responseTimeoutId != null) {
-        clearTimeout(producerConnection.responseTimeoutId);
-      }
-      producerConnection.lastReceived = null;
-      producerConnection.responseTimeoutId = null;
-      log.value.push({ type: "info", text: "Stopped sending data" });
-    });
-  }
-}
-
 function syncConnections() {
   fetch(`${connectionServerBaseUrl()}/room/connections/${store.roomName}`)
     .then((res) => res.json())
@@ -218,14 +210,28 @@ function syncConnections() {
     });
 }
 
+function disconnectProducer() {
+  if (producerConnection.status !== "disconnected") {
+    producerConnection.status = "disconnected";
+    ipcRenderer.invoke("disconnectProducer").then(() => {
+      if (producerConnection.responseTimeoutId != null) {
+        clearTimeout(producerConnection.responseTimeoutId);
+      }
+      producerConnection.lastReceived = null;
+      producerConnection.responseTimeoutId = null;
+      log.value.push({ type: "info", text: "Stopped sending data" });
+    });
+  }
+}
+
 function disconnectConsumer() {
   if (consumerConnection.status !== "disconnected") {
     consumerConnection.status = "disconnected";
-    ipcRenderer
-      .invoke("disconnectConsumer")
-      .then(() =>
-        log.value.push({ type: "info", text: "Stopped receiving data" })
-      );
+    ipcRenderer.invoke("disconnectConsumer").then(() => {
+      producerConnection.lastReceived = null;
+      producerConnection.responseTimeoutId = null;
+      log.value.push({ type: "info", text: "Stopped receiving data" });
+    });
   }
 }
 
@@ -256,9 +262,7 @@ if (isOnline.value) {
   watch(
     () => store.dataConnections,
     (dataConnections) => {
-      if (dataConnections == null) {
-        router.push("/");
-      }
+      if (dataConnections == null) router.push("/");
     }
   );
   store.identity?.on("connection", setUpConnection);
@@ -266,11 +270,12 @@ if (isOnline.value) {
 
 function disconnectAll() {
   disconnectIncomingData();
+
   if (canProduce.value) disconnectProducer();
   if (canConsume.value) disconnectConsumer();
-
   if (isOnline.value) disconnectSelf?.();
-  else router.push("/");
+
+  router.push("/");
 }
 </script>
 <template>
@@ -337,9 +342,9 @@ function disconnectAll() {
           >
             Stop Sending
           </button>
-          <span v-if="producerConnection.status === 'connected'"
-            >Connected</span
-          >
+          <span v-if="producerConnection.status === 'connected'">
+            Connected
+          </span>
           <span v-else>No response</span>
         </div>
       </div>
@@ -356,7 +361,10 @@ function disconnectAll() {
           >
             Stop Receiving
           </button>
-          <span>Connected</span>
+          <span v-if="consumerConnection.status === 'connected'">
+            Connected
+          </span>
+          <span v-else>No response</span>
         </div>
       </div>
     </div>

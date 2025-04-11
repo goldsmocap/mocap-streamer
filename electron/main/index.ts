@@ -4,7 +4,7 @@ import { release } from "node:os";
 import { join } from "node:path";
 import * as development from "./development";
 import {
-  observableFromArbitraryUdp,
+  observableFromDataUdp,
   observableFromUdp,
   observerToUdp,
 } from "./rxUdp";
@@ -255,7 +255,7 @@ async function createWindow() {
     socket.bind(port, "localhost");
     incomingDataState = {
       socket,
-      subscription: observableFromArbitraryUdp(socket).subscribe({
+      subscription: observableFromDataUdp(socket).subscribe({
         next: (buffer) => win.webContents.send("incomingDataReceived", buffer),
       }),
     };

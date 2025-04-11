@@ -29,7 +29,7 @@ export function observableFromUdp(
   }).pipe(Rx.throttleTime(1000 / fps));
 }
 
-export function observableFromArbitraryUdp(
+export function observableFromDataUdp(
   socket: dgram.Socket
 ): Rx.Observable<Buffer> {
   return new Rx.Observable<Buffer>((observer) => {

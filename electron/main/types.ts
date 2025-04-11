@@ -190,4 +190,4 @@ export interface IncomingDataState {
   subscription: Subscription;
 }
 
-export type MessageMode = "arbitrary" | "mocap";
+export type MessageMode = "data" | "mocap";

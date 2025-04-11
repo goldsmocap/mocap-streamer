@@ -91,10 +91,6 @@ export function oscToData(message: Uint8Array): OscData {
   return { args, mode, address };
 }
 
-interface InternalOSCMessage {
-  address: string;
-  args: number[];
-}
 interface BvhData {
   addressPrefix?: string;
   data: string[];
