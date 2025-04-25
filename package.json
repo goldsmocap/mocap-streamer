@@ -45,6 +45,7 @@
   "dependencies": {
     "@vueuse/head": "^2.0.0",
     "bit-buffer": "^0.2.5",
+    "deep-guards": "^1.0.5",
     "koffi": "^2.9.0",
     "oh-vue-icons": "^1.0.0-rc3",
     "osc": "^2.4.5",

@@ -140,7 +140,7 @@ export const dataOrder = [
 export type SegmentData = Record<
   typeof dataOrder extends ReadonlyArray<infer S> ? S : never,
   number
->;
+> & { id: number };
 
 export interface SubjectData {
   name: string;
@@ -167,6 +167,12 @@ export interface AxisStudioProducerState {
   subscription: Subscription;
 }
 
+export interface XsensProducerState {
+  type: "Xsens";
+  socket: dgram.Socket;
+  subscription: Subscription;
+}
+
 export interface ViconProducerState {
   type: "Vicon";
   subscription?: Subscription;
@@ -182,6 +188,7 @@ export interface DevelopmentProducerState {
 export type ProducerState =
   | AxisStudioProducerState
   | OptitrackProducerState
+  | XsensProducerState
   | ViconProducerState
   | DevelopmentProducerState;
 

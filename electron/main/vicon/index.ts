@@ -35,6 +35,7 @@ import {
   TsBoolTypeMapping,
   TsResultTypeMapping,
 } from "./cDefinitions";
+import { isExact } from "deep-guards";
 
 let client: any = null;
 
@@ -189,6 +190,7 @@ export function getData(): SubjectData[] | null {
           );
 
           segments[segmentName] = {
+            id: segmentIndex,
             // posx: -processTranslation(globalTranslation.at(1)),
             // posy: processTranslation(globalTranslation.at(2)),
             // posz: processTranslation(globalTranslation.at(0)),
@@ -212,6 +214,7 @@ export function getData(): SubjectData[] | null {
           };
         } else {
           segments[segmentName] = {
+            id: segmentIndex,
             posx: processTranslation(localTranslation.at(0)),
             posy: processTranslation(localTranslation.at(1)),
             posz: processTranslation(localTranslation.at(2)),
@@ -229,37 +232,20 @@ export function getData(): SubjectData[] | null {
   return null;
 }
 
-export function isEqual<T>(a: T, b: T): boolean {
-  return (
-    a === b ||
-    (a != null &&
-      b != null &&
-      typeof a === "object" &&
-      typeof b === "object" &&
-      (Array.isArray(a)
-        ? Array.isArray(b) &&
-          a.length === b.length &&
-          a.every((v, i) => isEqual(v, b[i]))
-        : Object.keys(a).length === Object.keys(b).length &&
-          Object.entries(a).every(
-            ([k, v]) => k in b && isEqual(v, (b as Record<string, unknown>)[k])
-          )))
-  );
-}
-
 export function viconObserver(
   setIntervalTimeout: (timeout: NodeJS.Timeout) => void,
   fps = 90
 ): Rx.Observable<Buffer> {
   return new Rx.Observable<Buffer>((observer) => {
-    let lastData: SubjectData[] | null = null;
+    let isLastData: (data: SubjectData[]) => boolean = () => false;
     setIntervalTimeout(
       setInterval(() => {
         const data = getData();
-        if (data != null && !isEqual(data, lastData)) {
+        if (!isLastData(data)) {
           observer.next(
             Buffer.from(data.map(subjectDataToBvh).join(""), "utf-8")
           );
+          // isLastData = isExact(data, true);
         }
       }, 1000 / fps)
     );

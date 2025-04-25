@@ -17,6 +17,7 @@ const producerOptionTypes = [
   option("AxisStudio", "Axis Studio"),
   option("Vicon"),
   option("Optitrack"),
+  option("Xsens"),
   option("Development"),
 ];
 

@@ -10,6 +10,9 @@ import {
 } from "./rxUdp";
 import { ConsumerState, IncomingDataState, ProducerState } from "./types";
 import * as vicon from "./vicon";
+import { checkExhausted } from "./utils";
+import { bufferToString } from "./conversion";
+import { decodeXsensMessage } from "./xsens";
 
 // The built directory structure
 //
@@ -146,11 +149,32 @@ function connectProducer(
       });
       break;
     }
+
+    case "Xsens": {
+      const socket = dgram.createSocket("udp4");
+      socket.bind(port, address);
+      setProducerState({
+        type,
+        socket,
+        subscription: observableFromDataUdp(socket).subscribe({
+          next: (buffer) => {
+            decodeXsensMessage(buffer);
+            win.webContents.send("producerDataReceived", buffer);
+          },
+        }),
+      });
+
+      break;
+    }
+
+    default:
+      return checkExhausted(type);
   }
 }
 
 function disconnectProducer() {
   switch (producerState?.type) {
+    case "Xsens":
     case "AxisStudio": {
       producerState.socket.close();
       producerState.subscription.unsubscribe();

@@ -57,7 +57,8 @@ const producerConnection = reactive<
   lastReceived: null,
   responseTimeoutId: null,
   // initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
-  initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
+  // initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
+  initial: { address: "127.0.0.1", port: 9763, type: "Xsens" },
   // initial: { address: "10.1.190.181", port: 1510, type: "Optitrack" },
 });
 
@@ -112,7 +113,12 @@ if (isOnline.value) {
 
 const log = ref<LogMessage[]>([]);
 
-function noResponseTimeout(connection: ConnectionStatus<unknown>) {
+function resetResponseTimeout(connection: ConnectionStatus<unknown>) {
+  connection.status = "connected";
+  connection.lastReceived = Date.now();
+  if (connection.responseTimeoutId != null) {
+    clearTimeout(connection.responseTimeoutId);
+  }
   return setTimeout(() => {
     console.log(`No response from ${connection.type} ...`);
     connection.status = "no-response";
@@ -125,10 +131,8 @@ function connectProducer(details: ProducerConnectionDetails) {
     .invoke("connectProducer", type, address, port)
     .then(() => {
       log.value.push({ type: "info", text: "Started sending data" });
-      producerConnection.status = "connected";
-      producerConnection.lastReceived = Date.now();
       producerConnection.responseTimeoutId =
-        noResponseTimeout(producerConnection);
+        resetResponseTimeout(producerConnection);
     })
     .catch(console.error);
 }
@@ -139,10 +143,8 @@ function connectConsumer(details: ConsumerConnectionDetails) {
     .invoke("connectConsumer", address, port)
     .then(() => {
       log.value.push({ type: "info", text: "Started receiving data" });
-      consumerConnection.status = "connected";
-      consumerConnection.lastReceived = Date.now();
       consumerConnection.responseTimeoutId =
-        noResponseTimeout(consumerConnection);
+        resetResponseTimeout(consumerConnection);
     })
     .catch(console.error);
 }
@@ -174,12 +176,8 @@ ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
     if (consumerConnection.status !== "disconnected") {
       ipcRenderer.invoke("sendConsumer", oscData);
     }
-    producerConnection.lastReceived = Date.now();
-    if (producerConnection.responseTimeoutId != null) {
-      clearTimeout(producerConnection.responseTimeoutId);
-    }
     producerConnection.responseTimeoutId =
-      noResponseTimeout(producerConnection);
+      resetResponseTimeout(producerConnection);
   }
 });
 
