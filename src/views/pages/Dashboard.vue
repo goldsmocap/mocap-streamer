@@ -3,12 +3,6 @@ import { ipcRenderer } from "electron";
 import { DataConnection } from "peerjs";
 import { computed, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import {
-  bufferToString,
-  dataToOsc,
-  subjectDataToOsc,
-} from "../../../electron/main/conversion";
-import { SubjectData } from "../../../electron/main/types";
 import { ClientType, connectionServerBaseUrl, store } from "../../store";
 import ConsumerConnectionDetailsForm, {
   ConsumerConnectionDetails,
@@ -17,6 +11,8 @@ import Modal from "../components/Modal.vue";
 import ProducerConnectionDetailsForm, {
   ProducerConnectionDetails,
 } from "../components/ProducerConnectionDetailsForm.vue";
+import { bufferToString, dataToOsc, subjectDataToOsc } from "../../conversion";
+import { SubjectData } from "../../types";
 
 const router = useRouter();
 

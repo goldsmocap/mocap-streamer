@@ -167,6 +167,13 @@ function connectProducer(
   }
 }
 
+function disconnectConsumer() {
+  if (consumerState != null) {
+    consumerState.observer.complete();
+    consumerState = null;
+  }
+}
+
 function disconnectProducer() {
   switch (producerState?.type) {
     case "Xsens":
@@ -206,6 +213,14 @@ function disconnectProducer() {
     }
   }
   producerState = null;
+}
+
+function disconnectIncomingData() {
+  if (incomingDataState != null) {
+    incomingDataState.socket.close();
+    incomingDataState.subscription.unsubscribe();
+    incomingDataState = null;
+  }
 }
 
 async function createWindow() {
@@ -266,10 +281,7 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle("disconnectConsumer", () => {
-    consumerState?.observer.complete();
-    consumerState = null;
-  });
+  ipcMain.handle("disconnectConsumer", disconnectConsumer);
 
   ipcMain.handle("connectIncomingData", (_evt, port: number) => {
     const socket = dgram.createSocket("udp4");
@@ -282,12 +294,7 @@ async function createWindow() {
     };
   });
 
-  ipcMain.handle("disconnectIncomingData", () => {
-    if (incomingDataState != null) {
-      incomingDataState.socket.close();
-      incomingDataState.subscription.unsubscribe();
-    }
-  });
+  ipcMain.handle("disconnectIncomingData", disconnectIncomingData);
 }
 
 app.whenReady().then(createWindow);
@@ -295,7 +302,9 @@ app.whenReady().then(createWindow);
 app.on("window-all-closed", () => {
   win = null;
   if (producerState != null) {
+    disconnectConsumer();
     disconnectProducer();
+    disconnectIncomingData();
   }
   if (process.platform !== "darwin") app.quit();
 });
