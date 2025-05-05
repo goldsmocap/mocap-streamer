@@ -27,7 +27,7 @@
     "findissues": "yarn typecheck && yarn lint"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.1.4",
+    "@vitejs/plugin-vue": "^5.2.3",
     "autoprefixer": "^10.4.20",
     "daisyui": "^3.9.4",
     "electron": "^32.1.1",
