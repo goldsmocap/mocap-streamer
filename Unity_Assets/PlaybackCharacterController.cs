@@ -32,18 +32,18 @@ public class PlaybackCharacterController : MonoBehaviour
     }
     reader.Close();
 
-    int serialisedLength = MocapCharacterController.TRANSFORM_DATA_LENGTH * sizeof(float) + sizeof(ushort);
+    // int serialisedLength = MocapCharacterController.TRANSFORM_DATA_LENGTH * sizeof(float) + sizeof(ushort);
     List<AnimationFrame> frameList = new();
     TimeSpan lastFrame = TimeSpan.Zero;
 
-    for (int i = 0; i < allData.Length / serialisedLength; i++)
-    {
-      byte[] data = new byte[serialisedLength];
-      Array.Copy(allData, i * serialisedLength, data, 0, serialisedLength);
-      AnimationFrame frame = AnimationFrame.Deserialise(data, lastFrame);
-      frameList.Add(frame);
-      lastFrame = frame.frameStart;
-    }
+    // for (int i = 0; i < allData.Length / serialisedLength; i++)
+    // {
+    //   byte[] data = new byte[serialisedLength];
+    //   Array.Copy(allData, i * serialisedLength, data, 0, serialisedLength);
+    //   AnimationFrame frame = AnimationFrame.Deserialise(data, lastFrame);
+    //   frameList.Add(frame);
+    //   lastFrame = frame.frameStart;
+    // }
 
     if (frameList.Count == 0) throw new Exception("No frames found for " + filePath);
 

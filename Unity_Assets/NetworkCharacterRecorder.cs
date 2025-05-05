@@ -33,12 +33,12 @@ public class NetworkCharacterRecorder : MonoBehaviour
     if (maybeFrame.HasValue)
     {
       AnimationFrame frame = maybeFrame.Value;
-      byte[] data = frame.Serialise(lastFrame.GetValueOrDefault(frame.frameStart));
-      lastFrame = frame.frameStart;
-      lock (recentFrames)
-      {
-        recentFrames.Add(data);
-      }
+      // byte[] data = frame.Serialise(lastFrame.GetValueOrDefault(frame.frameStart));
+      // lastFrame = frame.frameStart;
+      // lock (recentFrames)
+      // {
+      //   recentFrames.Add(data);
+      // }
     }
   }
 

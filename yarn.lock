@@ -1913,13 +1913,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"deep-guards@npm:^1.0.5":
-  version: 1.0.5
-  resolution: "deep-guards@npm:1.0.5"
-  checksum: ab3113cd8c614048e697312a22c34483720af3fabaebbf672a7a36fff85b5d68698f9e2c0370be13be917e4846b1d91e25da9917483cb023ec46c717e68257ba
-  languageName: node
-  linkType: hard
-
 "defaults@npm:^1.0.3":
   version: 1.0.4
   resolution: "defaults@npm:1.0.4"
@@ -2132,7 +2125,6 @@ __metadata:
     autoprefixer: ^10.4.20
     bit-buffer: ^0.2.5
     daisyui: ^3.9.4
-    deep-guards: ^1.0.5
     electron: ^32.1.1
     electron-builder: ^25.1.3
     koffi: ^2.9.0

@@ -1,7 +1,7 @@
 import * as dgram from "dgram";
 import * as Rx from "rxjs";
 
-export function observableFromUdp(
+export function observableFromBvhUdp(
   socket: dgram.Socket,
   fps = 90
 ): Rx.Observable<Buffer> {

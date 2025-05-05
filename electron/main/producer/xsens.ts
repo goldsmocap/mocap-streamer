@@ -1,8 +1,11 @@
+import * as dgram from "dgram";
+import * as Rx from "rxjs";
 import { bufferToString } from "../conversion";
-import { SegmentData } from "../types";
+import { SegmentData, SubjectData } from "../types";
 import { raise } from "../utils";
 
 type UIntNumBytes = 1 | 2 | 4;
+
 const dataHeader: ({ key: string } & (
   | { uintBytes: UIntNumBytes }
   | { strBytes: number }
@@ -21,7 +24,7 @@ const dataHeader: ({ key: string } & (
 ];
 
 // https://movella.my.salesforce.com/sfc/p/#09000007xxr9/a/09000000S801/cPVPGjXbSD5Tfm8JyXWyyc.7wuSg56MLVWVKNVgSKJA
-export function decodeXsensMessage(buffer: Buffer) {
+export function decodeXsensMessage(buffer: Buffer): SubjectData {
   const view = new DataView(buffer.buffer);
 
   const header: any = {};
@@ -56,10 +59,10 @@ export function decodeXsensMessage(buffer: Buffer) {
       )
     );
 
-  const payload: SegmentData[] = [];
+  const segments: SegmentData[] = [];
   for (let i = 0; i < header.numBodySegments; i++) {
     const segment: SegmentData = {
-      id: view.getUint32(idx),
+      id: `${view.getUint32(idx)}`,
       posx: view.getFloat32(idx + 4),
       posy: view.getFloat32(idx + 8),
       posz: view.getFloat32(idx + 12),
@@ -68,8 +71,21 @@ export function decodeXsensMessage(buffer: Buffer) {
       rotz: view.getFloat32(idx + 24),
     };
     idx += 28;
-    payload.push(segment);
+    segments.push(segment);
   }
 
-  console.log({ ...header, payload });
+  console.log({ ...header, segments });
+  return { name: header.characterId, segments };
+}
+
+export function xsensObserver(
+  socket: dgram.Socket
+): Rx.Observable<SubjectData[]> {
+  return new Rx.Observable<SubjectData[]>((observer) => {
+    socket.on("message", (msg: Buffer) => {
+      observer.next([decodeXsensMessage(msg)]);
+    });
+    socket.on("error", (err) => observer.error(err));
+    socket.on("close", () => observer.complete());
+  });
 }

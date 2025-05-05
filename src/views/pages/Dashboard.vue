@@ -5,9 +5,10 @@ import { computed, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   bufferToString,
-  bvhToOsc,
   dataToOsc,
+  subjectDataToOsc,
 } from "../../../electron/main/conversion";
+import { SubjectData } from "../../../electron/main/types";
 import { ClientType, connectionServerBaseUrl, store } from "../../store";
 import ConsumerConnectionDetailsForm, {
   ConsumerConnectionDetails,
@@ -57,8 +58,8 @@ const producerConnection = reactive<
   lastReceived: null,
   responseTimeoutId: null,
   // initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
-  // initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
-  initial: { address: "127.0.0.1", port: 9763, type: "Xsens" },
+  initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
+  // initial: { address: "127.0.0.1", port: 9763, type: "Xsens" },
   // initial: { address: "10.1.190.181", port: 1510, type: "Optitrack" },
 });
 
@@ -165,11 +166,10 @@ ipcRenderer.on("incomingDataReceived", (_evt, buffer: Buffer) => {
   }
 });
 
-ipcRenderer.on("producerDataReceived", (_evt, buffer: Buffer) => {
+ipcRenderer.on("producerDataReceived", (_evt, subjectData: SubjectData[]) => {
   if (producerConnection.status !== "disconnected") {
-    const oscData = bvhToOsc(bufferToString(buffer), {
-      addressPrefix: store.clientName,
-    });
+    const oscData = subjectDataToOsc(subjectData, store.clientName);
+
     if (isOnline.value) {
       store.dataConnections?.forEach((conn) => conn?.send(oscData));
     }

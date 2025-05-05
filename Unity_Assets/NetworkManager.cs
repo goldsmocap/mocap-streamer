@@ -5,24 +5,28 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using UnityEngine;
 
 public class NetworkManager : MonoBehaviour
 {
-  // 59 transforms, each with 3 coordinates and 3 rotations
-  private static readonly char PREFIX_SEPARATOR = ':';
-  private static readonly char CHAR_ID_SEPARATOR = '&';
+  private static readonly char OSC_ADDRESS_SEPARATOR = '/';
 
-  public int port = 7000;
+  public int receivingDataPort = 7000;
+  public int sendingDataPort = 8000;
 
   private Stopwatch stopwatch;
-  private UdpClient networkClient;
-  private readonly Dictionary<string, AnimationFrame[]> allCurrentFrames = new();
+  private UdpClient sendingNetworkClient;
+  private UdpClient receivingNetworkClient;
+  private readonly Dictionary<string, List<AnimationFrame>> allCurrentFrames = new();
+  private readonly Dictionary<string, string> incomingDataReceived = new();
 
   void Start()
   {
-    networkClient = new UdpClient(port);
+    sendingNetworkClient = new UdpClient();
+
+    receivingNetworkClient = new UdpClient(receivingDataPort);
     Thread networkThread = new(ReceiveData);
     networkThread.Start();
     stopwatch = Stopwatch.StartNew();
@@ -30,26 +34,46 @@ public class NetworkManager : MonoBehaviour
 
   void OnDestroy()
   {
-    if (networkClient.Client != null)
+    if (receivingNetworkClient?.Client != null)
     {
-      networkClient.Close();
+      receivingNetworkClient.Close();
+    }
+    if (sendingNetworkClient?.Client != null)
+    {
+      sendingNetworkClient.Close();
     }
   }
 
   public AnimationFrame? PollCharacter(string peerName, ushort characterId, TimeSpan? from)
   {
-    AnimationFrame? frame = null;
     lock (allCurrentFrames)
     {
-      if (allCurrentFrames.TryGetValue(peerName, out AnimationFrame[] peerCharacterFrames) &&
-      characterId < peerCharacterFrames.Length &&
+      if (allCurrentFrames.TryGetValue(peerName, out List<AnimationFrame> peerCharacterFrames) &&
+      characterId < peerCharacterFrames.Count &&
       (!from.HasValue || peerCharacterFrames[characterId].frameStart > from.Value))
       {
-        frame = peerCharacterFrames[characterId];
+        return peerCharacterFrames[characterId];
       }
     }
-    return frame;
+    return null;
   }
+
+  public string TryGetData(string peerName)
+  {
+    if (incomingDataReceived.ContainsKey(peerName))
+    {
+      incomingDataReceived.TryGetValue(peerName, out string data);
+      return data;
+    }
+    return null;
+  }
+
+  public void SendData(string data)
+  {
+    byte[] dataBytes = Encoding.ASCII.GetBytes(data);
+    sendingNetworkClient.Send(dataBytes, dataBytes.Length, "localhost", sendingDataPort);
+  }
+
 
   private static string ParseOscString(byte[] bytes, ref int bytesIndex)
   {
@@ -88,15 +112,16 @@ public class NetworkManager : MonoBehaviour
     return value;
   }
 
-  static private OscParts ParseOscParts(byte[] bytes)
+  private static OscParts ParseOscParts(byte[] bytes)
   {
+    // IMPLEMENTED FROM: https://github.com/colinbdclark/osc.js
     int bytesIndex = 0;
     string combinedAddress = ParseOscString(bytes, ref bytesIndex);
     if (combinedAddress[0] != '/')
     {
       throw new Exception("Malformed OSC address");
     }
-    string[] addressParts = combinedAddress[1..].Split(PREFIX_SEPARATOR, 2);
+    string[] addressParts = combinedAddress[1..].Split(OSC_ADDRESS_SEPARATOR, 2);
 
     string mode = addressParts[0];
     string address = addressParts[1];
@@ -111,52 +136,124 @@ public class NetworkManager : MonoBehaviour
     return new OscParts(mode, address, argTypes[1..], args);
   }
 
-  private (string, AnimationFrame[]) ParseOscMocap(OscParts parts)
+  private static SegmentData ParseSegmentData(byte[] args, ref int bytesIndex)
   {
-    // IMPLEMENTED FROM: https://github.com/colinbdclark/osc.js
+    string id = ParseOscString(args, ref bytesIndex);
+    float posx = ParseOscFloat32(args, ref bytesIndex);
+    float posy = ParseOscFloat32(args, ref bytesIndex);
+    float posz = ParseOscFloat32(args, ref bytesIndex);
+    float rotx = ParseOscFloat32(args, ref bytesIndex);
+    float roty = ParseOscFloat32(args, ref bytesIndex);
+    float rotz = ParseOscFloat32(args, ref bytesIndex);
+    return new SegmentData(id, posx, posy, posz, rotx, roty, rotz);
+  }
 
-    string[] addressParts = parts.address.Split(PREFIX_SEPARATOR, 2);
-    string peerName = addressParts[0];
-    string[] charIds = addressParts[1].Split(CHAR_ID_SEPARATOR);
+  private List<AnimationFrame> ParseOscSubjectData(OscParts parts)
+  {
+    Regex argTypeRe = new Regex(@"ssffffff(s?sffffff)*", RegexOptions.None);
+    if (!argTypeRe.IsMatch(parts.argTypes))
+      throw new Exception("Malformed OSC arg types " + parts.argTypes);
 
-    // Only ever sending float data in multiples of CHARACTER_TRANSFORM_DATA_LENGTH
-    if (parts.argTypes != new string('f', MocapCharacterController.TRANSFORM_DATA_LENGTH * charIds.Length))
+    List<AnimationFrame> frames = new();
+    List<SegmentData> segments = new();
+    int argTypesIdx = 1;
+    int argsIdx = 0;
+    string subjectName = ParseOscString(parts.args, ref argsIdx);
+    TimeSpan frameStart = stopwatch.Elapsed;
+
+    while (argTypesIdx < parts.argTypes.Length)
     {
-      throw new Exception("Malformed OSC arg types");
+      if (parts.argTypes.Substring(argTypesIdx, 2) == "ss")
+      {
+        frames.Add(
+          new AnimationFrame(new SubjectData(subjectName, segments.ToArray()),
+          frameStart
+          ));
+        segments.Clear();
+        subjectName = ParseOscString(parts.args, ref argsIdx);
+        argTypesIdx += 1;
+      }
+      else
+      {
+        segments.Add(ParseSegmentData(parts.args, ref argsIdx));
+        argTypesIdx += 7;
+      }
     }
 
-    if (parts.args.Length != MocapCharacterController.TRANSFORM_DATA_LENGTH * charIds.Length * 4)
+    if (segments.Count > 0)
     {
-      throw new Exception(
-        "Malformed Mocap OSC data values. Data length: "
-          + parts.args.Length
-          + " Expected length: "
-          + (MocapCharacterController.TRANSFORM_DATA_LENGTH * charIds.Length * 4));
+      frames.Add(
+        new AnimationFrame(new SubjectData(subjectName, segments.ToArray()),
+        frameStart
+      ));
     }
 
-    AnimationFrame[] parsedFrames = new AnimationFrame[charIds.Length];
+    return frames;
+  }
 
-    int argsIndex = 0;
-    for (int i = 0; i < parsedFrames.Length; i++)
+  private void AddMocapData(OscParts parts)
+  {
+    List<AnimationFrame> frames = ParseOscSubjectData(parts);
+
+    lock (allCurrentFrames)
     {
-      float[] data = new float[MocapCharacterController.TRANSFORM_DATA_LENGTH]
-          .Select((_, _) => ParseOscFloat32(parts.args, ref argsIndex))
-          .ToArray();
-      parsedFrames[i] = new AnimationFrame(data, stopwatch.Elapsed);
+      if (allCurrentFrames.ContainsKey(parts.address))
+      {
+        foreach (AnimationFrame frame in frames)
+        {
+          bool isNew = true;
+          for (int i = 0; i < allCurrentFrames[parts.address].Count; i++)
+          {
+            if (allCurrentFrames[parts.address][i].data.name == frame.data.name)
+            {
+              allCurrentFrames[parts.address][i] = frame;
+              isNew = false;
+            }
+          }
+          if (isNew)
+          {
+            allCurrentFrames[parts.address].Add(frame);
+          }
+        }
+        allCurrentFrames[parts.address] = frames;
+      }
+      else
+      {
+        allCurrentFrames.Add(parts.address, frames);
+      }
     }
+  }
 
-    return (peerName, parsedFrames);
+  private void AddIncomingData(OscParts parts)
+  {
+    if (parts.argTypes == "s")
+    {
+      int bytesIndex = 0;
+      string data = ParseOscString(parts.args, ref bytesIndex);
+      if (incomingDataReceived.ContainsKey(parts.address))
+      {
+        incomingDataReceived[parts.address] = data;
+      }
+      else
+      {
+        incomingDataReceived.Add(parts.address, data);
+      }
+    }
+    else
+    {
+      throw new Exception("Malformed OSC data arg types. Got: " + parts.argTypes);
+    }
   }
 
   private void ReceiveData()
   {
     IPEndPoint remoteIpEndPoint = new(IPAddress.Any, 0);
-    while (networkClient.Client != null)
+    while (receivingNetworkClient.Client != null)
     {
       byte[] rawData;
       try
       {
-        rawData = networkClient.Receive(ref remoteIpEndPoint);
+        rawData = receivingNetworkClient.Receive(ref remoteIpEndPoint);
       }
       catch (SocketException)
       {
@@ -165,34 +262,18 @@ public class NetworkManager : MonoBehaviour
 
       OscParts parts = ParseOscParts(rawData);
 
-      if (parts.mode == "mocap")
+      switch (parts.mode)
       {
-        (string peerName, AnimationFrame[] parsedFrames) = ParseOscMocap(parts);
+        case "mocap":
+          AddMocapData(parts);
+          break;
 
-        lock (allCurrentFrames)
-        {
-          if (allCurrentFrames.ContainsKey(peerName))
-          {
-            allCurrentFrames[peerName] = parsedFrames;
-          }
-          else
-          {
-            allCurrentFrames.Add(peerName, parsedFrames);
-          }
-        }
-      }
-      else if (parts.mode == "data")
-      {
-        if (parts.argTypes == "s")
-        {
-          int bytesIndex = 0;
-          string data = ParseOscString(parts.args, ref bytesIndex);
-          UnityEngine.Debug.Log(data);
-        }
-        else
-        {
-          throw new Exception("Malformed OSC data arg types. Got: " + parts.argTypes);
-        }
+        case "data":
+          AddIncomingData(parts);
+          break;
+
+        default:
+          throw new Exception("Unknown message mode: " + parts.mode);
       }
     }
   }

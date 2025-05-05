@@ -2,17 +2,18 @@ import * as dgram from "dgram";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
-import * as development from "./development";
+import { axisStudioObserver } from "./producer/axisStudio.js";
+import * as development from "./producer/development";
+import * as vicon from "./producer/vicon";
+import { xsensObserver } from "./producer/xsens";
+import { observableFromDataUdp, observerToUdp } from "./rxUdp";
 import {
-  observableFromDataUdp,
-  observableFromUdp,
-  observerToUdp,
-} from "./rxUdp";
-import { ConsumerState, IncomingDataState, ProducerState } from "./types";
-import * as vicon from "./vicon";
+  ConsumerState,
+  IncomingDataState,
+  ProducerState,
+  SubjectData,
+} from "./types";
 import { checkExhausted } from "./utils";
-import { bufferToString } from "./conversion";
-import { decodeXsensMessage } from "./xsens";
 
 // The built directory structure
 //
@@ -65,6 +66,10 @@ let consumerState: ConsumerState | null = null;
 
 let incomingDataState: IncomingDataState | null = null;
 
+function producerDataReceived(subjectData: SubjectData[]) {
+  win.webContents.send("producerDataReceived", subjectData);
+}
+
 function connectProducer(
   type: ProducerState["type"],
   address: string,
@@ -75,13 +80,13 @@ function connectProducer(
     case "AxisStudio": {
       const socket = dgram.createSocket("udp4");
       socket.bind(port, address);
+      const subscription = axisStudioObserver(socket).subscribe({
+        next: producerDataReceived,
+      });
       setProducerState({
         type,
         socket,
-        subscription: observableFromUdp(socket).subscribe({
-          next: (buffer) =>
-            win.webContents.send("producerDataReceived", buffer),
-        }),
+        subscription,
       });
       break;
     }
@@ -96,10 +101,7 @@ function connectProducer(
             timeout,
           }));
         })
-        .subscribe({
-          next: (buffer) =>
-            win.webContents.send("producerDataReceived", buffer),
-        });
+        .subscribe({ next: producerDataReceived });
       setProducerState({
         type: "Vicon",
         subscription,
@@ -117,16 +119,18 @@ function connectProducer(
       //   socket.addMembership(address);
       // });
 
-      setProducerState({
-        type,
-        address,
-        socket,
-        subscription: observableFromUdp(socket).subscribe({
-          next: (buffer) =>
-            win.webContents.send("producerDataReceived", buffer),
-        }),
-      });
-      break;
+      throw new Error("Not implemented yet!");
+
+      // setProducerState({
+      //   type,
+      //   address,
+      //   socket,
+      //   // TODO: Make this use SubjectData[]
+      //   subscription: observableFromBvhUdp(socket).subscribe({
+      //     next: producerDataReceived,
+      //   }),
+      // });
+      // break;
     }
 
     case "Development": {
@@ -138,10 +142,7 @@ function connectProducer(
             timeout,
           }));
         })
-        .subscribe({
-          next: (buffer) =>
-            win.webContents.send("producerDataReceived", buffer),
-        });
+        .subscribe({ next: producerDataReceived });
       setProducerState({
         type: "Development",
         timeout: undefined,
@@ -153,16 +154,10 @@ function connectProducer(
     case "Xsens": {
       const socket = dgram.createSocket("udp4");
       socket.bind(port, address);
-      setProducerState({
-        type,
-        socket,
-        subscription: observableFromDataUdp(socket).subscribe({
-          next: (buffer) => {
-            decodeXsensMessage(buffer);
-            win.webContents.send("producerDataReceived", buffer);
-          },
-        }),
+      const subscription = xsensObserver(socket).subscribe({
+        next: producerDataReceived,
       });
+      setProducerState({ type, socket, subscription });
 
       break;
     }
@@ -193,7 +188,9 @@ function disconnectProducer() {
     case "Optitrack": {
       try {
         producerState.socket.dropMembership(producerState.address);
-      } catch (err) {}
+      } catch (err) {
+        console.error(err);
+      }
       producerState.socket.close();
       producerState.subscription.unsubscribe();
       break;

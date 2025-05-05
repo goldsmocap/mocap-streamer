@@ -5,7 +5,8 @@ const lib = koffi.load(".\\C\\Vicon\\ViconDataStreamSDK_C");
 const KoffiOutParam = (inType: string) => `_Out_ ${inType}`;
 const CPointerType = (inType: string) => `${inType}*`;
 const CClientType = CPointerType("void");
-const CStringType = "const char*";
+const CConstStringType = "const char*";
+const CStringType = "char*";
 const CBoolType = "int";
 const CVoidType = "void";
 const CEnumType = "int";
@@ -63,6 +64,12 @@ export const CGetSegmentGlobalTranslationOutputType = createViconOutputStruct(
 );
 export const CGetSegmentGlobalRotationEulerOutputType = createViconOutputStruct(
   "COutput_GetSegmentGlobalRotationEulerXYZ",
+  "Rotation",
+  koffi.array("double", 3),
+  { Occluded: CBoolType }
+);
+export const CGetSegmentStaticTranslationOutputType = createViconOutputStruct(
+  "COutput_GetSegmentStaticTranslation",
   "Translation",
   koffi.array("double", 3),
   { Occluded: CBoolType }
@@ -115,7 +122,7 @@ export const clientDestroy = lib.func("Client_Destroy", CVoidType, [
 ]);
 export const clientConnect = lib.func("Client_Connect", CEnumType, [
   CClientType,
-  CStringType,
+  CConstStringType,
 ]);
 export const clientIsConnected = lib.func("Client_IsConnected", CBoolType, [
   CClientType,
@@ -154,20 +161,26 @@ export const clientGetSubjectName = lib.func(
 export const clientGetSegmentCount = lib.func(
   "Client_GetSegmentCount",
   CVoidType,
-  [CClientType, CStringType, CGetSegmentCountOutputType.outParamName]
+  [CClientType, CConstStringType, CGetSegmentCountOutputType.outParamName]
 );
 export const clientGetSegmentName = lib.func(
   "Client_GetSegmentName",
   CEnumType,
-  [CClientType, CStringType, CUnsignedIntType, CIntType, KoffiOutParam("char*")]
+  [
+    CClientType,
+    CConstStringType,
+    CUnsignedIntType,
+    CIntType,
+    KoffiOutParam(CStringType),
+  ]
 );
 export const clientGetSegmentLocalTranslation = lib.func(
   "Client_GetSegmentLocalTranslation",
   CVoidType,
   [
     CClientType,
-    CStringType,
-    CStringType,
+    CConstStringType,
+    CConstStringType,
     CGetSegmentLocalTranslationOutputType.outParamName,
   ]
 );
@@ -176,8 +189,8 @@ export const clientGetSegmentLocalRotationEuler = lib.func(
   CVoidType,
   [
     CClientType,
-    CStringType,
-    CStringType,
+    CConstStringType,
+    CConstStringType,
     CGetSegmentLocalRotationEulerOutputType.outParamName,
   ]
 );
@@ -186,8 +199,8 @@ export const clientGetSegmentGlobalTranslation = lib.func(
   CVoidType,
   [
     CClientType,
-    CStringType,
-    CStringType,
+    CConstStringType,
+    CConstStringType,
     CGetSegmentGlobalTranslationOutputType.outParamName,
   ]
 );
@@ -196,9 +209,19 @@ export const clientGetSegmentGlobalRotationEuler = lib.func(
   CVoidType,
   [
     CClientType,
-    CStringType,
-    CStringType,
+    CConstStringType,
+    CConstStringType,
     CGetSegmentGlobalRotationEulerOutputType.outParamName,
+  ]
+);
+export const clientGetSegmentStaticTranslation = lib.func(
+  "Client_GetSegmentStaticTranslation",
+  CVoidType,
+  [
+    CClientType,
+    CConstStringType,
+    CConstStringType,
+    CGetSegmentStaticTranslationOutputType.outParamName,
   ]
 );
 export const clientGetSegmentStaticRotationEuler = lib.func(
@@ -206,8 +229,8 @@ export const clientGetSegmentStaticRotationEuler = lib.func(
   CVoidType,
   [
     CClientType,
-    CStringType,
-    CStringType,
+    CConstStringType,
+    CConstStringType,
     CGetSegmentStaticRotationEulerOutputType.outParamName,
   ]
 );

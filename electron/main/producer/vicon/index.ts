@@ -1,8 +1,7 @@
 import { BitStream } from "bit-buffer";
 import * as Rx from "rxjs";
 
-import { subjectDataToBvh } from "../conversion";
-import { SegmentData, SubjectData } from "../types";
+import { SegmentData, SubjectData } from "../../types";
 import {
   CGetFrameNumberOutputType,
   CGetSegmentCountOutputType,
@@ -11,6 +10,7 @@ import {
   CGetSegmentLocalRotationEulerOutputType,
   CGetSegmentLocalTranslationOutputType,
   CGetSegmentStaticRotationEulerOutputType,
+  CGetSegmentStaticTranslationOutputType,
   CGetSubjectCountOutputType,
   clientConnect,
   clientCreate,
@@ -26,6 +26,7 @@ import {
   clientGetSegmentLocalTranslation,
   clientGetSegmentName,
   clientGetSegmentStaticRotationEuler,
+  clientGetSegmentStaticTranslation,
   clientGetSubjectCount,
   clientGetSubjectName,
   clientIsConnected,
@@ -35,7 +36,6 @@ import {
   TsBoolTypeMapping,
   TsResultTypeMapping,
 } from "./cDefinitions";
-import { isExact } from "deep-guards";
 
 let client: any = null;
 
@@ -118,7 +118,7 @@ export function getData(): SubjectData[] | null {
         (result) => clientGetSegmentCount(client, subjectName, result)
       );
 
-      const segments: Record<string, SegmentData> = {};
+      const segments: SegmentData[] = [];
 
       for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
         const segmentNameBuffer = Buffer.allocUnsafe(128);
@@ -156,6 +156,16 @@ export function getData(): SubjectData[] | null {
         );
 
         if (segmentIndex === 0) {
+          const staticTranslation = callAsUnpackedOutputStruct<Float64Array>(
+            CGetSegmentStaticTranslationOutputType,
+            (result) =>
+              clientGetSegmentStaticTranslation(
+                client,
+                subjectName,
+                segmentName,
+                result
+              )
+          );
           const globalTranslation = callAsUnpackedOutputStruct<Float64Array>(
             CGetSegmentGlobalTranslationOutputType,
             (result) =>
@@ -189,14 +199,14 @@ export function getData(): SubjectData[] | null {
               )
           );
 
-          segments[segmentName] = {
-            id: segmentIndex,
+          segments.push({
+            id: segmentName,
             // posx: -processTranslation(globalTranslation.at(1)),
             // posy: processTranslation(globalTranslation.at(2)),
             // posz: processTranslation(globalTranslation.at(0)),
-            posx: processTranslation(localTranslation.at(0)),
-            posy: processTranslation(localTranslation.at(1)),
-            posz: processTranslation(localTranslation.at(2)),
+            posx: -processTranslation(localTranslation.at(1)),
+            posy: processTranslation(localTranslation.at(2)),
+            posz: -processTranslation(localTranslation.at(0)),
             // posx: processTranslation(globalTranslation.at(0)),
             // posy: processTranslation(globalTranslation.at(1)),
             // posz: processTranslation(globalTranslation.at(2)),
@@ -208,20 +218,20 @@ export function getData(): SubjectData[] | null {
 
             // 120, 102 are close
             // Tried: 012, 120, 102, 201, 021, 210
-            rotx: processRotation(localRotation.at(1)),
-            roty: processRotation(localRotation.at(2)),
-            rotz: processRotation(localRotation.at(0)),
-          };
+            rotx: processRotation(staticRotation.at(0)), // Try variations on 90 degree offsets
+            roty: processRotation(staticRotation.at(1)),
+            rotz: processRotation(staticRotation.at(2)),
+          });
         } else {
-          segments[segmentName] = {
-            id: segmentIndex,
+          segments.push({
+            id: segmentName,
             posx: processTranslation(localTranslation.at(0)),
             posy: processTranslation(localTranslation.at(1)),
             posz: processTranslation(localTranslation.at(2)),
             rotx: processRotation(localRotation.at(0)),
             roty: processRotation(localRotation.at(1)),
             rotz: processRotation(localRotation.at(2)),
-          };
+          });
         }
       }
 
@@ -232,20 +242,52 @@ export function getData(): SubjectData[] | null {
   return null;
 }
 
+const objectKeys = <K extends keyof {}>(obj: Record<K, unknown>): K[] =>
+  (Object.getOwnPropertyNames(obj) as K[]).concat(
+    Object.getOwnPropertySymbols(obj) as K[]
+  );
+
+function objectEntriesChecks<T extends object>(a: T, b: object): b is T {
+  const aKeys = objectKeys(a);
+  const bKeySet = new Set(objectKeys(b));
+  return (
+    aKeys.length === bKeySet.size &&
+    aKeys.every((k) => bKeySet.has(k) && isEqual(a[k], b[k]))
+  );
+}
+
+function isEqual(a: unknown, b: unknown): boolean {
+  return (
+    // Shallow checks
+    a === b ||
+    (Number.isNaN(a) && Number.isNaN(b)) ||
+    (Array.isArray(a)
+      ? // Array checks
+        Array.isArray(b) &&
+        a.length === b.length &&
+        a.every((v, i) => isEqual(v, b[i]))
+      : // Object checks
+        a != null &&
+        b != null &&
+        typeof a === "object" &&
+        typeof b === "object" &&
+        !Array.isArray(b) &&
+        objectEntriesChecks(a, b))
+  );
+}
+
 export function viconObserver(
   setIntervalTimeout: (timeout: NodeJS.Timeout) => void,
   fps = 90
-): Rx.Observable<Buffer> {
-  return new Rx.Observable<Buffer>((observer) => {
-    let isLastData: (data: SubjectData[]) => boolean = () => false;
+): Rx.Observable<SubjectData[]> {
+  return new Rx.Observable<SubjectData[]>((observer) => {
+    let lastData: SubjectData[] | null = null;
     setIntervalTimeout(
       setInterval(() => {
         const data = getData();
-        if (!isLastData(data)) {
-          observer.next(
-            Buffer.from(data.map(subjectDataToBvh).join(""), "utf-8")
-          );
-          // isLastData = isExact(data, true);
+        if (data != null && !isEqual(data, lastData)) {
+          observer.next(data);
+          lastData = data;
         }
       }, 1000 / fps)
     );

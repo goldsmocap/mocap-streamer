@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import Peer from "peerjs";
-import { computed, ref } from "vue";
-import { clientTypes, connectionServerBaseUrl, store } from "../../store";
-import { useRouter } from "vue-router";
-import Modal from "../components/Modal.vue";
 import { ErrorMessage, Field, Form, SubmissionHandler } from "vee-validate";
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import * as yup from "yup";
-import { ipcRenderer } from "electron";
+import { clientTypes, connectionServerBaseUrl, store } from "../../store";
+import Modal from "../components/Modal.vue";
 
 const router = useRouter();
 
