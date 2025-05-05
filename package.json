@@ -29,7 +29,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.4",
     "autoprefixer": "^10.4.20",
-    "daisyui": "^3.9.4",
+    "daisyui": "^5.0.35",
     "electron": "^32.1.1",
     "electron-builder": "^25.1.3",
     "postcss": "^8.4.47",
