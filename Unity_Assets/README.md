@@ -36,7 +36,7 @@ NOTE: The manager will always return the latest data from a peer, even if that p
 
 ## Saved Clip Format
 
-The saved clips have both a header and a data section.
+The saved clips have both a header and a data section. All the serialisation/deserialisation is done inside [AnimationFrame](./AnimationFrame.cs), so look there if you need implementation details of how this works.
 
 ### Clip Header
 
