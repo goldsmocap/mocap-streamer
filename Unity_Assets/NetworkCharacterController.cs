@@ -26,7 +26,7 @@ public class NetworkCharacterController : MonoBehaviour
       AnimationFrame frame = maybeFrame.Value;
       if (frame.frameStart > lastFrame)
       {
-        controller.SetFrame(maybeFrame.Value.data);
+        controller.SetFrame(maybeFrame.Value.subject);
         lastFrame = frame.frameStart;
       }
     }

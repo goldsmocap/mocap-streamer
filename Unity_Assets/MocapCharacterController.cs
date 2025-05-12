@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -35,8 +34,8 @@ public class MocapCharacterController : MonoBehaviour
       {
         transforms.TryGetValue(segment.id, out Transform segmentTransform);
         segmentTransform.SetLocalPositionAndRotation(
-          new Vector3(segment.posx / 100, segment.posy / 100, segment.posz / 100),
-          Quaternion.Euler(segment.rotx, segment.roty, segment.rotz)
+          segment.pos / 100,
+          segment.rot
         );
       }
       else

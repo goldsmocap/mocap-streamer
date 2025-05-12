@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
@@ -32,22 +31,9 @@ public class PlaybackCharacterController : MonoBehaviour
     }
     reader.Close();
 
-    // int serialisedLength = MocapCharacterController.TRANSFORM_DATA_LENGTH * sizeof(float) + sizeof(ushort);
-    List<AnimationFrame> frameList = new();
-    TimeSpan lastFrame = TimeSpan.Zero;
+    frames = AnimationFrame.Deserialise(allData);
 
-    // for (int i = 0; i < allData.Length / serialisedLength; i++)
-    // {
-    //   byte[] data = new byte[serialisedLength];
-    //   Array.Copy(allData, i * serialisedLength, data, 0, serialisedLength);
-    //   AnimationFrame frame = AnimationFrame.Deserialise(data, lastFrame);
-    //   frameList.Add(frame);
-    //   lastFrame = frame.frameStart;
-    // }
-
-    if (frameList.Count == 0) throw new Exception("No frames found for " + filePath);
-
-    frames = frameList.ToArray();
+    if (frames.Length == 0) throw new Exception("No frames found for " + filePath);
     clipLength = frames[^1].frameStart - frames[0].frameStart;
     accOffset = TimeSpan.FromMilliseconds(offsetInMs % clipLength.TotalMilliseconds);
   }
@@ -73,7 +59,7 @@ public class PlaybackCharacterController : MonoBehaviour
 
     if (currIndex != lastIndex)
     {
-      controller.SetFrame(frames[currIndex].data);
+      controller.SetFrame(frames[currIndex].subject);
       lastIndex = currIndex;
     }
   }

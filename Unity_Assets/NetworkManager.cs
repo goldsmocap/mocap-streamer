@@ -145,7 +145,7 @@ public class NetworkManager : MonoBehaviour
     float rotx = ParseOscFloat32(args, ref bytesIndex);
     float roty = ParseOscFloat32(args, ref bytesIndex);
     float rotz = ParseOscFloat32(args, ref bytesIndex);
-    return new SegmentData(id, posx, posy, posz, rotx, roty, rotz);
+    return SegmentData.fromData(id, posx, posy, posz, rotx, roty, rotz);
   }
 
   private List<AnimationFrame> ParseOscSubjectData(OscParts parts)
@@ -204,7 +204,7 @@ public class NetworkManager : MonoBehaviour
           bool isNew = true;
           for (int i = 0; i < allCurrentFrames[parts.address].Count; i++)
           {
-            if (allCurrentFrames[parts.address][i].data.name == frame.data.name)
+            if (allCurrentFrames[parts.address][i].subject.name == frame.subject.name)
             {
               allCurrentFrames[parts.address][i] = frame;
               isNew = false;

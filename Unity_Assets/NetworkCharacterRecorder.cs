@@ -8,7 +8,9 @@ public class NetworkCharacterRecorder : MonoBehaviour
 {
   public string filePath;
 
-  private readonly List<byte[]> recentFrames = new();
+  private bool writeMode = true;
+  private readonly List<byte[]> recentData = new();
+  private byte[] header;
   private bool recording = true;
   private TimeSpan? lastFrame;
   private NetworkManager manager;
@@ -18,7 +20,7 @@ public class NetworkCharacterRecorder : MonoBehaviour
   {
     manager = GetComponentInParent<NetworkManager>();
     character = GetComponent<NetworkCharacterController>();
-    Thread networkThread = new(SaveRecentFrames);
+    Thread networkThread = new(SaveRecentData);
     networkThread.Start();
   }
 
@@ -33,30 +35,41 @@ public class NetworkCharacterRecorder : MonoBehaviour
     if (maybeFrame.HasValue)
     {
       AnimationFrame frame = maybeFrame.Value;
-      // byte[] data = frame.Serialise(lastFrame.GetValueOrDefault(frame.frameStart));
-      // lastFrame = frame.frameStart;
-      // lock (recentFrames)
-      // {
-      //   recentFrames.Add(data);
-      // }
+
+      byte[] data = frame.SerialiseData(lastFrame.GetValueOrDefault(frame.frameStart));
+
+      lastFrame = frame.frameStart;
+      lock (recentData)
+      {
+        if (writeMode) header ??= frame.SerialiseHeader();
+        recentData.Add(data);
+      }
     }
   }
 
-  private void SaveRecentFrames()
+  private void SaveRecentData()
   {
     while (recording)
     {
-      if (recentFrames.Count > 0)
+      if (recentData.Count > 0)
       {
-        lock (recentFrames)
+        lock (recentData)
         {
-          StreamWriter writer = new(new FileStream(filePath, FileMode.Append, FileAccess.Write));
-          foreach (byte[] data in recentFrames)
+          StreamWriter writer = new(filePath, !writeMode);
+
+          if (writeMode)
+          {
+            writer.BaseStream.Write(header, 0, header.Length);
+          }
+
+          foreach (byte[] data in recentData)
           {
             writer.BaseStream.Write(data, 0, data.Length);
           }
+
           writer.Close();
-          recentFrames.Clear();
+          recentData.Clear();
+          writeMode = false;
         }
       }
     }

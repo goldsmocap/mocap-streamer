@@ -1,4 +1,4 @@
-using System;
+using UnityEngine;
 
 public struct SubjectData
 {
@@ -15,21 +15,23 @@ public struct SubjectData
 public struct SegmentData
 {
   public string id;
-  public float posx;
-  public float posy;
-  public float posz;
-  public float rotx;
-  public float roty;
-  public float rotz;
 
-  public SegmentData(string id, float posx, float posy, float posz, float rotx, float roty, float rotz)
+  public Vector3 pos;
+  public Quaternion rot;
+
+  public SegmentData(string id, Vector3 pos, Quaternion rot)
   {
     this.id = id;
-    this.posx = posx;
-    this.posy = posy;
-    this.posz = posz;
-    this.rotx = rotx;
-    this.roty = roty;
-    this.rotz = rotz;
+    this.pos = pos;
+    this.rot = rot;
+  }
+
+  public static SegmentData fromData(string id, float posx, float posy, float posz, float rotx, float roty, float rotz)
+  {
+    return new SegmentData(
+      id,
+      new Vector3(posx, posy, posz),
+      Quaternion.Euler(rotx, roty, rotz)
+    );
   }
 }
