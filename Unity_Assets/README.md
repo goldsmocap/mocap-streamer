@@ -20,7 +20,7 @@ This is all contained in the Unity side of things.
 
 To start with saving data, you need to attach the [NetworkCharacterRecorder](./NetworkCharacterRecorder.cs) script to the character you want to save the animation for. This has a `File Path` in it, where this will be the path of the file that will be created. You can use any extension, but it you need to remember it for playing it back.
 
-Similarly, there's a [PlaybackCharacterController](./PlaybackCharacterController.cs) script, that when attached will be able to play the animation back. This has a `File Path` (the same file path as the one from the recorder). You can also configure the `Offset in MS`, i.e. how far into the clip you want to start the animation from, as well as a `Loop` mode, which will repeat the animation once it reaches the end of the clip.
+Similarly, there's a [PlaybackCharacterController](./PlaybackCharacterController.cs) script, that when attached will be able to play the animation back. This has a `File Path` (the same file path as the one from the recorder). You can also configure the `Offset in Milliseconds`, i.e. how far into the clip you want to start the animation from, as well as a `Loop` mode, which will repeat the animation once it reaches the end of the clip.
 
 NOTE: for the playback to work, you must disable the [NetworkCharacterController](./NetworkCharacterController.cs) script, as these two will try to play their animations on the same character and will clash.
 

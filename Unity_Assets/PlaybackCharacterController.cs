@@ -6,7 +6,7 @@ using UnityEngine;
 public class PlaybackCharacterController : MonoBehaviour
 {
   public string filePath;
-  public uint offsetInMs;
+  public uint offsetInMilliseconds;
   public bool loop;
 
   private AnimationFrame[] frames;
@@ -35,7 +35,7 @@ public class PlaybackCharacterController : MonoBehaviour
 
     if (frames.Length == 0) throw new Exception("No frames found for " + filePath);
     clipLength = frames[^1].frameStart - frames[0].frameStart;
-    accOffset = TimeSpan.FromMilliseconds(offsetInMs % clipLength.TotalMilliseconds);
+    accOffset = TimeSpan.FromMilliseconds(offsetInMilliseconds % clipLength.TotalMilliseconds);
   }
 
   void Update()
