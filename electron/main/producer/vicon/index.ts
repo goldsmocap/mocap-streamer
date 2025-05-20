@@ -31,11 +31,14 @@ import {
   clientGetSubjectName,
   clientIsConnected,
   clientIsSegmentDataEnabled,
+  clientSetAxisMapping,
   clientSetBufferSize,
   createViconOutputStruct,
   TsBoolTypeMapping,
+  TsCDirectionTypeMapping,
   TsResultTypeMapping,
 } from "./cDefinitions";
+import { viconTransformMap } from "./transformMap.js";
 
 let client: any = null;
 
@@ -57,6 +60,12 @@ export function connect(host: string) {
   disconnect();
   client = clientCreate();
   clientSetBufferSize(client, 1);
+  // clientSetAxisMapping(
+  //   client,
+  //   TsCDirectionTypeMapping.Left,
+  //   TsCDirectionTypeMapping.Up,
+  //   TsCDirectionTypeMapping.Forward
+  // );
   return [clientConnect(client, host), clientEnableSegmentData(client)].every(
     (result) => result === TsResultTypeMapping.Success
   );
@@ -129,7 +138,9 @@ export function getData(): SubjectData[] | null {
           segmentNameBuffer.length,
           segmentNameBuffer
         );
-        const segmentName = bufToString(segmentNameBuffer);
+        const segmentName = viconTransformMap[bufToString(segmentNameBuffer)];
+        if (segmentName == null) continue;
+
         const processTranslation = (n: number) => reverseBits(n) / 10;
         const processRotation = (n: number, offset: number = 0) =>
           posMod((reverseBits(n) / Math.PI) * 180 + offset + 180, 360) - 180;
@@ -225,6 +236,9 @@ export function getData(): SubjectData[] | null {
         } else {
           segments.push({
             id: segmentName,
+            // posx: processTranslation(localTranslation.at(0)),
+            // posy: processTranslation(localTranslation.at(1)),
+            // posz: processTranslation(localTranslation.at(2)),
             posx: processTranslation(localTranslation.at(0)),
             posy: processTranslation(localTranslation.at(1)),
             posz: processTranslation(localTranslation.at(2)),

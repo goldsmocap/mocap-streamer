@@ -2,8 +2,10 @@ import * as dgram from "dgram";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
+
 import { axisStudioObserver } from "./producer/axisStudio.js";
 import * as development from "./producer/development";
+import { optitrackObserver } from "./producer/optitrack/index.js";
 import * as vicon from "./producer/vicon";
 import { xsensObserver } from "./producer/xsens";
 import { observableFromDataUdp, observerToUdp } from "./rxUdp";
@@ -14,6 +16,8 @@ import {
   SubjectData,
 } from "./types";
 import { checkExhausted } from "./utils";
+
+optitrackObserver();
 
 // The built directory structure
 //
@@ -157,7 +161,11 @@ function connectProducer(
       const subscription = xsensObserver(socket).subscribe({
         next: producerDataReceived,
       });
-      setProducerState({ type, socket, subscription });
+      setProducerState({
+        type: "Xsens",
+        socket,
+        subscription,
+      });
 
       break;
     }

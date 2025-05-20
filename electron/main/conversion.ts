@@ -27,12 +27,12 @@ export function oscToData(message: Uint8Array): OscData {
 }
 
 export function subjectDataToOsc(
-  subjectData: SubjectData[],
-  clientName: string
+  address: string,
+  subjectData: SubjectData[]
 ): Uint8Array {
   const oscData: OscData = {
-    address: clientName,
-    args: subjectData.flatMap(({ name, segments }, i) => [
+    address,
+    args: subjectData.flatMap(({ name, segments }) => [
       name,
       ...segments.flatMap((segmentData) => [
         segmentData.id,

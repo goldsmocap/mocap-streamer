@@ -116,6 +116,15 @@ export enum TsBoolTypeMapping {
   True,
 }
 
+export enum TsCDirectionTypeMapping {
+  Up,
+  Down,
+  Left,
+  Right,
+  Forward,
+  Backward,
+}
+
 export const clientCreate = lib.func("Client_Create", CClientType, []);
 export const clientDestroy = lib.func("Client_Destroy", CVoidType, [
   CClientType,
@@ -238,3 +247,9 @@ export const clientSetBufferSize = lib.func("Client_SetBufferSize", CVoidType, [
   CClientType,
   CUnsignedIntType,
 ]);
+
+export const clientSetAxisMapping = lib.func(
+  "Client_SetAxisMapping",
+  CVoidType,
+  [CClientType, CEnumType, CEnumType, CEnumType]
+);

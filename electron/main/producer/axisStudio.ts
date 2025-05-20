@@ -100,7 +100,7 @@ export function axisStudioObserver(
   fps: number = 90
 ): Rx.Observable<SubjectData[]> {
   return new Rx.Observable<SubjectData[]>((observer) => {
-    const toSend = [];
+    const toSend: SubjectData[] = [];
     socket.on("message", (msg: Buffer) => {
       const subjectData = bvhToSubjectData(bufferToString(msg));
       const toSendNames = new Set(toSend.map(({ name }) => name));

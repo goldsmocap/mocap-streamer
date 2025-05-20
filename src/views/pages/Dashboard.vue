@@ -53,8 +53,8 @@ const producerConnection = reactive<
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
-  // initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
-  initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
+  initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
+  // initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
   // initial: { address: "127.0.0.1", port: 9763, type: "Xsens" },
   // initial: { address: "10.1.190.181", port: 1510, type: "Optitrack" },
 });
@@ -164,7 +164,7 @@ ipcRenderer.on("incomingDataReceived", (_evt, buffer: Buffer) => {
 
 ipcRenderer.on("producerDataReceived", (_evt, subjectData: SubjectData[]) => {
   if (producerConnection.status !== "disconnected") {
-    const oscData = subjectDataToOsc(subjectData, store.clientName);
+    const oscData = subjectDataToOsc(store.clientName, subjectData);
 
     if (isOnline.value) {
       store.dataConnections?.forEach((conn) => conn?.send(oscData));

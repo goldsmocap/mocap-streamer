@@ -44,8 +44,10 @@
   "packageManager": "yarn@3.6.3",
   "dependencies": {
     "@vueuse/head": "^2.0.0",
+    "bindings": "^1.5.0",
     "bit-buffer": "^0.2.5",
     "koffi": "^2.9.0",
+    "node-addon-api": "^8.3.1",
     "oh-vue-icons": "^1.0.0-rc3",
     "osc": "^2.4.5",
     "peerjs": "^1.5.4",
