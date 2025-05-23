@@ -1,34 +1,10 @@
-import koffi from "koffi";
+import { FixedLengthTuple } from "../../utils.js";
 
-// const lib = koffi.load(".\\C\\Optitrack\\OptitrackCPPClient.dll");
-const lib = koffi.load(
-  ".\\OptitrackCPPClient\\x64\\Release\\OptitrackCPPClient.dll"
-);
-const KoffiOutParam = (inType: string) => `_Out_ ${inType}`;
-const CPointerType = (inType: string) => `${inType}*`;
-
-const CClientType = CPointerType("void");
-const CStringType = "const char*";
-const CBoolType = "int";
-const CVoidType = "void";
-const CEnumType = "int";
-const CIntType = "int";
-const CUInt16T = "uint16_t";
-const CInt32T = "int32_t";
-const CFloat = "float";
-const CUnsignedIntType = "unsigned int";
-
-enum verbosityTypeMapping {
-  Verbosity_None = 0,
-  Verbosity_Debug,
-  Verbosity_Info,
-  Verbosity_Warning,
-  Verbosity_Error,
-}
 export enum connectionTypeMapping {
   ConnectionType_Multicast = 0,
   ConnectionType_Unicast,
 }
+
 export enum errorCodeTypeMapping {
   ErrorCode_OK = 0,
   ErrorCode_Internal,
@@ -39,6 +15,7 @@ export enum errorCodeTypeMapping {
   ErrorCode_InvalidOperation,
   ErrorCode_InvalidSize,
 }
+
 export enum dataDescriptorsTypeMapping {
   Descriptor_MarkerSet = 0,
   Descriptor_RigidBody,
@@ -48,89 +25,194 @@ export enum dataDescriptorsTypeMapping {
   Descriptor_Camera,
   Descriptor_Asset,
 }
-enum assetTypesTypeMapping {
+
+export enum assetTypesTypeMapping {
   AssetType_Undefined = 0,
   AssetType_TrainedMarkerset = 1,
 }
 
-export const connectParams = koffi.struct("sNatNetClientConnectParams", {
-  connectionType: CEnumType,
-  serverCommandPort: CUInt16T,
-  serverDataPort: CUInt16T,
-  serverAddress: CStringType,
-  localAddress: CStringType,
-  multicastAddress: CStringType,
-  subscribedDataOnly: CBoolType,
-});
+export interface SNatNetClientConnectParams {
+  connectionType?: connectionTypeMapping;
+  serverCommandPort?: number;
+  serverDataPort?: number;
+  serverAddress?: string;
+  localAddress?: string;
+  multicastAddress?: string;
+  subscribedDataOnly?: boolean;
+  bitstreamVersion?: FixedLengthTuple<number, 4>;
+}
 
-export const markerData = koffi.array(CFloat, 3, "Array");
+interface SMarkerSetDescription {
+  szName: string;
+  szMarkerNames: string[];
+}
 
-export const rigidBodyDescription = koffi.struct("sRigidBodyDescription", {
-  szName: CPointerType("char"),
-  ID: CInt32T,
-  parentID: CInt32T,
-  offsetx: CFloat,
-  offsety: CFloat,
-  offsetz: CFloat,
-  offsetqx: CFloat,
-  offsetqy: CFloat,
-  offsetqz: CFloat,
-  offsetqw: CFloat,
-  nMarkers: CInt32T,
-  MarkerPositions: markerData,
-  MarkerRequiredLabels: CPointerType(CInt32T),
-  szMarkerNames: CPointerType("char*"),
-});
+type MarkerData = FixedLengthTuple<number, 3>;
 
-export const skeletonDescription = koffi.struct("sSkeletonDescription", {
-  szName: CPointerType("char"),
-  skeletonID: CInt32T,
-  nRigidBodies: CInt32T,
-  RigidBodies: rigidBodyDescription,
-});
+interface SRigidBodyDescription {
+  szName: string;
+  id: number;
+  parentId: number;
+  offsetX: number;
+  offsetY: number;
+  offsetZ: number;
+  offsetQX: number;
+  offsetQY: number;
+  offsetQZ: number;
+  offsetQW: number;
+  markerPositions: MarkerData[];
+  markerRequiredLabels: number[];
+  szMarkerNames: string[];
+}
 
-export const markerSetDescription = koffi.struct("sMarkerSetDescription", {
-  szName: CPointerType("char"),
-  nMarkers: CInt32T,
-  szMarkerNames: CPointerType("char*"),
-});
+interface SSkeletonDescription {
+  szName: string;
+  skeletonID: number;
+  rigidBodies: SRigidBodyDescription[];
+}
 
-export const dataDescription = koffi.struct("sDataDescription", {
-  type: CInt32T,
-  Data: koffi.union({
-    MarkerSetDescription: markerSetDescription,
-    RigidBodyDescription: rigidBodyDescription,
-    SkeletonDescription: skeletonDescription,
-    // ForcePlateDescription: CPointerType("sForcePlateDescription"),
-    // DeviceDescription: CPointerType("sDeviceDescription"),
-    // CameraDescription: CPointerType("sCameraDescription"),
-    // AssetDescription: CPointerType("sAssetDescription"),
-  }),
-});
+interface SForcePlateDescription {
+  id: number;
+  strSerialNo: string;
+  fWidth: number;
+  fLength: number;
+  fOriginX: number;
+  fOriginY: number;
+  fOriginZ: number;
+  fCalMat: FixedLengthTuple<FixedLengthTuple<number, 12>, 12>;
+  fCorners: FixedLengthTuple<MarkerData, 4>;
+  iPlateType: number;
+  iChannelDataType: number;
+  szChannelNames: string[];
+}
 
-export const dataDescriptions = koffi.struct("sDataDescriptions", {
-  nDataDescriptions: CInt32T,
-  arrDataDescription: koffi.array(dataDescription, 2000, "Array"),
-});
+interface SDeviceDescription {
+  id: number;
+  strName: string;
+  strSerialNo: string;
+  iDeviceType: number;
+  iChannelDataType: number;
+  szChannelNames: string[];
+}
 
-// Functions
+interface SCameraDescription {
+  strName: string;
+  x: number;
+  y: number;
+  z: number;
+  qX: number;
+  qY: number;
+  qZ: number;
+  qW: number;
+}
 
-export const clientConnect = lib.func("Client_Connect", CEnumType, [
-  connectParams,
-]);
-export const clientDisconnect = lib.func("Client_Disconnect", CEnumType, []);
-export const clientRegisterFrameCallback = lib.func(
-  "Client_RegisterFrameCallback",
-  CEnumType,
-  []
-);
-export const clientGetDataDescriptions = lib.func(
-  "Client_GetDataDescriptions",
-  CEnumType,
-  [KoffiOutParam(CPointerType("sDataDescription*"))]
-);
-export const clientGetPreviousFrame = lib.func(
-  "Client_GetPreviousFrame",
-  CVoidType,
-  []
-);
+interface SMarkerDescription {
+  szName: string;
+  id: number;
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  params: number;
+}
+
+interface SAssetDescription {
+  szName: string;
+  assetType: number;
+  assetId: number;
+  rigidBodies: SRigidBodyDescription[];
+  markers: SMarkerDescription;
+}
+
+type SDataDescription =
+  | ({ type: "MarkerSet" } & SMarkerSetDescription)
+  | ({ type: "RigidBody" } & SRigidBodyDescription)
+  | ({ type: "Skeleton" } & SSkeletonDescription)
+  | ({ type: "ForcePlate" } & SForcePlateDescription)
+  | ({ type: "Device" } & SDeviceDescription)
+  | ({ type: "Camera" } & SCameraDescription)
+  | ({ type: "Asset" } & SAssetDescription);
+
+export type SDataDescriptions = SDataDescription[];
+
+interface SMarkerSetData {
+  szName: string;
+  markers: MarkerData[];
+}
+
+interface SRigidBodyData {
+  id: number;
+  x: number;
+  y: number;
+  z: number;
+  qX: number;
+  qY: number;
+  qZ: number;
+  qW: number;
+  meanError: number;
+  params: number;
+}
+
+interface SSkeletonData {
+  skeletonId: number;
+  rigidBodies: SRigidBodyData[];
+}
+
+interface SMarker {
+  id: number;
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  params: number;
+  residual: number;
+}
+
+interface SAssetData {
+  assetId: number;
+  rigidBodies: SRigidBodyData[];
+  markerData: SMarker[];
+}
+
+type SAnalogChannelData = number[];
+
+interface SForcePlateData {
+  id: number;
+  channelData: SAnalogChannelData[];
+  params: number;
+}
+
+interface SDeviceData {
+  id: number;
+  channelData: SAnalogChannelData[];
+  params: number;
+}
+
+export interface SFrameOfMocapData {
+  iFrame: number;
+  markerSets: SMarkerSetData[];
+  otherMarkers: MarkerData[];
+  rigidBodies: SRigidBodyData[];
+  skeletons: SSkeletonData[];
+  assets: SAssetData[];
+  labeledMarkers: SMarker[];
+  forcePlates: SForcePlateData[];
+  devices: SDeviceData[];
+  timecode: number;
+  timecodeSubframe: number;
+  fTimestamp: number;
+  cameraMidExposureTimestamp: number;
+  cameraDataReceivedTimestamp: number;
+  transmitTimestamp: number;
+  precisionTimestampSecs: number;
+  precisionTimestampFractionalSecs: number;
+  params: number;
+}
+
+export const optitrackBridge: {
+  clientConnect: (params: SNatNetClientConnectParams) => errorCodeTypeMapping;
+  clientDisconnect: () => errorCodeTypeMapping;
+  clientRegisterFrameCallback: () => errorCodeTypeMapping;
+  clientGetDataDescriptions: () => SDataDescriptions | null;
+  clientGetPreviousFrame: () => SFrameOfMocapData | null;
+} = require("bindings")("optitrackBridge");
