@@ -1,11 +1,11 @@
 import { FixedLengthTuple } from "../../utils.js";
 
-export enum connectionTypeMapping {
+export enum ConnectionType {
   ConnectionType_Multicast = 0,
   ConnectionType_Unicast,
 }
 
-export enum errorCodeTypeMapping {
+export enum ErrorCode {
   ErrorCode_OK = 0,
   ErrorCode_Internal,
   ErrorCode_External,
@@ -16,7 +16,7 @@ export enum errorCodeTypeMapping {
   ErrorCode_InvalidSize,
 }
 
-export enum dataDescriptorsTypeMapping {
+export enum DataDescriptors {
   Descriptor_MarkerSet = 0,
   Descriptor_RigidBody,
   Descriptor_Skeleton,
@@ -26,13 +26,13 @@ export enum dataDescriptorsTypeMapping {
   Descriptor_Asset,
 }
 
-export enum assetTypesTypeMapping {
+export enum AssetTypes {
   AssetType_Undefined = 0,
   AssetType_TrainedMarkerset = 1,
 }
 
 export interface SNatNetClientConnectParams {
-  connectionType?: connectionTypeMapping;
+  connectionType?: ConnectionType;
   serverCommandPort?: number;
   serverDataPort?: number;
   serverAddress?: string;
@@ -42,14 +42,14 @@ export interface SNatNetClientConnectParams {
   bitstreamVersion?: FixedLengthTuple<number, 4>;
 }
 
-interface SMarkerSetDescription {
+export interface SMarkerSetDescription {
   szName: string;
   szMarkerNames: string[];
 }
 
-type MarkerData = FixedLengthTuple<number, 3>;
+export type MarkerData = FixedLengthTuple<number, 3>;
 
-interface SRigidBodyDescription {
+export interface SRigidBodyDescription {
   szName: string;
   id: number;
   parentId: number;
@@ -65,13 +65,13 @@ interface SRigidBodyDescription {
   szMarkerNames: string[];
 }
 
-interface SSkeletonDescription {
+export interface SSkeletonDescription {
   szName: string;
-  skeletonID: number;
+  skeletonId: number;
   rigidBodies: SRigidBodyDescription[];
 }
 
-interface SForcePlateDescription {
+export interface SForcePlateDescription {
   id: number;
   strSerialNo: string;
   fWidth: number;
@@ -86,7 +86,7 @@ interface SForcePlateDescription {
   szChannelNames: string[];
 }
 
-interface SDeviceDescription {
+export interface SDeviceDescription {
   id: number;
   strName: string;
   strSerialNo: string;
@@ -95,7 +95,7 @@ interface SDeviceDescription {
   szChannelNames: string[];
 }
 
-interface SCameraDescription {
+export interface SCameraDescription {
   strName: string;
   x: number;
   y: number;
@@ -106,7 +106,7 @@ interface SCameraDescription {
   qW: number;
 }
 
-interface SMarkerDescription {
+export interface SMarkerDescription {
   szName: string;
   id: number;
   x: number;
@@ -116,7 +116,7 @@ interface SMarkerDescription {
   params: number;
 }
 
-interface SAssetDescription {
+export interface SAssetDescription {
   szName: string;
   assetType: number;
   assetId: number;
@@ -124,7 +124,7 @@ interface SAssetDescription {
   markers: SMarkerDescription;
 }
 
-type SDataDescription =
+export type SDataDescription =
   | ({ type: "MarkerSet" } & SMarkerSetDescription)
   | ({ type: "RigidBody" } & SRigidBodyDescription)
   | ({ type: "Skeleton" } & SSkeletonDescription)
@@ -135,12 +135,12 @@ type SDataDescription =
 
 export type SDataDescriptions = SDataDescription[];
 
-interface SMarkerSetData {
+export interface SMarkerSetData {
   szName: string;
   markers: MarkerData[];
 }
 
-interface SRigidBodyData {
+export interface SRigidBodyData {
   id: number;
   x: number;
   y: number;
@@ -153,12 +153,12 @@ interface SRigidBodyData {
   params: number;
 }
 
-interface SSkeletonData {
+export interface SSkeletonData {
   skeletonId: number;
   rigidBodies: SRigidBodyData[];
 }
 
-interface SMarker {
+export interface SMarker {
   id: number;
   x: number;
   y: number;
@@ -168,21 +168,21 @@ interface SMarker {
   residual: number;
 }
 
-interface SAssetData {
+export interface SAssetData {
   assetId: number;
   rigidBodies: SRigidBodyData[];
   markerData: SMarker[];
 }
 
-type SAnalogChannelData = number[];
+export type SAnalogChannelData = number[];
 
-interface SForcePlateData {
+export interface SForcePlateData {
   id: number;
   channelData: SAnalogChannelData[];
   params: number;
 }
 
-interface SDeviceData {
+export interface SDeviceData {
   id: number;
   channelData: SAnalogChannelData[];
   params: number;
@@ -210,9 +210,9 @@ export interface SFrameOfMocapData {
 }
 
 export const optitrackBridge: {
-  clientConnect: (params: SNatNetClientConnectParams) => errorCodeTypeMapping;
-  clientDisconnect: () => errorCodeTypeMapping;
-  clientRegisterFrameCallback: () => errorCodeTypeMapping;
-  clientGetDataDescriptions: () => SDataDescriptions | null;
+  clientConnect: (params: SNatNetClientConnectParams) => ErrorCode;
+  clientDisconnect: () => ErrorCode;
+  clientRegisterFrameCallback: () => ErrorCode;
+  clientGetDataDescriptions: () => SDataDescriptions | ErrorCode;
   clientGetPreviousFrame: () => SFrameOfMocapData | null;
 } = require("bindings")("optitrackBridge");

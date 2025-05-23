@@ -5,8 +5,8 @@ import { join } from "node:path";
 
 import { axisStudioObserver } from "./producer/axisStudio.js";
 import * as development from "./producer/development";
-import { optitrackObserver } from "./producer/optitrack/index.js";
-import * as vicon from "./producer/vicon";
+import { optitrack } from "./producer/optitrack/index.js";
+import { vicon } from "./producer/vicon";
 import { xsensObserver } from "./producer/xsens";
 import { observableFromDataUdp, observerToUdp } from "./rxUdp";
 import {
@@ -16,8 +16,6 @@ import {
   SubjectData,
 } from "./types";
 import { checkExhausted } from "./utils";
-
-optitrackObserver();
 
 // The built directory structure
 //
@@ -98,7 +96,7 @@ function connectProducer(
     case "Vicon": {
       vicon.connect(`${address}:${port}`);
       const subscription = vicon
-        .viconObserver((timeout) => {
+        .observer((timeout) => {
           setProducerState((state) => ({
             ...(state ?? {}),
             type: "Vicon",
@@ -115,26 +113,24 @@ function connectProducer(
     }
 
     case "Optitrack": {
-      const socket = dgram.createSocket("udp4");
-      socket.bind(port, address, console.log);
-      // socket.bind(port, () => {
-      //   socket.setBroadcast(true);
-      //   socket.setMulticastTTL(128);
-      //   socket.addMembership(address);
-      // });
+      // TODO: Pipe the params here:
+      optitrack.connect();
 
-      throw new Error("Not implemented yet!");
-
-      // setProducerState({
-      //   type,
-      //   address,
-      //   socket,
-      //   // TODO: Make this use SubjectData[]
-      //   subscription: observableFromBvhUdp(socket).subscribe({
-      //     next: producerDataReceived,
-      //   }),
-      // });
-      // break;
+      const subscription = optitrack
+        .observer((timeout) => {
+          setProducerState((state) => ({
+            ...(state ?? {}),
+            type: "Optitrack",
+            timeout,
+          }));
+        })
+        .subscribe({ next: producerDataReceived });
+      setProducerState({
+        type: "Optitrack",
+        subscription,
+        timeout: undefined,
+      });
+      break;
     }
 
     case "Development": {
@@ -190,6 +186,7 @@ function disconnectProducer() {
       producerState.subscription.unsubscribe();
       break;
     }
+
     case "Vicon": {
       if (producerState.timeout != null) {
         clearInterval(producerState.timeout);
@@ -200,16 +197,18 @@ function disconnectProducer() {
       vicon.disconnect();
       break;
     }
+
     case "Optitrack": {
-      try {
-        producerState.socket.dropMembership(producerState.address);
-      } catch (err) {
-        console.error(err);
+      if (producerState.timeout != null) {
+        clearInterval(producerState.timeout);
       }
-      producerState.socket.close();
-      producerState.subscription.unsubscribe();
+      if (producerState.subscription != null) {
+        producerState.subscription.unsubscribe();
+      }
+      optitrack.disconnect();
       break;
     }
+
     case "Development": {
       if (producerState.timeout != null) {
         clearInterval(producerState.timeout);

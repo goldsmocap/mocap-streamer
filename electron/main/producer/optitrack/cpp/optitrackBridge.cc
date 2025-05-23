@@ -69,7 +69,7 @@ Napi::Object wrapSSkeletonDescription(Napi::Env env, sSkeletonDescription *value
   Napi::Object obj = Napi::Object::New(env);
 
   obj.Set("szName", Napi::String::New(env, value->szName));
-  obj.Set("skeletonID", Napi::Number::New(env, (double)(value->skeletonID)));
+  obj.Set("skeletonId", Napi::Number::New(env, (double)(value->skeletonID)));
 
   Napi::Array rigidBodies = Napi::Array::New(env, value->nRigidBodies);
 
@@ -600,22 +600,35 @@ Napi::Number ClientRegisterFrameCallback(const Napi::CallbackInfo &info)
   return Napi::Number::New(env, (double)code);
 }
 
-Napi::Object ClientGetDataDescriptions(const Napi::CallbackInfo &info)
+Napi::Value ClientGetDataDescriptions(const Napi::CallbackInfo &info)
 {
   Napi::Env env = info.Env();
 
   sDataDescriptions *outDescriptions = {};
   ErrorCode code = client->GetDataDescriptionList(&outDescriptions);
 
-  return wrapSDataDescriptions(env, outDescriptions);
+  if (code == ErrorCode::ErrorCode_OK)
+  {
+    return wrapSDataDescriptions(env, outDescriptions);
+  }
+  else
+  {
+    return Napi::Number::New(env, code);
+  }
 }
 
-Napi::Object ClientGetPreviousFrame(const Napi::CallbackInfo &info)
+Napi::Value ClientGetPreviousFrame(const Napi::CallbackInfo &info)
 {
   Napi::Env env = info.Env();
 
-  // Wrap up lastFrame
-  return wrapSFrameOfMocapData(env, lastFrame);
+  if (lastFrame != NULL)
+  {
+    return wrapSFrameOfMocapData(env, lastFrame);
+  }
+  else
+  {
+    return env.Null();
+  }
 }
 
 Napi::Object

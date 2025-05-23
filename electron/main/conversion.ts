@@ -1,5 +1,6 @@
 import osc from "osc";
 import { MessageMode, SubjectData } from "./types";
+import { FixedLengthTuple, tuple } from "./utils.js";
 
 const OSC_ADDRESS_SEPARATOR = "/";
 
@@ -56,4 +57,23 @@ export function bufferToString(buffer: Buffer): string {
 
 export function stringToBuffer(bvh: string): Buffer {
   return Buffer.from(bvh, "utf-8");
+}
+
+export function quaternionToEuler(
+  qX: number,
+  qY: number,
+  qZ: number,
+  qW: number
+): FixedLengthTuple<number, 3> {
+  const x = Math.atan2(2 * (qW * qX + qY * qZ), 1 - 2 * (qX ** 2 + qY ** 2));
+  const y =
+    2 *
+      Math.atan2(
+        Math.sqrt(1 + 2 * (qW * qY - qX * qZ)),
+        Math.sqrt(1 - 2 * (qW * qY - qX * qZ))
+      ) -
+    Math.PI / 2;
+  const z = Math.atan2(2 * (qW * qZ + qX * qY), 1 - 2 * (qY ** 2 + qZ ** 2));
+
+  return tuple(x, y, z);
 }

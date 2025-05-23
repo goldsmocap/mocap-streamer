@@ -25,9 +25,8 @@ export type ConsumerState = UnityConsumerState;
 
 export interface OptitrackProducerState {
   type: "Optitrack";
-  address: string;
-  socket: dgram.Socket;
   subscription?: Subscription;
+  timeout?: NodeJS.Timeout;
 }
 
 export interface AxisStudioProducerState {

@@ -20,6 +20,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "build:cpp": "node-gyp rebuild",
     "build": "vue-tsc --noEmit && vite build && electron-builder",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -48,6 +49,7 @@
     "bit-buffer": "^0.2.5",
     "koffi": "^2.9.0",
     "node-addon-api": "^8.3.1",
+    "node-gyp": "^11.2.0",
     "oh-vue-icons": "^1.0.0-rc3",
     "osc": "^2.4.5",
     "peerjs": "^1.5.4",

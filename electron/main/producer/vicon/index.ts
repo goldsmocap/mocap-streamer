@@ -46,7 +46,7 @@ function isConnected() {
   return client != null && clientIsConnected(client) === TsBoolTypeMapping.True;
 }
 
-export function disconnect(): boolean {
+function disconnect(): boolean {
   if (isConnected()) {
     const result = clientDisconnect(client) === TsResultTypeMapping.Success;
     clientDestroy(client);
@@ -56,7 +56,7 @@ export function disconnect(): boolean {
   return false;
 }
 
-export function connect(host: string) {
+function connect(host: string) {
   disconnect();
   client = clientCreate();
   clientSetBufferSize(client, 1);
@@ -290,7 +290,7 @@ function isEqual(a: unknown, b: unknown): boolean {
   );
 }
 
-export function viconObserver(
+function observer(
   setIntervalTimeout: (timeout: NodeJS.Timeout) => void,
   fps = 90
 ): Rx.Observable<SubjectData[]> {
@@ -307,3 +307,5 @@ export function viconObserver(
     );
   });
 }
+
+export const vicon = { connect, disconnect, observer };
