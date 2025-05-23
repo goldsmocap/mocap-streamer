@@ -12,10 +12,12 @@ import { observableFromDataUdp, observerToUdp } from "./rxUdp";
 import {
   ConsumerState,
   IncomingDataState,
+  ProducerConnectionDetails,
   ProducerState,
   SubjectData,
 } from "./types";
 import { checkExhausted } from "./utils";
+import { ConnectionType } from "./producer/optitrack/cDefinitions.js";
 
 // The built directory structure
 //
@@ -72,21 +74,17 @@ function producerDataReceived(subjectData: SubjectData[]) {
   win.webContents.send("producerDataReceived", subjectData);
 }
 
-function connectProducer(
-  type: ProducerState["type"],
-  address: string,
-  port: number
-) {
-  console.log(`Connecting to ${type} at ${address}:${port}`);
-  switch (type) {
+function connectProducer(details: ProducerConnectionDetails) {
+  console.log(`Connection details: ${JSON.stringify(details)}`);
+  switch (details.type) {
     case "AxisStudio": {
       const socket = dgram.createSocket("udp4");
-      socket.bind(port, address);
+      socket.bind(details.port, details.address);
       const subscription = axisStudioObserver(socket).subscribe({
         next: producerDataReceived,
       });
       setProducerState({
-        type,
+        type: details.type,
         socket,
         subscription,
       });
@@ -94,7 +92,7 @@ function connectProducer(
     }
 
     case "Vicon": {
-      vicon.connect(`${address}:${port}`);
+      vicon.connect(`${details.address}:${details.port}`);
       const subscription = vicon
         .observer((timeout) => {
           setProducerState((state) => ({
@@ -113,8 +111,18 @@ function connectProducer(
     }
 
     case "Optitrack": {
-      // TODO: Pipe the params here:
-      optitrack.connect();
+      optitrack.connect({
+        connectionType:
+          details.connectionType === "Multicast"
+            ? ConnectionType.ConnectionType_Multicast
+            : ConnectionType.ConnectionType_Unicast,
+        serverCommandPort: details.serverCommandPort,
+        serverDataPort: details.serverDataPort,
+        serverAddress: details.serverAddress,
+        localAddress: details.localAddress,
+        multicastAddress: details.multicastAddress,
+        subscribedDataOnly: true,
+      });
 
       const subscription = optitrack
         .observer((timeout) => {
@@ -153,7 +161,7 @@ function connectProducer(
 
     case "Xsens": {
       const socket = dgram.createSocket("udp4");
-      socket.bind(port, address);
+      socket.bind(details.port, details.address);
       const subscription = xsensObserver(socket).subscribe({
         next: producerDataReceived,
       });
@@ -167,7 +175,7 @@ function connectProducer(
     }
 
     default:
-      return checkExhausted(type);
+      return checkExhausted(details);
   }
 }
 
@@ -267,8 +275,8 @@ async function createWindow() {
 
   ipcMain.handle(
     "connectProducer",
-    (_evt, type: ProducerState["type"], address: string, port: number) => {
-      connectProducer(type, address, port);
+    (_evt, details: ProducerConnectionDetails) => {
+      connectProducer(details);
     }
   );
 

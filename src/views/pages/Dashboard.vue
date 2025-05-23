@@ -8,11 +8,9 @@ import ConsumerConnectionDetailsForm, {
   ConsumerConnectionDetails,
 } from "../components/ConsumerConnectionDetailsForm.vue";
 import Modal from "../components/Modal.vue";
-import ProducerConnectionDetailsForm, {
-  ProducerConnectionDetails,
-} from "../components/ProducerConnectionDetailsForm.vue";
+import ProducerConnectionDetailsForm from "../components/ProducerConnectionDetailsForm.vue";
 import { bufferToString, dataToOsc, subjectDataToOsc } from "../../conversion";
-import { SubjectData } from "../../types";
+import { ProducerConnectionDetails, SubjectData } from "../../types";
 
 const router = useRouter();
 
@@ -123,9 +121,8 @@ function resetResponseTimeout(connection: ConnectionStatus<unknown>) {
 }
 
 function connectProducer(details: ProducerConnectionDetails) {
-  const { type, address, port } = (producerConnection.initial = details);
   ipcRenderer
-    .invoke("connectProducer", type, address, port)
+    .invoke("connectProducer", details)
     .then(() => {
       log.value.push({ type: "info", text: "Started sending data" });
       producerConnection.responseTimeoutId =

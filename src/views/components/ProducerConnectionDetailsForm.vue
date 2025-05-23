@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import * as yup from "yup";
 import { ErrorMessage, Field, Form } from "vee-validate";
+import { ProducerConnectionDetails } from "../../types";
 
 interface Option<S extends string> {
   label: string;
@@ -13,19 +14,13 @@ function option<const S extends string>(
 ): Option<S> {
   return { label, value };
 }
-const producerOptionTypes = [
+const producerOptionTypes: Option<ProducerConnectionDetails["type"]>[] = [
   option("AxisStudio", "Axis Studio"),
   option("Vicon"),
   option("Optitrack"),
   option("Xsens"),
   option("Development"),
 ];
-
-export interface ProducerConnectionDetails {
-  type: typeof producerOptionTypes extends Option<infer S>[] ? S : never;
-  address: string;
-  port: number;
-}
 
 const producerConnectionDetailsSchema = computed(() =>
   yup.object({

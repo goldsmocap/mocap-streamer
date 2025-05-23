@@ -16,6 +16,31 @@ export interface SubjectData {
   segments: SegmentData[];
 }
 
+interface OfflineDetails<S extends string> {
+  type: S;
+}
+
+interface SimpleConnectionDetails<S extends string> {
+  type: S;
+  address: string;
+  port: number;
+}
+
+interface OptitrackConnectionDetails {
+  type: "Optitrack";
+  connectionType: "Multicast" | "Unicast";
+  serverCommandPort: number;
+  serverDataPort: number;
+  serverAddress: string;
+  localAddress: string;
+  multicastAddress: string;
+}
+
+export type ProducerConnectionDetails =
+  | OfflineDetails<"Development">
+  | SimpleConnectionDetails<"AxisStudio" | "Vicon" | "Xsens" | "Development">
+  | OptitrackConnectionDetails;
+
 export interface UnityConsumerState {
   type: "Unity";
   observer: Observer<Buffer>;
