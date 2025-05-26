@@ -16,8 +16,8 @@ export interface SubjectData {
   segments: SegmentData[];
 }
 
-interface OfflineDetails<S extends string> {
-  type: S;
+interface DevelopmentDetails {
+  type: "Development";
 }
 
 interface SimpleConnectionDetails<S extends string> {
@@ -37,7 +37,7 @@ interface OptitrackConnectionDetails {
 }
 
 export type ProducerConnectionDetails =
-  | OfflineDetails<"Development">
+  | DevelopmentDetails
   | SimpleConnectionDetails<"AxisStudio" | "Vicon" | "Xsens" | "Development">
   | OptitrackConnectionDetails;
 

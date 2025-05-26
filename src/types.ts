@@ -15,17 +15,17 @@ export interface SubjectData {
 
 export type MessageMode = "data" | "mocap";
 
-interface OfflineDetails<S extends string> {
-  type: S;
+interface DevelopmentDetails {
+  type: "Development";
 }
 
-interface SimpleConnectionDetails<S extends string> {
+export interface SimpleConnectionDetails<S extends string> {
   type: S;
   address: string;
   port: number;
 }
 
-interface OptitrackConnectionDetails {
+export interface OptitrackConnectionDetails {
   type: "Optitrack";
   connectionType: "Multicast" | "Unicast";
   serverCommandPort: number;
@@ -36,6 +36,6 @@ interface OptitrackConnectionDetails {
 }
 
 export type ProducerConnectionDetails =
-  | OfflineDetails<"Development">
+  | DevelopmentDetails
   | SimpleConnectionDetails<"AxisStudio" | "Vicon" | "Xsens" | "Development">
   | OptitrackConnectionDetails;
