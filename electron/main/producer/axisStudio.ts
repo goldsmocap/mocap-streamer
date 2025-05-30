@@ -89,6 +89,7 @@ export function bvhToSubjectData(bvh: string): SubjectData[] {
             rotx: transformParts[sIdx * transformCount + 4],
             roty: -transformParts[sIdx * transformCount + 3],
             rotz: -transformParts[sIdx * transformCount + 5],
+            rotw: null,
           })
         ),
       };

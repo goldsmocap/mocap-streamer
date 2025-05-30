@@ -42,6 +42,7 @@ export function subjectDataToOsc(
         segmentData.rotx,
         segmentData.roty,
         segmentData.rotz,
+        ...(segmentData.rotw != null ? [segmentData.rotw] : []),
       ]),
     ]),
     mode: "mocap",

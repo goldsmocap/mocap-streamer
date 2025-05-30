@@ -6,6 +6,7 @@ export type SegmentData = {
   rotx: number;
   roty: number;
   rotz: number;
+  rotw: number | null;
 };
 
 export interface SubjectData {

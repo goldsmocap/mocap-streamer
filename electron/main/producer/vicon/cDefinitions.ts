@@ -1,5 +1,6 @@
 import koffi, { TypeSpecWithAlignment } from "koffi";
 
+// https://help.vicon.com/space/DSSDK112/10027198/Vicon+DataStream+SDK+Quick+Start+Guide+for+Python?attachment=/download/attachments/10027198/Vicon%2520DataStream%2520SDK%25201.12%2520Developers%2520Guide.pdf&type=application/pdf&filename=Vicon+DataStream+SDK+1.12+Developers+Guide.pdf
 const lib = koffi.load(".\\C\\Vicon\\ViconDataStreamSDK_C");
 
 const KoffiOutParam = (inType: string) => `_Out_ ${inType}`;
@@ -50,36 +51,13 @@ export const CGetSegmentLocalTranslationOutputType = createViconOutputStruct(
   koffi.array("double", 3),
   { Occluded: CBoolType }
 );
-export const CGetSegmentLocalRotationEulerOutputType = createViconOutputStruct(
-  "COutput_GetSegmentLocalRotationEulerXYZ",
-  "Rotation",
-  koffi.array("double", 3),
-  { Occluded: CBoolType }
-);
-export const CGetSegmentGlobalTranslationOutputType = createViconOutputStruct(
-  "COutput_GetSegmentGlobalTranslation",
-  "Translation",
-  koffi.array("double", 3),
-  { Occluded: CBoolType }
-);
-export const CGetSegmentGlobalRotationEulerOutputType = createViconOutputStruct(
-  "COutput_GetSegmentGlobalRotationEulerXYZ",
-  "Rotation",
-  koffi.array("double", 3),
-  { Occluded: CBoolType }
-);
-export const CGetSegmentStaticTranslationOutputType = createViconOutputStruct(
-  "COutput_GetSegmentStaticTranslation",
-  "Translation",
-  koffi.array("double", 3),
-  { Occluded: CBoolType }
-);
-export const CGetSegmentStaticRotationEulerOutputType = createViconOutputStruct(
-  "COutput_GetSegmentStaticRotationEulerXYZ",
-  "Rotation",
-  koffi.array("double", 3),
-  { Occluded: CBoolType }
-);
+export const CGetSegmentLocalRotationQuaternionOutputType =
+  createViconOutputStruct(
+    "COutput_GetSegmentLocalRotationQuaternion",
+    "Rotation",
+    koffi.array("double", 4),
+    { Occluded: CBoolType }
+  );
 
 export enum TsResultTypeMapping {
   UnknownResult /**< The result is unknown. Treat it as a failure. */,
@@ -193,54 +171,14 @@ export const clientGetSegmentLocalTranslation = lib.func(
     CGetSegmentLocalTranslationOutputType.outParamName,
   ]
 );
-export const clientGetSegmentLocalRotationEuler = lib.func(
-  "Client_GetSegmentLocalRotationEulerXYZ",
+export const clientGetSegmentLocalRotationQuaternion = lib.func(
+  "Client_GetSegmentLocalRotationQuaternion",
   CVoidType,
   [
     CClientType,
     CConstStringType,
     CConstStringType,
-    CGetSegmentLocalRotationEulerOutputType.outParamName,
-  ]
-);
-export const clientGetSegmentGlobalTranslation = lib.func(
-  "Client_GetSegmentGlobalTranslation",
-  CVoidType,
-  [
-    CClientType,
-    CConstStringType,
-    CConstStringType,
-    CGetSegmentGlobalTranslationOutputType.outParamName,
-  ]
-);
-export const clientGetSegmentGlobalRotationEuler = lib.func(
-  "Client_GetSegmentGlobalRotationEulerXYZ",
-  CVoidType,
-  [
-    CClientType,
-    CConstStringType,
-    CConstStringType,
-    CGetSegmentGlobalRotationEulerOutputType.outParamName,
-  ]
-);
-export const clientGetSegmentStaticTranslation = lib.func(
-  "Client_GetSegmentStaticTranslation",
-  CVoidType,
-  [
-    CClientType,
-    CConstStringType,
-    CConstStringType,
-    CGetSegmentStaticTranslationOutputType.outParamName,
-  ]
-);
-export const clientGetSegmentStaticRotationEuler = lib.func(
-  "Client_GetSegmentStaticRotationEulerXYZ",
-  CVoidType,
-  [
-    CClientType,
-    CConstStringType,
-    CConstStringType,
-    CGetSegmentStaticRotationEulerOutputType.outParamName,
+    CGetSegmentLocalRotationQuaternionOutputType.outParamName,
   ]
 );
 export const clientSetBufferSize = lib.func("Client_SetBufferSize", CVoidType, [

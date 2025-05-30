@@ -1,5 +1,4 @@
 import * as Rx from "rxjs";
-import { quaternionToEuler } from "../../conversion.js";
 import { SegmentData, SubjectData } from "../../types.js";
 import { checkExhausted, raise } from "../../utils.js";
 import {
@@ -91,21 +90,15 @@ function frameToSubjectData(frame: SFrameOfMocapData): SubjectData[] {
             )
           );
 
-        const [rotx, roty, rotz] = quaternionToEuler(
-          rigidBody.qX,
-          rigidBody.qY,
-          rigidBody.qZ,
-          rigidBody.qW
-        );
-
         return {
           id: rigidBodyDesc.szName,
           posx: rigidBody.x,
           posy: rigidBody.y,
           posz: rigidBody.z,
-          rotx,
-          roty,
-          rotz,
+          rotx: rigidBody.qX,
+          roty: rigidBody.qY,
+          rotz: rigidBody.qZ,
+          rotw: rigidBody.qW,
         };
       }),
     };

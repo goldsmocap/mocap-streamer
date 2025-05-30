@@ -147,6 +147,7 @@ export function decodeXsensMessage(buffer: Buffer): SubjectData {
         rotx: -view.getFloat32(idx + 16),
         roty: view.getFloat32(idx + 24),
         rotz: -view.getFloat32(idx + 20),
+        rotw: null,
       };
       segments.push(segment);
     }

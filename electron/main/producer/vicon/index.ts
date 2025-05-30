@@ -5,12 +5,8 @@ import { SegmentData, SubjectData } from "../../types";
 import {
   CGetFrameNumberOutputType,
   CGetSegmentCountOutputType,
-  CGetSegmentGlobalRotationEulerOutputType,
-  CGetSegmentGlobalTranslationOutputType,
-  CGetSegmentLocalRotationEulerOutputType,
+  CGetSegmentLocalRotationQuaternionOutputType,
   CGetSegmentLocalTranslationOutputType,
-  CGetSegmentStaticRotationEulerOutputType,
-  CGetSegmentStaticTranslationOutputType,
   CGetSubjectCountOutputType,
   clientConnect,
   clientCreate,
@@ -20,22 +16,16 @@ import {
   clientGetFrame,
   clientGetFrameNumber,
   clientGetSegmentCount,
-  clientGetSegmentGlobalRotationEuler,
-  clientGetSegmentGlobalTranslation,
-  clientGetSegmentLocalRotationEuler,
+  clientGetSegmentLocalRotationQuaternion,
   clientGetSegmentLocalTranslation,
   clientGetSegmentName,
-  clientGetSegmentStaticRotationEuler,
-  clientGetSegmentStaticTranslation,
   clientGetSubjectCount,
   clientGetSubjectName,
   clientIsConnected,
   clientIsSegmentDataEnabled,
-  clientSetAxisMapping,
   clientSetBufferSize,
   createViconOutputStruct,
   TsBoolTypeMapping,
-  TsCDirectionTypeMapping,
   TsResultTypeMapping,
 } from "./cDefinitions";
 import { viconTransformMap } from "./transformMap.js";
@@ -156,97 +146,25 @@ export function getData(): SubjectData[] | null {
             )
         );
         const localRotation = callAsUnpackedOutputStruct<Float64Array>(
-          CGetSegmentLocalRotationEulerOutputType,
+          CGetSegmentLocalRotationQuaternionOutputType,
           (result) =>
-            clientGetSegmentLocalRotationEuler(
+            clientGetSegmentLocalRotationQuaternion(
               client,
               subjectName,
               segmentName,
               result
             )
         );
-
-        if (segmentIndex === 0) {
-          const staticTranslation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentStaticTranslationOutputType,
-            (result) =>
-              clientGetSegmentStaticTranslation(
-                client,
-                subjectName,
-                segmentName,
-                result
-              )
-          );
-          const globalTranslation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentGlobalTranslationOutputType,
-            (result) =>
-              clientGetSegmentGlobalTranslation(
-                client,
-                subjectName,
-                segmentName,
-                result
-              )
-          );
-
-          const staticRotation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentStaticRotationEulerOutputType,
-            (result) =>
-              clientGetSegmentStaticRotationEuler(
-                client,
-                subjectName,
-                segmentName,
-                result
-              )
-          );
-
-          const globalRotation = callAsUnpackedOutputStruct<Float64Array>(
-            CGetSegmentGlobalRotationEulerOutputType,
-            (result) =>
-              clientGetSegmentGlobalRotationEuler(
-                client,
-                subjectName,
-                segmentName,
-                result
-              )
-          );
-
-          segments.push({
-            id: segmentName,
-            // posx: -processTranslation(globalTranslation.at(1)),
-            // posy: processTranslation(globalTranslation.at(2)),
-            // posz: processTranslation(globalTranslation.at(0)),
-            posx: -processTranslation(localTranslation.at(1)),
-            posy: processTranslation(localTranslation.at(2)),
-            posz: -processTranslation(localTranslation.at(0)),
-            // posx: processTranslation(globalTranslation.at(0)),
-            // posy: processTranslation(globalTranslation.at(1)),
-            // posz: processTranslation(globalTranslation.at(2)),
-
-            // SUPER CLOSE
-            // rotx: -processRotation(globalRotation.at(1)),
-            // roty: processRotation(globalRotation.at(2)),
-            // rotz: processRotation(globalRotation.at(0)),
-
-            // 120, 102 are close
-            // Tried: 012, 120, 102, 201, 021, 210
-            rotx: processRotation(staticRotation.at(0)), // Try variations on 90 degree offsets
-            roty: processRotation(staticRotation.at(1)),
-            rotz: processRotation(staticRotation.at(2)),
-          });
-        } else {
-          segments.push({
-            id: segmentName,
-            // posx: processTranslation(localTranslation.at(0)),
-            // posy: processTranslation(localTranslation.at(1)),
-            // posz: processTranslation(localTranslation.at(2)),
-            posx: processTranslation(localTranslation.at(0)),
-            posy: processTranslation(localTranslation.at(1)),
-            posz: processTranslation(localTranslation.at(2)),
-            rotx: processRotation(localRotation.at(0)),
-            roty: processRotation(localRotation.at(1)),
-            rotz: processRotation(localRotation.at(2)),
-          });
-        }
+        segments.push({
+          id: segmentName,
+          posx: processTranslation(-localTranslation.at(0)),
+          posy: processTranslation(localTranslation.at(1)),
+          posz: processTranslation(localTranslation.at(2)),
+          rotx: processRotation(localRotation.at(0)),
+          roty: processRotation(-localRotation.at(1)),
+          rotz: processRotation(-localRotation.at(2)),
+          rotw: processRotation(localRotation.at(3)),
+        });
       }
 
       result.push({ name: subjectName, segments });
