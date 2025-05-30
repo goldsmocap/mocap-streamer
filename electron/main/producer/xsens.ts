@@ -6,58 +6,54 @@ import { raise } from "../utils.js";
 
 type UIntNumBytes = 1 | 2 | 4;
 
-// const segmentOrder = [
-//   "Pelvis",
-//   "L5",
-//   "L3",
-//   "T12",
-//   "T8",
-//   "Neck",
-//   "Head",
-//   "RightShoulder",
-//   "RightUpperArm",
-//   "RightForeArm",
-//   // "RightHand",
-//   "RightCarpus",
-//   "LeftShoulder",
-//   "LeftUpperArm",
-//   "LeftForeArm",
-//   // "LeftHand",
-//   "LeftCarpus",
-//   "RightUpperLeg",
-//   "RightLowerLeg",
-//   "RightFoot",
-//   "RightToe",
-//   "LeftUpperLeg",
-//   "LeftLowerLeg",
-//   "LeftFoot",
-//   "LeftToe",
-// ];
 const segmentOrder = [
-  "Hips",
-  "Chest",
-  "Chest2",
-  "Chest3",
-  "Chest4",
-  "Neck 1",
-  "Head 1",
-  "RightCollar",
-  "RightShoulder 1",
-  "RightElbow",
-  "RightCarpus 1",
-  "LeftCollar",
-  "LeftShoulder 1",
-  "LeftElbow",
-  "LeftCarpus 1",
-  "RightHip",
-  "RightKnee",
-  "RightAnkle",
-  "RightToe 1",
-  "LeftHip",
-  "LeftKnee",
-  "LeftAnkle",
-  "LeftToe 1",
+  "Pelvis",
+  "L5",
+  "L3",
+  "T12",
+  "T8",
+  "Neck",
+  "Head",
+  "RightShoulder",
+  "RightUpperArm",
+  "RightLowerArm",
+  "RightHand",
+  "LeftShoulder",
+  "LeftUpperArm",
+  "LeftLowerArm",
+  "LeftHand",
+  "RightUpperLeg",
+  "RightLowerLeg",
+  "RightFoot",
+  "RightToe",
+  "LeftUpperLeg",
+  "LeftLowerLeg",
+  "LeftFoot",
+  "LeftToe",
 ];
+const characterMapping = {
+  Pelvis: "Hips",
+  LeftUpperLeg: "LeftUpperLeg",
+  LeftLowerLeg: "LeftLowerLeg",
+  LeftFoot: "LeftFoot",
+  LeftToe: "LeftToes",
+  RightUpperLeg: "RightUpperLeg",
+  RightLowerLeg: "RightLowerLeg",
+  RightFoot: "RightFoot",
+  RightToe: "RightToes",
+  L3: "Spine",
+  T8: "Chest",
+  LeftShoulder: "LeftShoulder",
+  LeftUpperArm: "LeftUpperArm",
+  LeftLowerArm: "LeftLowerArm",
+  LeftHand: "LeftHand",
+  RightShoulder: "RightShoulder",
+  RightUpperArm: "RightUpperArm",
+  RightLowerArm: "RightLowerArm",
+  RightHand: "RightHand",
+  Neck: "Neck",
+  Head: "Head",
+};
 
 interface Header {
   id: string;
@@ -140,17 +136,21 @@ export function decodeXsensMessage(buffer: Buffer): SubjectData {
 
   const segments: SegmentData[] = [];
   for (let i = 0; i < header.numBodySegments; i++) {
-    const segment: SegmentData = {
-      id: segmentOrder[view.getUint32(idx) - 1],
-      posx: -view.getFloat32(idx + 8) / 10,
-      posy: view.getFloat32(idx + 12) / 10,
-      posz: view.getFloat32(idx + 4) / 10,
-      rotx: -view.getFloat32(idx + 16),
-      roty: view.getFloat32(idx + 24),
-      rotz: -view.getFloat32(idx + 20),
-    };
+    const translatedId =
+      characterMapping[segmentOrder[view.getUint32(idx) - 1]];
+    if (translatedId != null) {
+      const segment: SegmentData = {
+        id: translatedId,
+        posx: -view.getFloat32(idx + 8) / 10,
+        posy: view.getFloat32(idx + 12) / 10,
+        posz: view.getFloat32(idx + 4) / 10,
+        rotx: -view.getFloat32(idx + 16),
+        roty: view.getFloat32(idx + 24),
+        rotz: -view.getFloat32(idx + 20),
+      };
+      segments.push(segment);
+    }
     idx += 28;
-    segments.push(segment);
   }
 
   return { name: `${header.characterId}`, segments };
