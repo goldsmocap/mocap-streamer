@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class MocapCharacterController : MonoBehaviour
@@ -28,6 +30,7 @@ public class MocapCharacterController : MonoBehaviour
 
   public void SetFrame(SubjectData data)
   {
+    List<string> missingSegments = new();
     foreach (SegmentData segment in data.segments)
     {
       if (transforms.ContainsKey(segment.id))
@@ -40,8 +43,13 @@ public class MocapCharacterController : MonoBehaviour
       }
       else
       {
-        Debug.LogWarning("Could not find segment ID in skeleton transforms: " + segment.id);
+        missingSegments.Add(segment.id);
       }
+    }
+
+    if (missingSegments.Count > 0)
+    {
+      Debug.LogWarning("Could not find segments in skeleton transforms: \"" + string.Join("\", \"", missingSegments) + "\"");
     }
   }
 }
