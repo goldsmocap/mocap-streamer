@@ -1,6 +1,6 @@
 import * as Rx from "rxjs";
 import { SegmentData, SubjectData } from "../../types.js";
-import { checkExhausted, raise } from "../../utils.js";
+import { checkExhausted, raise, zip } from "../../utils.js";
 import {
   ErrorCode,
   optitrackBridge,
@@ -42,6 +42,7 @@ function handleErrorCode(code: ErrorCode): Error | null {
 
 function connect(params: SNatNetClientConnectParams) {
   const err = handleErrorCode(optitrackBridge.clientConnect(params));
+  optitrackBridge.clientRegisterFrameCallback();
   if (err != null) throw err;
 }
 
@@ -50,55 +51,58 @@ function disconnect() {
   if (err != null) throw err;
 }
 
-let skeletons: SSkeletonDescription[] = [];
+let skeletons: Record<number, SSkeletonDescription> = {};
 
-function getSkeletonFromId(skeletonId: number): SSkeletonDescription {
-  const foundSkeleton = skeletons.find(
-    (skeleton) => skeletonId === skeleton.skeletonId
-  );
-  if (foundSkeleton != null) return foundSkeleton;
-
-  const dataDescriptions = optitrackBridge.clientGetDataDescriptions();
-  if (typeof dataDescriptions === "number") {
-    throw (
-      handleErrorCode(dataDescriptions) ??
-      new Error("Unknown error getting data descriptions")
-    );
-  }
-
-  skeletons = dataDescriptions.flatMap((description) =>
-    description.type === "Skeleton" ? [description] : []
-  );
-
-  return (
-    skeletons.find((skeleton) => skeletonId === skeleton.skeletonId) ??
-    raise(new Error(`Skeleton with ID ${skeletonId} not found.`))
-  );
+function getSkeletonsFromIds(skeletonIds: number[]): SSkeletonDescription[] {
+  let fetchedDescriptions: boolean = false;
+  return skeletonIds.map((id) => {
+    if (skeletons[id] != null) return skeletons[id];
+    if (fetchedDescriptions)
+      throw new Error(`Skeleton with ID ${id} not found.`);
+    const descriptions = optitrackBridge.clientGetDataDescriptions();
+    if (typeof descriptions === "number") {
+      throw (
+        handleErrorCode(descriptions) ??
+        new Error("Unknown error getting data descriptions")
+      );
+    } else {
+      for (const description of descriptions) {
+        if (description.type === "Skeleton") {
+          if (skeletons[description.skeletonId] == null) {
+            skeletons[description.skeletonId] = description;
+          }
+        }
+      }
+    }
+    return skeletons[id];
+  });
 }
 
 function frameToSubjectData(frame: SFrameOfMocapData): SubjectData[] {
-  return frame.skeletons.map((skeleton): SubjectData => {
-    const skeletonDesc = getSkeletonFromId(skeleton.skeletonId);
+  return zip(
+    frame.skeletons,
+    getSkeletonsFromIds(frame.skeletons.map(({ skeletonId }) => skeletonId))
+  ).map(([skeleton, desc]): SubjectData => {
     return {
-      name: skeletonDesc.szName,
+      name: desc.szName,
       segments: skeleton.rigidBodies.map((rigidBody): SegmentData => {
         const rigidBodyDesc =
-          skeletonDesc.rigidBodies.find((desc) => desc.id === rigidBody.id) ??
+          desc.rigidBodies.find((desc) => desc.id === rigidBody.id) ??
           raise(
             new Error(
-              `Rigid body with ID ${rigidBody.id} on skeleton ${skeletonDesc.skeletonId} not found.`
+              `Rigid body with ID ${rigidBody.id} on skeleton ${desc.skeletonId} not found.`
             )
           );
 
         return {
-          id: rigidBodyDesc.szName,
-          posx: rigidBody.x,
+          id: rigidBodyDesc.szName.replace(new RegExp(`^${desc.szName}_?`), ""),
+          posx: -rigidBody.x,
           posy: rigidBody.y,
           posz: rigidBody.z,
-          rotx: rigidBody.qX,
+          rotx: -rigidBody.qX,
           roty: rigidBody.qY,
           rotz: rigidBody.qZ,
-          rotw: rigidBody.qW,
+          rotw: -rigidBody.qW,
         };
       }),
     };

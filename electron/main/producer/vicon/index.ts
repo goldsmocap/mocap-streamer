@@ -132,8 +132,8 @@ export function getData(): SubjectData[] | null {
         if (segmentName == null) continue;
 
         const processTranslation = (n: number) => reverseBits(n) / 10;
-        const processRotation = (n: number, offset: number = 0) =>
-          posMod((reverseBits(n) / Math.PI) * 180 + offset + 180, 360) - 180;
+        const processRotation = (n: number) =>
+          posMod((reverseBits(n) / Math.PI) * 180 + 180, 360) - 180;
 
         const localTranslation = callAsUnpackedOutputStruct<Float64Array>(
           CGetSegmentLocalTranslationOutputType,
@@ -145,6 +145,7 @@ export function getData(): SubjectData[] | null {
               result
             )
         );
+
         const localRotation = callAsUnpackedOutputStruct<Float64Array>(
           CGetSegmentLocalRotationQuaternionOutputType,
           (result) =>
@@ -155,6 +156,7 @@ export function getData(): SubjectData[] | null {
               result
             )
         );
+
         segments.push({
           id: segmentName,
           posx: processTranslation(-localTranslation.at(0)),

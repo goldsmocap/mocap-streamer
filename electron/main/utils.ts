@@ -36,3 +36,13 @@ export const mapObject = <I extends object, O extends object>(
   obj: I,
   mapper: (entry: Entry<I>, index: number, array: Entry<I>[]) => Entry<O>
 ): O => typedFromEntries(typedToEntries(obj).map(mapper));
+
+type Zippable = [readonly unknown[], ...(readonly unknown[])[]];
+type ZippedItem<Z extends Zippable> = {
+  [K in keyof Z]: Z[K] extends readonly (infer T)[] ? T : Z[K];
+};
+
+export const zip = <const Z extends Zippable>(...toZip: Z) =>
+  toZip.every((arr) => arr.length === toZip[0].length)
+    ? toZip[0].map((_, i) => toZip.map((arr) => arr[i]) as ZippedItem<Z>)
+    : raise(new Error("Zip index out of bounds"));

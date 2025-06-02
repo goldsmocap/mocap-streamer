@@ -9,8 +9,8 @@
   directories: {
     output: "release/${version}",
   },
-  extraFiles: ["assets", "C"],
-  files: ["dist", "dist-electron"],
+  extraFiles: ["assets", "C", "NatNetLib.dll", "NatNetLib.lib"],
+  files: ["dist", "dist-electron", "build/Release"],
   mac: {
     target: ["dmg"],
     artifactName: "${productName}-Mac-${version}-Installer.${ext}",

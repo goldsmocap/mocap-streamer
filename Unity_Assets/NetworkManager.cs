@@ -136,21 +136,32 @@ public class NetworkManager : MonoBehaviour
     return new OscParts(mode, address, argTypes[1..], args);
   }
 
-  private static SegmentData ParseSegmentData(byte[] args, ref int bytesIndex)
+  private static SegmentData ParseSegmentData(byte[] args, ref int bytesIndex, bool isQuaternion)
   {
     string id = ParseOscString(args, ref bytesIndex);
-    float posx = ParseOscFloat32(args, ref bytesIndex);
-    float posy = ParseOscFloat32(args, ref bytesIndex);
-    float posz = ParseOscFloat32(args, ref bytesIndex);
-    float rotx = ParseOscFloat32(args, ref bytesIndex);
-    float roty = ParseOscFloat32(args, ref bytesIndex);
-    float rotz = ParseOscFloat32(args, ref bytesIndex);
-    return SegmentData.fromData(id, posx, posy, posz, rotx, roty, rotz);
+    Vector3 pos = new(
+      ParseOscFloat32(args, ref bytesIndex),
+      ParseOscFloat32(args, ref bytesIndex),
+      ParseOscFloat32(args, ref bytesIndex)
+    );
+
+    Quaternion rot = isQuaternion ? new(
+      ParseOscFloat32(args, ref bytesIndex),
+      ParseOscFloat32(args, ref bytesIndex),
+      ParseOscFloat32(args, ref bytesIndex),
+      ParseOscFloat32(args, ref bytesIndex)
+    ) : Quaternion.Euler(
+      ParseOscFloat32(args, ref bytesIndex),
+      ParseOscFloat32(args, ref bytesIndex),
+      ParseOscFloat32(args, ref bytesIndex)
+    );
+
+    return new SegmentData(id, pos, rot);
   }
 
   private List<AnimationFrame> ParseOscSubjectData(OscParts parts)
   {
-    Regex argTypeRe = new Regex(@"ssffffff(s?sffffff)*", RegexOptions.None);
+    Regex argTypeRe = new Regex(@"ssfffffff?(s?sfffffff?)*", RegexOptions.None);
     if (!argTypeRe.IsMatch(parts.argTypes))
       throw new Exception("Malformed OSC arg types " + parts.argTypes);
 
@@ -175,8 +186,9 @@ public class NetworkManager : MonoBehaviour
       }
       else
       {
-        segments.Add(ParseSegmentData(parts.args, ref argsIdx));
-        argTypesIdx += 7;
+        bool isQuaternion = parts.argTypes.Length > argTypesIdx + 7 && parts.argTypes[argTypesIdx + 7] == 'f';
+        segments.Add(ParseSegmentData(parts.args, ref argsIdx, isQuaternion));
+        argTypesIdx += isQuaternion ? 8 : 7;
       }
     }
 

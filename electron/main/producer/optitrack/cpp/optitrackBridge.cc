@@ -280,7 +280,9 @@ Napi::Object wrapSRigidBodyData(Napi::Env env, sRigidBodyData *value)
 {
   Napi::Object obj = Napi::Object::New(env);
 
-  obj.Set("id", Napi::Number::New(env, (double)(value->ID)));
+  int32_t adjusted_id = (value->ID) & 0xFFFF;
+
+  obj.Set("id", Napi::Number::New(env, (double)(adjusted_id)));
   obj.Set("x", Napi::Number::New(env, (double)(value->x)));
   obj.Set("y", Napi::Number::New(env, (double)(value->y)));
   obj.Set("z", Napi::Number::New(env, (double)(value->z)));
@@ -303,7 +305,7 @@ Napi::Object wrapSSkeletonData(Napi::Env env, sSkeletonData *value)
   Napi::Array rigidBodies = Napi::Array::New(env, value->nRigidBodies);
   for (int32_t i = 0; i < value->nRigidBodies; i++)
   {
-    rigidBodies.Set(i, wrapSRigidBodyData(env, value->RigidBodyData));
+    rigidBodies.Set(i, wrapSRigidBodyData(env, &value->RigidBodyData[i]));
   }
   obj.Set("rigidBodies", rigidBodies);
 
@@ -334,7 +336,7 @@ Napi::Object wrapSAssetData(Napi::Env env, sAssetData *value)
   Napi::Array rigidBodies = Napi::Array::New(env, value->nRigidBodies);
   for (int32_t i = 0; i < value->nRigidBodies; i++)
   {
-    rigidBodies.Set(i, wrapSRigidBodyData(env, value->RigidBodyData));
+    rigidBodies.Set(i, wrapSRigidBodyData(env, &value->RigidBodyData[i]));
   }
   obj.Set("rigidBodies", rigidBodies);
 
@@ -564,16 +566,6 @@ Napi::Number ClientConnect(const Napi::CallbackInfo &info)
 
   Napi::Object rawParams = info[0].As<Napi::Object>();
   sNatNetClientConnectParams params = unwrapSNatNetClientConnectParams(&rawParams);
-
-  std::cout
-      << "[C++] CONNECT PARAMS:\nconnectionType: " << params.connectionType
-      << "\nserverCommandPort: " << params.serverCommandPort
-      << "\nserverDataPort: " << params.serverDataPort
-      << "\nserverAddress: \"" << params.serverAddress
-      << "\"\nlocalAddress: \"" << params.localAddress
-      << "\"\nmulticastAddress: \"" << params.multicastAddress
-      << "\"\nsubscribedDataOnly: " << params.subscribedDataOnly
-      << "\n\n";
 
   client = new NatNetClient();
   ErrorCode code = client->Connect(params);

@@ -30,27 +30,33 @@ export const createViconOutputStruct = (
   }),
 });
 
+// Types
+
 export const CGetFrameNumberOutputType = createViconOutputStruct(
   "COutput_GetFrameNumber",
   "FrameNumber",
   CUnsignedIntType
 );
+
 export const CGetSubjectCountOutputType = createViconOutputStruct(
   "COutput_GetSubjectCount",
   "SubjectCount",
   CUnsignedIntType
 );
+
 export const CGetSegmentCountOutputType = createViconOutputStruct(
   "COutput_GetSegmentCount",
   "SegmentCount",
   CUnsignedIntType
 );
+
 export const CGetSegmentLocalTranslationOutputType = createViconOutputStruct(
   "COutput_GetSegmentLocalTranslation",
   "Translation",
   koffi.array("double", 3),
   { Occluded: CBoolType }
 );
+
 export const CGetSegmentLocalRotationQuaternionOutputType =
   createViconOutputStruct(
     "COutput_GetSegmentLocalRotationQuaternion",
@@ -58,6 +64,14 @@ export const CGetSegmentLocalRotationQuaternionOutputType =
     koffi.array("double", 4),
     { Occluded: CBoolType }
   );
+
+export const CGetSegmentStaticScaleOutputType = createViconOutputStruct(
+  "COutput_GetSegmentStaticScale",
+  "Scale",
+  koffi.array("double", 3)
+);
+
+// Enums
 
 export enum TsResultTypeMapping {
   UnknownResult /**< The result is unknown. Treat it as a failure. */,
@@ -89,6 +103,7 @@ export enum TsResultTypeMapping {
   ConfigurationFailed /**< The operating system configuration changed failed. */,
   NotPresent /**< The requested data type is not present in the stream. */,
 }
+
 export enum TsBoolTypeMapping {
   False,
   True,
@@ -103,53 +118,67 @@ export enum TsCDirectionTypeMapping {
   Backward,
 }
 
+// Functions
+
 export const clientCreate = lib.func("Client_Create", CClientType, []);
+
 export const clientDestroy = lib.func("Client_Destroy", CVoidType, [
   CClientType,
 ]);
+
 export const clientConnect = lib.func("Client_Connect", CEnumType, [
   CClientType,
   CConstStringType,
 ]);
+
 export const clientIsConnected = lib.func("Client_IsConnected", CBoolType, [
   CClientType,
 ]);
+
 export const clientDisconnect = lib.func("Client_Disconnect", CEnumType, [
   CClientType,
 ]);
+
 export const clientEnableSegmentData = lib.func(
   "Client_EnableSegmentData",
   CEnumType,
   [CClientType]
 );
+
 export const clientIsSegmentDataEnabled = lib.func(
   "Client_IsSegmentDataEnabled",
   CBoolType,
   [CClientType]
 );
+
 export const clientGetFrame = lib.func("Client_GetFrame", CEnumType, [
   CClientType,
 ]);
+
 export const clientGetFrameNumber = lib.func(
   "Client_GetFrameNumber",
   CVoidType,
   [CClientType, CGetFrameNumberOutputType.outParamName]
 );
+
 export const clientGetSubjectCount = lib.func(
   "Client_GetSubjectCount",
   CVoidType,
   [CClientType, CGetSubjectCountOutputType.outParamName]
 );
+
 export const clientGetSubjectName = lib.func(
   "Client_GetSubjectName",
   CEnumType,
   [CClientType, CUnsignedIntType, CIntType, KoffiOutParam("char*")]
 );
+
 export const clientGetSegmentCount = lib.func(
   "Client_GetSegmentCount",
   CVoidType,
   [CClientType, CConstStringType, CGetSegmentCountOutputType.outParamName]
 );
+
 export const clientGetSegmentName = lib.func(
   "Client_GetSegmentName",
   CEnumType,
@@ -161,6 +190,7 @@ export const clientGetSegmentName = lib.func(
     KoffiOutParam(CStringType),
   ]
 );
+
 export const clientGetSegmentLocalTranslation = lib.func(
   "Client_GetSegmentLocalTranslation",
   CVoidType,
@@ -171,6 +201,7 @@ export const clientGetSegmentLocalTranslation = lib.func(
     CGetSegmentLocalTranslationOutputType.outParamName,
   ]
 );
+
 export const clientGetSegmentLocalRotationQuaternion = lib.func(
   "Client_GetSegmentLocalRotationQuaternion",
   CVoidType,
@@ -181,6 +212,7 @@ export const clientGetSegmentLocalRotationQuaternion = lib.func(
     CGetSegmentLocalRotationQuaternionOutputType.outParamName,
   ]
 );
+
 export const clientSetBufferSize = lib.func("Client_SetBufferSize", CVoidType, [
   CClientType,
   CUnsignedIntType,
