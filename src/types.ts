@@ -40,3 +40,8 @@ export type ProducerConnectionDetails =
   | DevelopmentDetails
   | SimpleConnectionDetails<"AxisStudio" | "Vicon" | "Xsens" | "Development">
   | OptitrackConnectionDetails;
+
+export interface ConsumerConnectionDetails {
+  address: string;
+  port: number;
+}

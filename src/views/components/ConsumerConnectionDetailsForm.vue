@@ -2,11 +2,7 @@
 import { computed } from "vue";
 import * as yup from "yup";
 import { ErrorMessage, Field, Form } from "vee-validate";
-
-export interface ConsumerConnectionDetails {
-  address: string;
-  port: number;
-}
+import { ConsumerConnectionDetails } from "../../types";
 
 const consumerConnectionDetailsSchema = computed(() =>
   yup.object({

@@ -4,13 +4,15 @@ import { DataConnection } from "peerjs";
 import { computed, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ClientType, connectionServerBaseUrl, store } from "../../store";
-import ConsumerConnectionDetailsForm, {
-  ConsumerConnectionDetails,
-} from "../components/ConsumerConnectionDetailsForm.vue";
+import ConsumerConnectionDetailsForm from "../components/ConsumerConnectionDetailsForm.vue";
 import Modal from "../components/Modal.vue";
 import ProducerConnectionDetailsForm from "../components/ProducerConnectionDetailsForm.vue";
 import { bufferToString, dataToOsc, subjectDataToOsc } from "../../conversion";
-import { ProducerConnectionDetails, SubjectData } from "../../types";
+import {
+  ConsumerConnectionDetails,
+  ProducerConnectionDetails,
+  SubjectData,
+} from "../../types";
 
 const router = useRouter();
 
@@ -51,10 +53,7 @@ const producerConnection = reactive<
   status: "disconnected",
   lastReceived: null,
   responseTimeoutId: null,
-  initial: { address: "127.0.0.1", port: 801, type: "Vicon" },
-  // initial: { address: "127.0.0.1", port: 7004, type: "AxisStudio" },
-  // initial: { address: "127.0.0.1", port: 9763, type: "Xsens" },
-  // initial: { address: "10.1.190.181", port: 1510, type: "Optitrack" },
+  initial: store.producerConnectionDetails,
 });
 
 const consumerConnection = reactive<
@@ -62,7 +61,7 @@ const consumerConnection = reactive<
 >({
   type: "Consumer",
   status: "disconnected",
-  initial: { address: "127.0.0.1", port: 7000 },
+  initial: store.consumerConnectionDetails,
 });
 
 function setUpConnection(conn: DataConnection, alreadyAdded: boolean = false) {
@@ -121,6 +120,7 @@ function resetResponseTimeout(connection: ConnectionStatus<unknown>) {
 }
 
 function connectProducer(details: ProducerConnectionDetails) {
+  store.producerConnectionDetails = details;
   ipcRenderer
     .invoke("connectProducer", details)
     .then(() => {
@@ -132,7 +132,8 @@ function connectProducer(details: ProducerConnectionDetails) {
 }
 
 function connectConsumer(details: ConsumerConnectionDetails) {
-  const { address, port } = (consumerConnection.initial = details);
+  store.consumerConnectionDetails = details;
+  const { address, port } = details;
   ipcRenderer
     .invoke("connectConsumer", address, port)
     .then(() => {
