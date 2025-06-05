@@ -50,3 +50,21 @@ This subject data array is then sent to the front end of the app, as PeerJS only
 Once the data has been received, it's directly sent to the backend of the app, and then sent to a consumer (only Unity exists for now, however it can support multiple).
 
 When the message is received inside Unity, the OSC message is then deserialised and then used for animation.
+
+## Technical Achievements - Starting Sept 2024
+
+- Created a universal skeleton format, allowing:
+  - The streamer to be agnostic to skeleton data, allowing any skeleton's motion capture data to be sent, rather than a single skeleton.
+- Developed a way to record and playback motion capture data inside of unity with an efficient custom file format.
+- Made the motion capture software integration more universal, allowing for quick development to integrate new external softwares.
+- Augmented the network messages to allow for bone rotational data to be sent in either euler angles, or quaternions.
+- Integrated external motion capture software for:
+  - Xsens to receive the local data stream and turn it into a usable format in the streamer.
+  - Vicon to interact with a C DLL to retrieve the motion capture data.
+  - Optitrack to interact with a C++ DLL which required developing C++ code to bridge between NodeJS and C++.
+  - For all of this software, there are mappings from their own coordinate systems, into Unity's own coordinate system.
+- Created a development mode, where the streamer reads a predefined file to send example data.
+- Created an arbitrary data stream, where you can send any arbitrary data to the streamer, and then it will be received by any other streamer clients and sent to Unity.
+- Made an offline mode, where the streamer won't try to connect to the internet, allowing for local streaming.
+- Collaborated with AWDC to get their app notarized and signed using xcode.
+- Created documentation for the whole Unity side of things.
