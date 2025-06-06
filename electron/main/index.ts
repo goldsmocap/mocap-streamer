@@ -3,8 +3,10 @@ import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
 
+import { debouncedLogger } from "./logger.js";
 import { axisStudioObserver } from "./producer/axisStudio.js";
 import * as development from "./producer/development";
+import { ConnectionType } from "./producer/optitrack/cDefinitions.js";
 import { optitrack } from "./producer/optitrack/index.js";
 import { vicon } from "./producer/vicon";
 import { xsensObserver } from "./producer/xsens";
@@ -17,7 +19,6 @@ import {
   SubjectData,
 } from "./types";
 import { checkExhausted } from "./utils";
-import { ConnectionType } from "./producer/optitrack/cDefinitions.js";
 
 // The built directory structure
 //
@@ -74,6 +75,15 @@ function producerDataReceived(subjectData: SubjectData[]) {
   win.webContents.send("producerDataReceived", subjectData);
 }
 
+const createLogger = debouncedLogger(3000, (message) => {
+  win.webContents.send("logMessage", message);
+});
+
+const loggers = {
+  optitrack: createLogger("Optitrack"),
+  xsens: createLogger("Xsens"),
+};
+
 function connectProducer(details: ProducerConnectionDetails) {
   console.log(`Connection details: ${JSON.stringify(details)}`);
   switch (details.type) {
@@ -111,18 +121,21 @@ function connectProducer(details: ProducerConnectionDetails) {
     }
 
     case "Optitrack": {
-      optitrack.connect({
-        connectionType:
-          details.connectionType === "Multicast"
-            ? ConnectionType.ConnectionType_Multicast
-            : ConnectionType.ConnectionType_Unicast,
-        serverCommandPort: details.serverCommandPort,
-        serverDataPort: details.serverDataPort,
-        serverAddress: details.serverAddress,
-        localAddress: details.localAddress,
-        multicastAddress: details.multicastAddress,
-        subscribedDataOnly: true,
-      });
+      optitrack.connect(
+        {
+          connectionType:
+            details.connectionType === "Multicast"
+              ? ConnectionType.ConnectionType_Multicast
+              : ConnectionType.ConnectionType_Unicast,
+          serverCommandPort: details.serverCommandPort,
+          serverDataPort: details.serverDataPort,
+          serverAddress: details.serverAddress,
+          localAddress: details.localAddress,
+          multicastAddress: details.multicastAddress,
+          subscribedDataOnly: true,
+        },
+        loggers.optitrack
+      );
 
       const subscription = optitrack
         .observer((timeout) => {
@@ -131,7 +144,7 @@ function connectProducer(details: ProducerConnectionDetails) {
             type: "Optitrack",
             timeout,
           }));
-        })
+        }, loggers.optitrack)
         .subscribe({ next: producerDataReceived });
       setProducerState({
         type: "Optitrack",
@@ -162,7 +175,7 @@ function connectProducer(details: ProducerConnectionDetails) {
     case "Xsens": {
       const socket = dgram.createSocket("udp4");
       socket.bind(details.port, details.address);
-      const subscription = xsensObserver(socket).subscribe({
+      const subscription = xsensObserver(socket, loggers.xsens).subscribe({
         next: producerDataReceived,
       });
       setProducerState({
@@ -213,7 +226,7 @@ function disconnectProducer() {
       if (producerState.subscription != null) {
         producerState.subscription.unsubscribe();
       }
-      optitrack.disconnect();
+      optitrack.disconnect(loggers.optitrack);
       break;
     }
 

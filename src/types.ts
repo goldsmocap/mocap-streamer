@@ -45,3 +45,8 @@ export interface ConsumerConnectionDetails {
   address: string;
   port: number;
 }
+
+export interface LogMessage {
+  type?: "info" | "error" | "warn";
+  text: string;
+}

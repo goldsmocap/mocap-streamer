@@ -1,5 +1,5 @@
 import * as Rx from "rxjs";
-import { SegmentData, SubjectData } from "../../types.js";
+import { Logger, LogMessage, SegmentData, SubjectData } from "../../types.js";
 import { checkExhausted, raise, zip } from "../../utils.js";
 import {
   ErrorCode,
@@ -9,51 +9,64 @@ import {
   SSkeletonDescription,
 } from "./cDefinitions.js";
 
-function handleErrorCode(code: ErrorCode): Error | null {
+function handleErrorCode(
+  code: ErrorCode,
+  logger: Logger,
+  okLog?: LogMessage
+): void {
   switch (code) {
     case ErrorCode.ErrorCode_OK:
-      return null;
+      if (okLog != null) logger(okLog);
+      break;
 
     case ErrorCode.ErrorCode_Internal:
-      return new Error("Internal error");
+      logger({ type: "error", text: "[Optitrack] Internal error" });
+      break;
 
     case ErrorCode.ErrorCode_External:
-      return new Error("External error");
+      logger({ type: "error", text: "[Optitrack] External error" });
+      break;
 
     case ErrorCode.ErrorCode_Network:
-      return new Error("Network error");
+      logger({ type: "error", text: "[Optitrack] Network error" });
+      break;
 
     case ErrorCode.ErrorCode_Other:
-      return new Error("Other unknown error");
+      logger({ type: "error", text: "[Optitrack] Other unknown error" });
+      break;
 
     case ErrorCode.ErrorCode_InvalidArgument:
-      return new Error("Invalid argument error");
+      logger({ type: "error", text: "[Optitrack] Invalid argument error" });
+      break;
 
     case ErrorCode.ErrorCode_InvalidOperation:
-      return new Error("Invalid operation error");
+      logger({ type: "error", text: "[Optitrack] Invalid operation error" });
+      break;
 
     case ErrorCode.ErrorCode_InvalidSize:
-      return new Error("Invalid size error");
+      logger({ type: "error", text: "[Optitrack] Invalid size error" });
+      break;
 
     default:
       return checkExhausted(code);
   }
 }
 
-function connect(params: SNatNetClientConnectParams) {
-  const err = handleErrorCode(optitrackBridge.clientConnect(params));
+function connect(params: SNatNetClientConnectParams, logger: Logger) {
+  handleErrorCode(optitrackBridge.clientConnect(params), logger);
   optitrackBridge.clientRegisterFrameCallback();
-  if (err != null) throw err;
 }
 
-function disconnect() {
-  const err = handleErrorCode(optitrackBridge.clientDisconnect());
-  if (err != null) throw err;
+function disconnect(logger: Logger) {
+  handleErrorCode(optitrackBridge.clientDisconnect(), logger);
 }
 
 let skeletons: Record<number, SSkeletonDescription> = {};
 
-function getSkeletonsFromIds(skeletonIds: number[]): SSkeletonDescription[] {
+function getSkeletonsFromIds(
+  skeletonIds: number[],
+  logger: Logger
+): SSkeletonDescription[] {
   let fetchedDescriptions: boolean = false;
   return skeletonIds.map((id) => {
     if (skeletons[id] != null) return skeletons[id];
@@ -61,10 +74,10 @@ function getSkeletonsFromIds(skeletonIds: number[]): SSkeletonDescription[] {
       throw new Error(`Skeleton with ID ${id} not found.`);
     const descriptions = optitrackBridge.clientGetDataDescriptions();
     if (typeof descriptions === "number") {
-      throw (
-        handleErrorCode(descriptions) ??
-        new Error("Unknown error getting data descriptions")
-      );
+      handleErrorCode(descriptions, logger, {
+        type: "error",
+        text: "[Optitrack] Unknown error getting data descriptions",
+      });
     } else {
       for (const description of descriptions) {
         if (description.type === "Skeleton") {
@@ -78,10 +91,16 @@ function getSkeletonsFromIds(skeletonIds: number[]): SSkeletonDescription[] {
   });
 }
 
-function frameToSubjectData(frame: SFrameOfMocapData): SubjectData[] {
+function frameToSubjectData(
+  frame: SFrameOfMocapData,
+  logger: Logger
+): SubjectData[] {
   return zip(
     frame.skeletons,
-    getSkeletonsFromIds(frame.skeletons.map(({ skeletonId }) => skeletonId))
+    getSkeletonsFromIds(
+      frame.skeletons.map(({ skeletonId }) => skeletonId),
+      logger
+    )
   ).map(([skeleton, desc]): SubjectData => {
     return {
       name: desc.szName,
@@ -111,6 +130,7 @@ function frameToSubjectData(frame: SFrameOfMocapData): SubjectData[] {
 
 function observer(
   setIntervalTimeout: (timeout: NodeJS.Timeout) => void,
+  logger: Logger,
   fps = 90
 ): Rx.Observable<SubjectData[]> {
   return new Rx.Observable<SubjectData[]>((observer) => {
@@ -120,7 +140,7 @@ function observer(
         const frame = optitrackBridge.clientGetPreviousFrame();
         if (frame != null && frame.iFrame !== lastIFrame) {
           lastIFrame = frame.iFrame;
-          observer.next(frameToSubjectData(frame));
+          observer.next(frameToSubjectData(frame, logger));
         }
       }, 1000 / fps)
     );

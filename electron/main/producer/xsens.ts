@@ -1,7 +1,7 @@
 import * as dgram from "dgram";
 import * as Rx from "rxjs";
 import { bufferToString } from "../conversion";
-import { SegmentData, SubjectData } from "../types";
+import { Logger, SegmentData, SubjectData } from "../types";
 import { raise } from "../utils.js";
 
 type UIntNumBytes = 1 | 2 | 4;
@@ -120,19 +120,15 @@ function decodeHeader(buffer: Buffer): [number, Header] {
 }
 
 // https://movella.my.salesforce.com/sfc/p/#09000007xxr9/a/09000000S801/cPVPGjXbSD5Tfm8JyXWyyc.7wuSg56MLVWVKNVgSKJA
-export function decodeXsensMessage(buffer: Buffer): SubjectData {
+function decodeXsensMessage(buffer: Buffer, logger: Logger): SubjectData {
   const view = new DataView(buffer.buffer);
   let [idx, header] = decodeHeader(buffer);
 
   if (header.numBodySegments !== 23)
-    raise(new Error("Invalid Xsens data! Can only handle 23 body segments"));
-
-  if (header.payload !== header.numBodySegments * 28)
-    raise(
-      new Error(
-        "Invalid Xsens data! Can only handle position + euler orientation data"
-      )
-    );
+    logger({
+      type: "error",
+      text: "[Xsens] Invalid data! Can only handle 23 body segments",
+    });
 
   const segments: SegmentData[] = [];
   for (let i = 0; i < header.numBodySegments; i++) {
@@ -158,11 +154,12 @@ export function decodeXsensMessage(buffer: Buffer): SubjectData {
 }
 
 export function xsensObserver(
-  socket: dgram.Socket
+  socket: dgram.Socket,
+  logger: Logger
 ): Rx.Observable<SubjectData[]> {
   return new Rx.Observable<SubjectData[]>((observer) => {
     socket.on("message", (msg: Buffer) => {
-      observer.next([decodeXsensMessage(msg)]);
+      observer.next([decodeXsensMessage(msg, logger)]);
     });
     socket.on("error", (err) => observer.error(err));
     socket.on("close", () => observer.complete());

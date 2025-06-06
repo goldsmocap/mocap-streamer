@@ -10,6 +10,7 @@ import ProducerConnectionDetailsForm from "../components/ProducerConnectionDetai
 import { bufferToString, dataToOsc, subjectDataToOsc } from "../../conversion";
 import {
   ConsumerConnectionDetails,
+  LogMessage,
   ProducerConnectionDetails,
   SubjectData,
 } from "../../types";
@@ -23,11 +24,6 @@ const canConsume = computed(() =>
   new Set<ClientType>(["Both", "Receiver", "Offline"]).has(store.clientType)
 );
 const isOnline = computed(() => store.clientType !== "Offline");
-
-interface LogMessage {
-  type?: "info" | "error" | "warn";
-  text: string;
-}
 
 interface ConnectionStatus<I> {
   type: string;
@@ -143,6 +139,10 @@ function connectConsumer(details: ConsumerConnectionDetails) {
     })
     .catch(console.error);
 }
+
+ipcRenderer.on("logMessage", (_evt, message: LogMessage) => {
+  log.value.push(message);
+});
 
 ipcRenderer.on("incomingDataReceived", (_evt, buffer: Buffer) => {
   if (incomingDataConnection.status !== "disconnected") {

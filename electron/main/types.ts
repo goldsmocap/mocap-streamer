@@ -92,3 +92,10 @@ export interface IncomingDataState {
 }
 
 export type MessageMode = "data" | "mocap";
+
+export interface LogMessage {
+  type?: "info" | "error" | "warn";
+  text: string;
+}
+
+export type Logger = (message: LogMessage) => void;
