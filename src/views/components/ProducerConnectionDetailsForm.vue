@@ -136,8 +136,8 @@ const producerConnectionDetailsSchemas: Record<
     connectionType: "Multicast",
     serverCommandPort: 1510,
     serverDataPort: 1511,
-    serverAddress: "192.168.1.100",
-    localAddress: "192.168.1.50",
+    serverAddress: "127.0.0.1",
+    localAddress: "127.0.0.1",
     multicastAddress: "239.255.42.99",
   }),
 };

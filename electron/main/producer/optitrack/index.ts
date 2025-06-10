@@ -1,6 +1,6 @@
 import * as Rx from "rxjs";
 import { Logger, LogMessage, SegmentData, SubjectData } from "../../types.js";
-import { checkExhausted, raise, zip } from "../../utils.js";
+import { checkExhausted, zip } from "../../utils.js";
 import {
   ErrorCode,
   optitrackBridge,
@@ -20,31 +20,31 @@ function handleErrorCode(
       break;
 
     case ErrorCode.ErrorCode_Internal:
-      logger({ type: "error", text: "[Optitrack] Internal error" });
+      logger({ type: "error", text: "Internal error" });
       break;
 
     case ErrorCode.ErrorCode_External:
-      logger({ type: "error", text: "[Optitrack] External error" });
+      logger({ type: "error", text: "External error" });
       break;
 
     case ErrorCode.ErrorCode_Network:
-      logger({ type: "error", text: "[Optitrack] Network error" });
+      logger({ type: "error", text: "Network error" });
       break;
 
     case ErrorCode.ErrorCode_Other:
-      logger({ type: "error", text: "[Optitrack] Other unknown error" });
+      logger({ type: "error", text: "Other unknown error" });
       break;
 
     case ErrorCode.ErrorCode_InvalidArgument:
-      logger({ type: "error", text: "[Optitrack] Invalid argument error" });
+      logger({ type: "error", text: "Invalid argument error" });
       break;
 
     case ErrorCode.ErrorCode_InvalidOperation:
-      logger({ type: "error", text: "[Optitrack] Invalid operation error" });
+      logger({ type: "error", text: "Invalid operation error" });
       break;
 
     case ErrorCode.ErrorCode_InvalidSize:
-      logger({ type: "error", text: "[Optitrack] Invalid size error" });
+      logger({ type: "error", text: "Invalid size error" });
       break;
 
     default:
@@ -61,32 +61,29 @@ function disconnect(logger: Logger) {
   handleErrorCode(optitrackBridge.clientDisconnect(), logger);
 }
 
-let skeletons: Record<number, SSkeletonDescription> = {};
-
 function getSkeletonsFromIds(
   skeletonIds: number[],
   logger: Logger
 ): SSkeletonDescription[] {
   let fetchedDescriptions: boolean = false;
+  const descriptions = optitrackBridge.clientGetDataDescriptions();
+  if (typeof descriptions === "number") {
+    handleErrorCode(descriptions, logger, {
+      type: "error",
+      text: "Unknown error getting data descriptions",
+    });
+    return;
+  }
+  const skeletons = descriptions.reduce(
+    (acc, description) =>
+      description.type === "Skeleton"
+        ? { ...acc, [description.skeletonId]: description }
+        : acc,
+    {} as Record<number, SSkeletonDescription>
+  );
   return skeletonIds.map((id) => {
-    if (skeletons[id] != null) return skeletons[id];
     if (fetchedDescriptions)
-      throw new Error(`Skeleton with ID ${id} not found.`);
-    const descriptions = optitrackBridge.clientGetDataDescriptions();
-    if (typeof descriptions === "number") {
-      handleErrorCode(descriptions, logger, {
-        type: "error",
-        text: "[Optitrack] Unknown error getting data descriptions",
-      });
-    } else {
-      for (const description of descriptions) {
-        if (description.type === "Skeleton") {
-          if (skeletons[description.skeletonId] == null) {
-            skeletons[description.skeletonId] = description;
-          }
-        }
-      }
-    }
+      logger({ type: "error", text: `Skeleton with ID ${id} not found.` });
     return skeletons[id];
   });
 }
@@ -105,24 +102,29 @@ function frameToSubjectData(
     return {
       name: desc.szName,
       segments: skeleton.rigidBodies.map((rigidBody): SegmentData => {
-        const rigidBodyDesc =
-          desc.rigidBodies.find((desc) => desc.id === rigidBody.id) ??
-          raise(
-            new Error(
-              `Rigid body with ID ${rigidBody.id} on skeleton ${desc.skeletonId} not found.`
-            )
-          );
-
-        return {
-          id: rigidBodyDesc.szName.replace(new RegExp(`^${desc.szName}_?`), ""),
-          posx: -rigidBody.x,
-          posy: rigidBody.y,
-          posz: rigidBody.z,
-          rotx: -rigidBody.qX,
-          roty: rigidBody.qY,
-          rotz: rigidBody.qZ,
-          rotw: -rigidBody.qW,
-        };
+        const rigidBodyDesc = desc.rigidBodies.find(
+          (desc) => desc.id === rigidBody.id
+        );
+        if (rigidBodyDesc != null) {
+          return {
+            id: rigidBodyDesc.szName.replace(
+              new RegExp(`^${desc.szName}_?`),
+              ""
+            ),
+            posx: 100 * -rigidBody.x,
+            posy: 100 * rigidBody.y,
+            posz: 100 * rigidBody.z,
+            rotx: -rigidBody.qX,
+            roty: rigidBody.qY,
+            rotz: rigidBody.qZ,
+            rotw: -rigidBody.qW,
+          };
+        } else {
+          logger({
+            type: "error",
+            text: `Rigid body with ID ${rigidBody.id} on skeleton ${desc.skeletonId} not found.`,
+          });
+        }
       }),
     };
   });

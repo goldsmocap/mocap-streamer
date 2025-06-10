@@ -2,7 +2,6 @@ import * as dgram from "dgram";
 import * as Rx from "rxjs";
 import { bufferToString } from "../conversion";
 import { Logger, SegmentData, SubjectData } from "../types";
-import { raise } from "../utils.js";
 
 type UIntNumBytes = 1 | 2 | 4;
 
@@ -31,29 +30,6 @@ const segmentOrder = [
   "LeftFoot",
   "LeftToe",
 ];
-const characterMapping = {
-  Pelvis: "Hips",
-  LeftUpperLeg: "LeftUpperLeg",
-  LeftLowerLeg: "LeftLowerLeg",
-  LeftFoot: "LeftFoot",
-  LeftToe: "LeftToes",
-  RightUpperLeg: "RightUpperLeg",
-  RightLowerLeg: "RightLowerLeg",
-  RightFoot: "RightFoot",
-  RightToe: "RightToes",
-  L3: "Spine",
-  T8: "Chest",
-  LeftShoulder: "LeftShoulder",
-  LeftUpperArm: "LeftUpperArm",
-  LeftLowerArm: "LeftLowerArm",
-  LeftHand: "LeftHand",
-  RightShoulder: "RightShoulder",
-  RightUpperArm: "RightUpperArm",
-  RightLowerArm: "RightLowerArm",
-  RightHand: "RightHand",
-  Neck: "Neck",
-  Head: "Head",
-};
 
 interface Header {
   id: string;
@@ -127,27 +103,26 @@ function decodeXsensMessage(buffer: Buffer, logger: Logger): SubjectData {
   if (header.numBodySegments !== 23)
     logger({
       type: "error",
-      text: "[Xsens] Invalid data! Can only handle 23 body segments",
+      text: "Invalid data! Can only handle 23 body segments",
     });
 
   const segments: SegmentData[] = [];
   for (let i = 0; i < header.numBodySegments; i++) {
-    const translatedId =
-      characterMapping[segmentOrder[view.getUint32(idx) - 1]];
-    if (translatedId != null) {
+    const id = segmentOrder[view.getUint32(idx) - 1];
+    if (id != null) {
       const segment: SegmentData = {
-        id: translatedId,
-        posx: -view.getFloat32(idx + 8) / 10,
-        posy: view.getFloat32(idx + 12) / 10,
-        posz: view.getFloat32(idx + 4) / 10,
-        rotx: -view.getFloat32(idx + 16),
-        roty: view.getFloat32(idx + 24),
+        id,
+        posx: -view.getFloat32(idx + 8),
+        posy: view.getFloat32(idx + 12),
+        posz: view.getFloat32(idx + 4),
+        rotx: view.getFloat32(idx + 24),
+        roty: -view.getFloat32(idx + 28),
         rotz: -view.getFloat32(idx + 20),
-        rotw: null,
+        rotw: view.getFloat32(idx + 16),
       };
       segments.push(segment);
     }
-    idx += 28;
+    idx += 32;
   }
 
   return { name: `${header.characterId}`, segments };
